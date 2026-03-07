@@ -160,5 +160,7 @@ defmodule Eirinchan.Runtime.ConfigTest do
     assert config.search_enabled
     assert config.search_allowed_boards == nil
     assert config.search_disallowed_boards == []
+    assert config.search_query_global_limit_window == 60
+    assert config.search_query_global_limit_count == 0
   end
 end
