@@ -1,6 +1,6 @@
 <.flash_group flash={@flash} />
 <section>
-  <h1>/ <%= @board.uri %> / - <%= @board.title %></h1>
+  <h1>/ <%= @board.uri %> / - <%= @board_title %></h1>
   <p><a href={"/#{@board.uri}/catalog.html"}>Catalog</a></p>
   <%= if @board.subtitle do %>
     <p><%= @board.subtitle %></p>
@@ -105,10 +105,14 @@
     </nav>
 
     <%= for summary <- @page_data.threads do %>
+      <% post = summary.thread %>
+      <% template = PostView.template_assigns(@board, post, @config) %>
       <article id={"p#{summary.thread.id}"}>
         <h3>
-          <a href={Eirinchan.ThreadPaths.thread_path(@board, summary.thread, @config)}>
-            <%= summary.thread.subject || "Thread ##{summary.thread.id}" %>
+          <a href={
+            Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)
+          }>
+            <%= PostView.post_title(template.board, template.post, template.config) %>
           </a>
         </h3>
         <p :if={
@@ -153,7 +157,10 @@
         <p :if={summary.thread.name || summary.thread.tripcode}>
           <%= summary.thread.name %> <%= summary.thread.tripcode %>
         </p>
-        <p>
+        <p :if={@config.fileboard && PostView.show_fileboard_summary?(post)}>
+          Fileboard: <%= PostView.fileboard_summary(post) %>
+        </p>
+        <p :if={PostView.show_body?(summary.thread, @config)}>
           <%= if summary.thread.raw_html, do: raw(summary.thread.body), else: summary.thread.body %>
         </p>
         <p :if={summary.thread.flag_alts != []}>
@@ -214,7 +221,12 @@
                 </figcaption>
               </figure>
             <% end %>
-            <p><%= if reply.raw_html, do: raw(reply.body), else: reply.body %></p>
+            <p :if={@config.fileboard && PostView.show_fileboard_summary?(reply)}>
+              Fileboard: <%= PostView.fileboard_summary(reply) %>
+            </p>
+            <p :if={PostView.show_body?(reply, @config)}>
+              <%= if reply.raw_html, do: raw(reply.body), else: reply.body %>
+            </p>
             <p :if={reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
             <p :if={reply.capcode}>Capcode: <%= reply.capcode %></p>
             <form action={~p"/#{@board.uri}/post"} method="post">

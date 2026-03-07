@@ -211,4 +211,29 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     assert page =~ thread.tripcode
   end
+
+  test "fileboard threads use filenames as page titles when subjects are absent", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{fileboard: true, force_body_op: false}})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => ".",
+        "file" => upload_fixture("manual.png", "readme"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => thread_id} = json_response(conn, 200)
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/res/#{thread_id}.html")
+      |> html_response(200)
+
+    assert page =~ "manual.png"
+    assert page =~ "Fileboard: 1 file"
+  end
 end

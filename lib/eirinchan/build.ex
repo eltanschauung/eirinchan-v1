@@ -8,6 +8,7 @@ defmodule Eirinchan.Build do
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Posts
   alias Eirinchan.ThreadPaths
+  alias EirinchanWeb.PostView
 
   @spec rebuild_after_post(BoardRecord.t(), Eirinchan.Posts.Post.t(), keyword()) ::
           :ok | {:error, term()}
@@ -200,7 +201,7 @@ defmodule Eirinchan.Build do
 
     items =
       Enum.map_join(page_data.threads, "\n", fn summary ->
-        title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
+        title = html_escape(PostView.post_title(board, summary.thread, config))
         body = render_body(summary.thread)
         media = render_media(summary.thread)
         replies = render_preview_replies(summary.replies)
@@ -209,7 +210,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}#{render_fileboard_summary(summary.thread, config)}#{render_post_body(summary.thread, body, config)}#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -234,26 +235,27 @@ defmodule Eirinchan.Build do
 
     replies_html =
       Enum.map_join(summary.replies, "\n", fn reply ->
-        subject = html_escape(reply.subject || "Reply ##{reply.id}")
+        subject = html_escape(PostView.post_title(board, reply, config))
         body = render_body(reply)
         media = render_media(reply)
         delete_form = render_delete_form(board, reply.id)
 
-        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}#{render_post_identity(reply)}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
+        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}#{render_post_identity(reply)}#{render_fileboard_summary(reply, config)}#{render_post_body(reply, body, config)}#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
       end)
 
     """
     <!doctype html>
     <html>
-    <head><meta charset="utf-8"><title>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</title></head>
+    <head><meta charset="utf-8"><title>/#{html_escape(board.uri)}/ - #{html_escape(PostView.post_title(board, summary.thread, config))}</title></head>
     <body>
     <article id="p#{summary.thread.id}">
-    <h1>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</h1>
+    <h1>/#{html_escape(board.uri)}/ - #{html_escape(PostView.post_title(board, summary.thread, config))}</h1>
     #{boardlist}
     #{render_thread_badges(summary.thread)}
     #{render_media(summary.thread)}
     #{render_post_identity(summary.thread)}
-    <p>#{render_body(summary.thread)}</p>
+    #{render_fileboard_summary(summary.thread, config)}
+    #{render_post_body(summary.thread, render_body(summary.thread), config)}
     #{render_post_flags(summary.thread)}
     #{render_post_capcode(summary.thread)}
     #{render_post_tag(summary.thread, config)}
@@ -272,14 +274,14 @@ defmodule Eirinchan.Build do
       page_data_list
       |> Enum.flat_map(& &1.threads)
       |> Enum.map_join("\n", fn summary ->
-        title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
+        title = html_escape(PostView.post_title(board, summary.thread, config))
         body = render_body(summary.thread)
         media = render_media(summary.thread)
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}#{render_fileboard_summary(summary.thread, config)}#{render_post_body(summary.thread, body, config)}#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -378,6 +380,24 @@ defmodule Eirinchan.Build do
       ~s(<div class="reply-preview" id="p#{reply.id}">#{media}#{render_post_identity(reply)}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, %{})}</div>)
     end)
   end
+
+  defp render_post_body(post, body, config) do
+    if PostView.show_body?(post, config) do
+      ~s(<p>#{body}</p>)
+    else
+      ""
+    end
+  end
+
+  defp render_fileboard_summary(post, %{fileboard: true}) do
+    if PostView.show_fileboard_summary?(post) do
+      ~s(<p class="fileboard-summary">Fileboard: #{html_escape(PostView.fileboard_summary(post))}</p>)
+    else
+      ""
+    end
+  end
+
+  defp render_fileboard_summary(_post, _config), do: ""
 
   defp render_media(post) do
     post

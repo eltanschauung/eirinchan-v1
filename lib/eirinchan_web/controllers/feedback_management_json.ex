@@ -1,10 +1,16 @@
 defmodule EirinchanWeb.FeedbackManagementJSON do
+  alias EirinchanWeb.PostView
+
   def index(%{feedback: feedback, unread_count: unread_count}) do
-    %{data: Enum.map(feedback, &feedback_data/1), unread_count: unread_count}
+    %{
+      data: Enum.map(feedback, &feedback_data/1),
+      unread_count: unread_count,
+      actions: PostView.feedback_actions()
+    }
   end
 
   def show(%{feedback: feedback}) do
-    %{data: feedback_data(feedback)}
+    %{data: feedback_data(feedback), actions: PostView.feedback_actions()}
   end
 
   defp feedback_data(feedback) do

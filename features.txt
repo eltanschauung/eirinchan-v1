@@ -116,10 +116,10 @@ queue-backed deferred generation parity: incomplete
 smart build helper route/controller parity: incomplete
 cache-aware rebuild skipping logic parity: incomplete
 boardlist rendering parity across contexts: partial
-template variable contract compatibility (board, board_title, post, config): incomplete
+template variable contract compatibility (board, board_title, post, config): partial
 thread slug URL generation and slug check redirects: partial
 catalog_link behavior parity: partial
-fileboard mode rendering parity: incomplete
+fileboard mode rendering parity: partial
 
 [Moderation - Authentication and Authorization]
 moderator login flow parity: partial
@@ -170,7 +170,7 @@ feedback entries stored in DB (not txt file) parity: partial
 feedback admin unread badge counting parity: partial
 feedback queue mirrored design relative to report queue parity: partial
 feedback admin notes rendered under entries parity: partial
-feedback moderation action labels (Delete/Mark as Read/Add Note): incomplete
+feedback moderation action labels (Delete/Mark as Read/Add Note): partial
 feedback transfer/import tooling from legacy feedback.txt: incomplete
 
 [Access Control and IP Access Lists (Custom Bantculture fork Features)]
