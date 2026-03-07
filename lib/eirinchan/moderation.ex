@@ -127,6 +127,7 @@ defmodule Eirinchan.Moderation do
   def list_ip_notes(ip_subnet, opts \\ []) do
     repo = Keyword.get(opts, :repo, Repo)
     board_id = Keyword.get(opts, :board_id)
+    board_ids = Keyword.get(opts, :board_ids)
 
     query =
       from note in IpNote,
@@ -135,10 +136,15 @@ defmodule Eirinchan.Moderation do
         preload: [:board, :mod_user]
 
     query =
-      if board_id do
-        from note in query, where: is_nil(note.board_id) or note.board_id == ^board_id
-      else
-        query
+      cond do
+        board_id ->
+          from note in query, where: is_nil(note.board_id) or note.board_id == ^board_id
+
+        is_list(board_ids) ->
+          from note in query, where: is_nil(note.board_id) or note.board_id in ^board_ids
+
+        true ->
+          query
       end
 
     repo.all(query)
@@ -161,6 +167,45 @@ defmodule Eirinchan.Moderation do
       end
 
     repo.all(query)
+  end
+
+  @spec update_ip_note(IpNote.t() | integer(), map(), keyword()) ::
+          {:ok, IpNote.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def update_ip_note(note_or_id, attrs, opts \\ [])
+
+  def update_ip_note(%IpNote{} = note, attrs, opts) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    note
+    |> IpNote.changeset(attrs)
+    |> repo.update()
+  end
+
+  def update_ip_note(note_id, attrs, opts) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    case repo.get(IpNote, note_id) do
+      nil -> {:error, :not_found}
+      note -> update_ip_note(note, attrs, opts)
+    end
+  end
+
+  @spec delete_ip_note(IpNote.t() | integer(), keyword()) ::
+          {:ok, IpNote.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def delete_ip_note(note_or_id, opts \\ [])
+
+  def delete_ip_note(%IpNote{} = note, opts) do
+    repo = Keyword.get(opts, :repo, Repo)
+    repo.delete(note)
+  end
+
+  def delete_ip_note(note_id, opts) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    case repo.get(IpNote, note_id) do
+      nil -> {:error, :not_found}
+      note -> delete_ip_note(note, opts)
+    end
   end
 
   defp normalize_ip(ip) when is_binary(ip), do: String.trim(ip)
