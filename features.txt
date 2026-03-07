@@ -263,9 +263,9 @@ debug SQL explain tooling parity: incomplete
 error observability and structured logging: incomplete
 
 [Install, Migration, and Admin Tooling]
-installer parity for initial setup: incomplete
+installer parity for initial setup: partial
 config editor parity in mod panel: incomplete
-instance config/secrets management parity: incomplete
+instance config/secrets management parity: partial
 board-level config editor parity: incomplete
 data import/export tools for migration: incomplete
 safe rollback and idempotent migration tooling: incomplete

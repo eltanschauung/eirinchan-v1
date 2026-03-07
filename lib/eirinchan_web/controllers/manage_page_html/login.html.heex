@@ -1,0 +1,19 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Moderator Login</h1>
+  <p>Sign in to manage boards and moderation tasks.</p>
+</section>
+
+<p :if={@error}><%= @error %></p>
+
+<form action={~p"/manage/login/browser"} method="post">
+  <label>
+    <span>Username</span>
+    <input type="text" name="username" value={@username} />
+  </label>
+  <label>
+    <span>Password</span>
+    <input type="password" name="password" />
+  </label>
+  <button type="submit">Login</button>
+</form>

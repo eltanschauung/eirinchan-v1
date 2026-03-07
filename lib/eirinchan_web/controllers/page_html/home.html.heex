@@ -9,5 +9,6 @@
   <%= for board <- @boards do %>
     <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
   <% end %>
+  <a href={~p"/manage/login"}>Manage</a>
   <a href={~p"/feedback"}>Feedback</a>
 </nav>
