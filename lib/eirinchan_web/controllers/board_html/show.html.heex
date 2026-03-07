@@ -19,6 +19,34 @@
       name="password"
       placeholder="Password"
     />
+    <input
+      :if={@config.hidden_input_hash}
+      type="hidden"
+      name={@config.hidden_input_name}
+      value={@config.hidden_input_hash}
+    />
+    <label :if={@config.antispam_question}>
+      <span><%= @config.antispam_question %></span>
+      <input type="text" name="antispam_answer" />
+    </label>
+    <input
+      :if={@config.captcha.enabled && @config.captcha.provider == "native"}
+      type="text"
+      name="captcha"
+      placeholder="Captcha"
+    />
+    <input
+      :if={@config.captcha.enabled && @config.captcha.provider == "recaptcha"}
+      type="text"
+      name="g-recaptcha-response"
+      placeholder="reCAPTCHA"
+    />
+    <input
+      :if={@config.captcha.enabled && @config.captcha.provider == "hcaptcha"}
+      type="text"
+      name="h-captcha-response"
+      placeholder="hCaptcha"
+    />
     <input :if={@current_moderator} type="text" name="capcode" placeholder="Capcode" />
     <label :if={@current_moderator}>
       <input type="checkbox" name="raw" value="1" /> Raw HTML

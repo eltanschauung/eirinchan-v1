@@ -278,4 +278,28 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(document, ~s(input[name="capcode"])) != []
     assert Floki.find(document, ~s(input[name="raw"][type="checkbox"])) != []
   end
+
+  test "board page renders antispam and captcha inputs when enabled", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          hidden_input_name: "hash",
+          hidden_input_hash: "expected",
+          antispam_question: "2+2?",
+          captcha: %{enabled: true, provider: "recaptcha", expected_response: "ok"}
+        }
+      })
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(input[name="hash"][type="hidden"][value="expected"])) != []
+    assert page =~ "2+2?"
+    assert Floki.find(document, ~s(input[name="antispam_answer"])) != []
+    assert Floki.find(document, ~s(input[name="g-recaptcha-response"])) != []
+  end
 end

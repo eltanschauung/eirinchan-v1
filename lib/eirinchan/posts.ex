@@ -22,6 +22,8 @@ defmodule Eirinchan.Posts do
              :thread_not_found
              | :invalid_post_mode
              | :invalid_referer
+             | :antispam
+             | :invalid_captcha
              | :board_locked
              | :thread_locked
              | :body_required
@@ -52,6 +54,9 @@ defmodule Eirinchan.Posts do
 
       with :ok <- validate_post_button(op?, attrs, config),
            :ok <- validate_referer(request, config, board),
+           :ok <- validate_hidden_input(attrs, config, request, board),
+           :ok <- validate_antispam_question(op?, attrs, config, request, board),
+           :ok <- validate_captcha(attrs, config, request, board),
            :ok <- validate_board_lock(config, request, board),
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
            :ok <- validate_thread_lock(thread, request, board),
@@ -1008,6 +1013,69 @@ defmodule Eirinchan.Posts do
       _ -> false
     end
   end
+
+  defp validate_hidden_input(attrs, config, request, board) do
+    if moderator_board_access?(request, board) do
+      :ok
+    else
+      hidden_name = to_string(config.hidden_input_name || "hash")
+
+      cond do
+        is_nil(config.hidden_input_hash) ->
+          :ok
+
+        Map.get(attrs, hidden_name) == config.hidden_input_hash ->
+          :ok
+
+        true ->
+          {:error, :antispam}
+      end
+    end
+  end
+
+  defp validate_antispam_question(false, _attrs, _config, _request, _board), do: :ok
+
+  defp validate_antispam_question(true, attrs, config, request, board) do
+    if moderator_board_access?(request, board) or not is_binary(config.antispam_question) do
+      :ok
+    else
+      answer =
+        attrs["antispam_answer"]
+        |> to_string()
+        |> String.trim()
+        |> String.downcase()
+
+      expected =
+        config.antispam_question_answer
+        |> to_string()
+        |> String.trim()
+        |> String.downcase()
+
+      if answer != "" and answer == expected, do: :ok, else: {:error, :antispam}
+    end
+  end
+
+  defp validate_captcha(attrs, config, request, board) do
+    if moderator_board_access?(request, board) or not get_in(config, [:captcha, :enabled]) do
+      :ok
+    else
+      provider = get_in(config, [:captcha, :provider]) || "native"
+      expected = get_in(config, [:captcha, :expected_response])
+      field = captcha_field(provider)
+      response = attrs[field] |> to_string() |> String.trim()
+
+      if expected && response != "" && response == expected do
+        :ok
+      else
+        {:error, :invalid_captcha}
+      end
+    end
+  end
+
+  defp captcha_field("native"), do: "captcha"
+  defp captcha_field("recaptcha"), do: "g-recaptcha-response"
+  defp captcha_field("hcaptcha"), do: "h-captcha-response"
+  defp captcha_field(_provider), do: "captcha"
 
   defp fetch_thread(_board, nil, _repo), do: {:ok, nil}
 
