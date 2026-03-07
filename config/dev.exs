@@ -2,10 +2,7 @@ import Config
 
 # Configure your database
 config :eirinchan, Eirinchan.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "eirinchan_dev",
+  url: System.get_env("DATABASE_URL") || "ecto://localhost/eirinchan_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
