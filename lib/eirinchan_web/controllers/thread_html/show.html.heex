@@ -1,20 +1,8 @@
 <% post = @summary.thread %>
 <% template = PostView.template_assigns(@board, post, @config) %>
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) -
-                                                                               1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
@@ -228,13 +216,16 @@
     <a id={to_string(post.id)} class="post_anchor"></a>
     <div class="files">
       <%= for file <- PostView.all_files(post) do %>
-        <div class={[
-          "file",
-          if(length(PostView.all_files(post)) > 1, do: "multifile", else: nil)
-        ]}>
+        <div
+          class={PostView.file_class(post)}
+          style={
+            PostView.multifile_style(file, @config,
+              multifile: length(PostView.all_files(post)) > 1
+            )
+          }
+        >
           <p class="fileinfo">
-            File:
-            <a href={file.file_path} target="_blank"><%= PostView.stored_file_name(file) %></a>
+            File: <a href={file.file_path}><%= PostView.stored_file_name(file) %></a>
             <span>
               (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
                 do: raw(", " <> PostView.file_dimensions(file)) %>, <span
@@ -371,13 +362,17 @@
 
         <div class="files">
           <%= for file <- PostView.all_files(reply) do %>
-            <div class={[
-              "file",
-              if(length(PostView.all_files(reply)) > 1, do: "multifile", else: nil)
-            ]}>
+            <div
+              class={PostView.file_class(reply)}
+              style={
+                PostView.multifile_style(file, @config,
+                  multifile: length(PostView.all_files(reply)) > 1
+                )
+              }
+            >
               <p class="fileinfo">
                 File:
-                <a href={file.file_path} target="_blank">
+                <a href={file.file_path}>
                   <%= PostView.stored_file_name(file) %>
                 </a>
                 <span>
@@ -400,10 +395,7 @@
           <% end %>
         </div>
 
-        <div
-          class="body"
-          style={if length(PostView.all_files(reply)) > 1, do: "clear:both", else: nil}
-        >
+        <div class="body" style={PostView.reply_body_style(reply)}>
           <%= raw(PostView.body_html(reply, @board, post, @config)) %>
           <span :if={reply.tag} class="tag-line">
             Tag: <%= if is_map(@config.allowed_tags),
@@ -465,21 +457,12 @@
 </form>
 
 <a id="bottom"></a>
-<div class="boardlist bottom">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) -
-                                                                               1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(
+    @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards),
+    "boardlist bottom"
+  )
+) %>
 
 <%= if @board_chrome.footer_html do %>
   <%= raw(@board_chrome.footer_html) %>
