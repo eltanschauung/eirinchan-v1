@@ -178,7 +178,7 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ ~s(src="/main.js")
   end
 
-  test "bant thread pages render the custom chrome shell", %{conn: conn} do
+  test "thread pages render the distribution chrome shell", %{conn: conn} do
     board = board_fixture(%{uri: "bant", title: "International Random"})
     thread = thread_fixture(board, %{body: "Thread body"})
 
@@ -190,9 +190,8 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
     assert page =~ ~s(src="/main.js")
     assert page =~ ~s(src="/b.php")
-    assert page =~ "losers, creeps, whales"
-    assert page =~ "[Archive This Thread]"
-    assert page =~ "data-description=\"0\""
+    assert page =~ "[Catalog]"
+    assert page =~ ~s(class="boardlist")
   end
 
   test "thread reply forms respect captcha mode for replies only", %{conn: conn} do

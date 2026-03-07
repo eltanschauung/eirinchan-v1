@@ -31,7 +31,6 @@ defmodule EirinchanWeb.PageControllerTest do
 
     conn = get(conn, ~p"/")
     page = html_response(conn, 200)
-    assert page =~ "losers, creeps, whales"
     assert page =~ "/tech/ - Technology"
     assert page =~ "Manage"
     assert page =~ "Feedback"
@@ -43,8 +42,8 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ ~s(data-stylesheet="yotsuba.css")
     assert page =~ ~s(var active_page = "index", board_name = null;)
     assert page =~ ~s(src="/main.js")
-    assert page =~ "View News - 02/14/26"
-    assert page =~ "We witches are not whale lol."
+    assert page =~ "<strong>Read this</strong>: Global notice"
+    assert page =~ "Powered by Eirinchan."
   end
 
   test "GET / redirects to setup when no admin exists", %{conn: conn} do
@@ -84,7 +83,7 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "FAQ"
     assert page =~ ~s(class="boardlist")
     assert page =~ ~s(var active_page = "news", board_name = null;)
-    assert page =~ "We witches are not whale lol."
+    assert page =~ "Powered by Eirinchan."
   end
 
   test "GET /pages/:slug renders a custom page", %{conn: conn} do
