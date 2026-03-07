@@ -57,6 +57,10 @@ defmodule Eirinchan.Runtime.Config do
     duplicate_file_mode: false,
     max_filesize: 5_000_000,
     max_filename_display_length: 64,
+    thumb_width: 250,
+    thumb_height: 250,
+    max_image_width: 0,
+    max_image_height: 0,
     allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif"],
     api: %{enabled: false},
     cache: %{enabled: false},
@@ -90,6 +94,8 @@ defmodule Eirinchan.Runtime.Config do
       duplicate_file: "Duplicate file.",
       file_required: "File required.",
       filetype: "File type not allowed.",
+      invalid_image: "Invalid image.",
+      image_too_large: "Image dimensions too large.",
       file_too_large: "File too large.",
       upload_failed: "Upload failed."
     }

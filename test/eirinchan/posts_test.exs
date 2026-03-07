@@ -56,6 +56,7 @@ defmodule Eirinchan.PostsTest do
   test "create_post stores upload metadata for image posts" do
     board = board_fixture()
     upload = upload_fixture("first.png", "png-bytes")
+    upload_size = File.stat!(upload.path).size
 
     assert {:ok, thread, %{noko: false}} =
              Posts.create_post(
@@ -71,12 +72,19 @@ defmodule Eirinchan.PostsTest do
 
     assert thread.file_name == "first.png"
     assert thread.file_path == "/#{board.uri}/src/#{thread.id}.png"
-    assert thread.file_size == byte_size("png-bytes")
+    assert thread.thumb_path == "/#{board.uri}/thumb/#{thread.id}s.png"
+    assert thread.file_size == upload_size
     assert thread.file_type == "image/png"
     assert is_binary(thread.file_md5)
+    assert thread.image_width == 16
+    assert thread.image_height == 16
 
     assert File.exists?(
              Path.join(Eirinchan.Build.board_root(), "#{board.uri}/src/#{thread.id}.png")
+           )
+
+    assert File.exists?(
+             Path.join(Eirinchan.Build.board_root(), "#{board.uri}/thumb/#{thread.id}s.png")
            )
   end
 
@@ -168,7 +176,19 @@ defmodule Eirinchan.PostsTest do
                request: post_request(board.uri)
              )
 
-    oversized_board = board_fixture(%{config_overrides: %{max_filesize: 4}})
+    assert {:error, :invalid_image} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => raw_upload_fixture("fake.png", "not-an-image"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    oversized_board = board_fixture(%{config_overrides: %{max_filesize: 1}})
 
     assert {:error, :file_too_large} =
              Posts.create_post(
@@ -180,6 +200,21 @@ defmodule Eirinchan.PostsTest do
                },
                config: post_config(oversized_board.config_overrides),
                request: post_request(oversized_board.uri)
+             )
+
+    oversized_dimensions_board =
+      board_fixture(%{config_overrides: %{max_image_width: 8, max_image_height: 8}})
+
+    assert {:error, :image_too_large} =
+             Posts.create_post(
+               oversized_dimensions_board,
+               %{
+                 "body" => "first post",
+                 "file" => upload_fixture("wide.png", geometry: "12x9"),
+                 "post" => "New Topic"
+               },
+               config: post_config(oversized_dimensions_board.config_overrides),
+               request: post_request(oversized_dimensions_board.uri)
              )
   end
 
@@ -736,16 +771,20 @@ defmodule Eirinchan.PostsTest do
              )
 
     assert File.exists?(Eirinchan.Uploads.filesystem_path(reply.file_path))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(reply.thumb_path))
 
     assert {:ok, %{thread_deleted: false}} =
              Posts.delete_post(board, reply.id, "replypw", config: config)
 
     refute File.exists?(Eirinchan.Uploads.filesystem_path(reply.file_path))
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(reply.thumb_path))
     assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
 
     assert {:ok, %{thread_deleted: true}} =
              Posts.delete_post(board, thread.id, "threadpw", config: config)
 
     refute File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
   end
 end

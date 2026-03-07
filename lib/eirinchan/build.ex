@@ -331,10 +331,11 @@ defmodule Eirinchan.Build do
   defp render_media(%{file_path: nil}), do: ""
 
   defp render_media(post) do
-    src = html_escape(post.file_path)
+    full_src = html_escape(post.file_path)
+    thumb_src = html_escape(post.thumb_path || post.file_path)
     label = html_escape(post.file_name || Path.basename(post.file_path))
 
-    ~s(<figure class="post-file"><a href="#{src}"><img src="#{src}" alt="#{label}" loading="lazy" /></a><figcaption><a href="#{src}">#{label}</a></figcaption></figure>)
+    ~s(<figure class="post-file"><a href="#{full_src}"><img src="#{thumb_src}" alt="#{label}" loading="lazy" /></a><figcaption><a href="#{full_src}">#{label}</a></figcaption></figure>)
   end
 
   defp render_omitted(%{omitted_posts: omitted_posts, omitted_images: omitted_images})

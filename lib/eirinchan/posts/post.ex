@@ -10,9 +10,12 @@ defmodule Eirinchan.Posts.Post do
     field :body, :string
     field :file_name, :string
     field :file_path, :string
+    field :thumb_path, :string
     field :file_size, :integer
     field :file_type, :string
     field :file_md5, :string
+    field :image_width, :integer
+    field :image_height, :integer
     field :bump_at, :utc_datetime_usec
     field :sticky, :boolean, default: false
     field :locked, :boolean, default: false
@@ -38,9 +41,12 @@ defmodule Eirinchan.Posts.Post do
       :body,
       :file_name,
       :file_path,
+      :thumb_path,
       :file_size,
       :file_type,
       :file_md5,
+      :image_width,
+      :image_height,
       :bump_at,
       :sticky,
       :locked,

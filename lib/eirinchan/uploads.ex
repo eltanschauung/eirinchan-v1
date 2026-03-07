@@ -16,6 +16,12 @@ defmodule Eirinchan.Uploads do
         |> Path.extname()
         |> String.downcase()
 
+      image_metadata =
+        case image_metadata(upload.path) do
+          {:ok, data} -> data
+          {:error, :invalid_image} -> %{width: nil, height: nil}
+        end
+
       {:ok,
        %{
          binary: binary,
@@ -23,7 +29,9 @@ defmodule Eirinchan.Uploads do
          file_name: normalized_filename(normalized_name, config),
          file_size: byte_size(binary),
          file_type: MIME.from_path(normalized_name),
-         file_md5: :crypto.hash(:md5, binary) |> Base.encode64()
+         file_md5: :crypto.hash(:md5, binary) |> Base.encode64(),
+         image_width: image_metadata.width,
+         image_height: image_metadata.height
        }}
     else
       {:error, _reason} -> {:error, :upload_failed}
@@ -43,17 +51,32 @@ defmodule Eirinchan.Uploads do
   def store(%BoardRecord{} = board, %Post{} = post, %Plug.Upload{} = upload, config, metadata) do
     storage_name = "#{post.id}#{metadata.ext}"
     destination = Path.join([board_root(), board.uri, config.dir.img, storage_name])
+    thumb_name = "#{post.id}s.png"
+    thumb_destination = Path.join([board_root(), board.uri, config.dir.thumb, thumb_name])
 
     destination
     |> Path.dirname()
     |> File.mkdir_p!()
 
+    thumb_destination
+    |> Path.dirname()
+    |> File.mkdir_p!()
+
     case File.cp(upload.path, destination) do
       :ok ->
-        {:ok,
-         Map.merge(metadata, %{
-           file_path: "/#{board.uri}/#{config.dir.img}#{storage_name}"
-         })}
+        case generate_thumbnail(destination, thumb_destination, config) do
+          :ok ->
+            {:ok,
+             Map.merge(metadata, %{
+               file_path: "/#{board.uri}/#{config.dir.img}#{storage_name}",
+               thumb_path: "/#{board.uri}/#{config.dir.thumb}#{thumb_name}"
+             })}
+
+          {:error, reason} ->
+            _ = File.rm(destination)
+            _ = File.rm(thumb_destination)
+            {:error, reason}
+        end
 
       {:error, _reason} ->
         {:error, :upload_failed}
@@ -82,6 +105,35 @@ defmodule Eirinchan.Uploads do
   @spec board_root() :: String.t()
   def board_root do
     Application.fetch_env!(:eirinchan, :build_output_root)
+  end
+
+  defp image_metadata(path) do
+    case System.cmd("identify", ["-format", "%w %h", path], stderr_to_stdout: true) do
+      {output, 0} ->
+        case String.split(String.trim(output), ~r/\s+/, parts: 2) do
+          [width, height] ->
+            {:ok, %{width: String.to_integer(width), height: String.to_integer(height)}}
+
+          _ ->
+            {:error, :invalid_image}
+        end
+
+      _ ->
+        {:error, :invalid_image}
+    end
+  end
+
+  defp generate_thumbnail(source, destination, config) do
+    geometry = "#{config.thumb_width}x#{config.thumb_height}"
+
+    case System.cmd(
+           "convert",
+           [source, "-auto-orient", "-thumbnail", geometry, destination],
+           stderr_to_stdout: true
+         ) do
+      {_output, 0} -> :ok
+      _ -> {:error, :upload_failed}
+    end
   end
 
   defp normalized_filename(filename, config) do

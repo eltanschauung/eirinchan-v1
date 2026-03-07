@@ -3,12 +3,14 @@ defmodule EirinchanWeb.ApiControllerTest do
 
   test "board api endpoints expose page, catalog, threads, and thread json", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
+    upload = upload_fixture("thread.png", "thread")
+    upload_size = File.stat!(upload.path).size
 
     thread =
       thread_fixture(board, %{
         body: "Thread body",
         subject: "Thread subject",
-        file: upload_fixture("thread.png", "thread")
+        file: upload
       })
 
     conn
@@ -70,8 +72,10 @@ defmodule EirinchanWeb.ApiControllerTest do
     assert op["resto"] == 0
     assert op["filename"] == "thread"
     assert op["ext"] == ".png"
-    assert op["fsize"] == byte_size("thread")
+    assert op["fsize"] == upload_size
     assert is_binary(op["md5"])
+    assert op["w"] == 16
+    assert op["h"] == 16
     assert length(replies) == 1
 
     assert Enum.any?(

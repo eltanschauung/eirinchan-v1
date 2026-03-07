@@ -93,13 +93,15 @@ defmodule Eirinchan.BuildTest do
 
     board = board_fixture(%{config_overrides: %{api: %{enabled: true}}})
     config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+    upload = upload_fixture("thread.png", "thread-bytes")
+    upload_size = File.stat!(upload.path).size
 
     assert {:ok, thread, _meta} =
              Posts.create_post(
                board,
                %{
                  "body" => "Opening post body",
-                 "file" => upload_fixture("thread.png", "thread-bytes"),
+                 "file" => upload,
                  "post" => config.button_newtopic
                },
                config: config,
@@ -111,13 +113,16 @@ defmodule Eirinchan.BuildTest do
     thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
     thread_json_path = Path.join([board_dir, config.dir.res, "#{thread.id}.json"])
 
-    assert File.read!(index_path) =~ thread.file_path
-    assert File.read!(thread_path) =~ thread.file_path
+    assert File.read!(index_path) =~ thread.thumb_path
+    assert File.read!(thread_path) =~ thread.thumb_path
+    assert File.exists?(Path.join(board_dir, "thumb/#{thread.id}s.png"))
 
     assert %{"posts" => [op]} = Jason.decode!(File.read!(thread_json_path))
     assert op["filename"] == "thread"
     assert op["ext"] == ".png"
-    assert op["fsize"] == byte_size("thread-bytes")
+    assert op["fsize"] == upload_size
+    assert op["w"] == 16
+    assert op["h"] == 16
   end
 
   test "slugified threads build canonical and legacy html files" do
