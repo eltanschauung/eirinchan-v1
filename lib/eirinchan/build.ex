@@ -209,7 +209,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -239,7 +239,7 @@ defmodule Eirinchan.Build do
         media = render_media(reply)
         delete_form = render_delete_form(board, reply.id)
 
-        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
+        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}#{render_post_identity(reply)}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
       end)
 
     """
@@ -252,6 +252,7 @@ defmodule Eirinchan.Build do
     #{boardlist}
     #{render_thread_badges(summary.thread)}
     #{render_media(summary.thread)}
+    #{render_post_identity(summary.thread)}
     <p>#{render_body(summary.thread)}</p>
     #{render_post_flags(summary.thread)}
     #{render_post_capcode(summary.thread)}
@@ -278,7 +279,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -345,6 +346,18 @@ defmodule Eirinchan.Build do
   defp render_post_capcode(%{capcode: capcode}),
     do: ~s(<p class="post-capcode">Capcode: #{html_escape(capcode)}</p>)
 
+  defp render_post_identity(%{name: nil, tripcode: nil}), do: ""
+
+  defp render_post_identity(post) do
+    label =
+      [post.name, post.tripcode]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.map(&html_escape/1)
+      |> Enum.join(" ")
+
+    ~s(<p class="post-identity">#{label}</p>)
+  end
+
   defp render_post_tag(%{tag: nil}, _config), do: ""
   defp render_post_tag(%{tag: ""}, _config), do: ""
 
@@ -362,7 +375,7 @@ defmodule Eirinchan.Build do
       body = render_body(reply)
       media = render_media(reply)
 
-      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, %{})}</div>)
+      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}#{render_post_identity(reply)}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, %{})}</div>)
     end)
   end
 

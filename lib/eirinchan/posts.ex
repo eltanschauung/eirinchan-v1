@@ -5,6 +5,7 @@ defmodule Eirinchan.Posts do
 
   import Ecto.Query, only: [from: 2]
 
+  alias Eirinchan.Bans
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Moderation
@@ -26,6 +27,7 @@ defmodule Eirinchan.Posts do
              | :invalid_referer
              | :antispam
              | :invalid_captcha
+             | :banned
              | :cite_insert_failed
              | :board_locked
              | :thread_locked
@@ -60,6 +62,7 @@ defmodule Eirinchan.Posts do
            :ok <- validate_hidden_input(attrs, config, request, board),
            :ok <- validate_antispam_question(op?, attrs, config, request, board),
            :ok <- validate_captcha(attrs, config, request, board),
+           :ok <- validate_ban(request, board),
            :ok <- validate_board_lock(config, request, board),
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
            :ok <- validate_thread_lock(thread, request, board),
@@ -550,6 +553,7 @@ defmodule Eirinchan.Posts do
   defp normalize_post_identity(attrs, config) do
     attrs
     |> Map.update("name", config.anonymous, &default_name(&1, config))
+    |> normalize_tripcode()
     |> Map.update("subject", nil, &trim_to_nil/1)
     |> Map.update("password", nil, &trim_to_nil/1)
     |> Map.update("email", nil, &normalize_email/1)
@@ -593,6 +597,40 @@ defmodule Eirinchan.Posts do
       nil -> config.anonymous
       trimmed -> trimmed
     end
+  end
+
+  defp normalize_tripcode(attrs) do
+    case trim_to_nil(Map.get(attrs, "name")) do
+      nil ->
+        Map.put(attrs, "tripcode", nil)
+
+      value ->
+        case Regex.run(~r/^(.*?)(##?)(.+)$/u, value) do
+          [_, display_name, marker, secret] ->
+            trip =
+              secret
+              |> String.trim()
+              |> tripcode_hash(marker == "##")
+
+            attrs
+            |> Map.put("name", trim_to_nil(display_name))
+            |> Map.put("tripcode", trip)
+
+          _ ->
+            Map.put(attrs, "tripcode", nil)
+        end
+    end
+  end
+
+  defp tripcode_hash(secret, secure?) do
+    salt = if secure?, do: "secure-trip", else: "trip"
+
+    digest =
+      :crypto.hash(:sha, salt <> secret)
+      |> Base.encode64(padding: false)
+      |> binary_part(0, 10)
+
+    "!" <> digest
   end
 
   defp trim_to_nil(nil), do: nil
@@ -1165,6 +1203,18 @@ defmodule Eirinchan.Posts do
   defp captcha_field("recaptcha"), do: "g-recaptcha-response"
   defp captcha_field("hcaptcha"), do: "h-captcha-response"
   defp captcha_field(_provider), do: "captcha"
+
+  defp validate_ban(request, board) do
+    if moderator_board_access?(request, board) do
+      :ok
+    else
+      if Bans.active_ban_for_request(board, request[:remote_ip] || request["remote_ip"]) do
+        {:error, :banned}
+      else
+        :ok
+      end
+    end
+  end
 
   defp fetch_thread(_board, nil, _repo), do: {:ok, nil}
 

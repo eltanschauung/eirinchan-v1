@@ -351,6 +351,30 @@ defmodule Eirinchan.BuildTest do
     assert File.read!(thread_path) =~ "/ meta /"
   end
 
+  test "static outputs render poster tripcodes" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture()
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "name" => "Anon#secret",
+                 "body" => "Opening post body",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(thread_path) =~ thread.tripcode
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 

@@ -23,7 +23,7 @@ body required/optional rules (force_body/force_body_op): partial
 OP image required rules (force_image_op): partial
 max lines and max body enforcement: partial
 name/email/subject/password normalization and defaults: partial
-tripcode generation parity: incomplete
+tripcode generation parity: partial
 capcode parsing and permission rules: partial
 noko/nonoko/always_noko behavior: partial
 wordfilter pipeline integration: partial
@@ -35,7 +35,7 @@ thread bump logic and bump-limit behavior: partial
 reply_hard_limit/image_hard_limit enforcement: partial
 report creation branch inside post endpoint parity: partial
 post deletion branch inside post endpoint parity: partial
-ban appeal submission branch inside post endpoint parity: incomplete
+ban appeal submission branch inside post endpoint parity: partial
 JSON response mode for ajax posting: partial
 redirect response mode for classic posting: partial
 
@@ -99,7 +99,7 @@ cites table behavior parity: partial
 reports table behavior parity: partial
 feedback table behavior parity: partial
 feedback_comments table behavior parity: partial
-bans table behavior parity: incomplete
+bans table behavior parity: partial
 mod users/modlogs/pms table behavior parity: partial
 search_queries rate-limiting table behavior parity: incomplete
 nntp_references table behavior parity: partial

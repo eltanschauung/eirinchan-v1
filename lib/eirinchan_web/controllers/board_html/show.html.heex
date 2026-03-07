@@ -152,6 +152,9 @@
             </figcaption>
           </figure>
         <% end %>
+        <p :if={summary.thread.name || summary.thread.tripcode}>
+          <%= summary.thread.name %> <%= summary.thread.tripcode %>
+        </p>
         <p>
           <%= if summary.thread.raw_html, do: raw(summary.thread.body), else: summary.thread.body %>
         </p>
@@ -180,6 +183,7 @@
         <% end %>
         <%= for reply <- summary.replies do %>
           <div id={"p#{reply.id}"}>
+            <p :if={reply.name || reply.tripcode}><%= reply.name %> <%= reply.tripcode %></p>
             <%= if reply.file_path do %>
               <figure>
                 <a href={reply.file_path}>

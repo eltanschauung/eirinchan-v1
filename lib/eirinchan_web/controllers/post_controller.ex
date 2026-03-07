@@ -1,6 +1,7 @@
 defmodule EirinchanWeb.PostController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Bans
   alias Eirinchan.Posts
   alias Eirinchan.Reports
   alias Eirinchan.ThreadPaths
@@ -40,6 +41,18 @@ defmodule EirinchanWeb.PostController do
 
           {:error, reason} when is_atom(reason) ->
             respond_error(conn, error_status(reason), error_message(reason, config))
+
+          {:error, %Ecto.Changeset{} = changeset} ->
+            respond_error(conn, :unprocessable_entity, error_message(changeset))
+        end
+
+      :appeal ->
+        case Bans.create_appeal(params["appeal_ban_id"] || params["ban_id"], params) do
+          {:ok, appeal} ->
+            respond_appealed(conn, board, appeal, params)
+
+          {:error, :not_found} ->
+            respond_error(conn, :not_found, "Ban not found")
 
           {:error, %Ecto.Changeset{} = changeset} ->
             respond_error(conn, :unprocessable_entity, error_message(changeset))
@@ -117,6 +130,16 @@ defmodule EirinchanWeb.PostController do
     end
   end
 
+  defp respond_appealed(conn, board, appeal, params) do
+    redirect_path = "/#{board.uri}"
+
+    if params["json_response"] == "1" do
+      json(conn, %{appeal_id: appeal.id, redirect: redirect_path, status: "ok"})
+    else
+      redirect(conn, to: redirect_path)
+    end
+  end
+
   defp respond_deleted(conn, board, result, params) do
     config = conn.assigns.current_board_config
 
@@ -143,6 +166,7 @@ defmodule EirinchanWeb.PostController do
     cond do
       Map.has_key?(params, "report_post_id") -> :report
       Map.has_key?(params, "delete_post_id") -> :delete
+      Map.has_key?(params, "appeal_ban_id") or Map.has_key?(params, "ban_id") -> :appeal
       true -> :post
     end
   end
@@ -163,6 +187,7 @@ defmodule EirinchanWeb.PostController do
   defp error_status(:thread_not_found), do: :not_found
   defp error_status(:post_not_found), do: :not_found
   defp error_status(:invalid_password), do: :forbidden
+  defp error_status(:banned), do: :forbidden
   defp error_status(:thread_locked), do: :forbidden
   defp error_status(:invalid_referer), do: :forbidden
   defp error_status(:antispam), do: :unprocessable_entity
@@ -186,6 +211,7 @@ defmodule EirinchanWeb.PostController do
   defp error_message(:thread_not_found, _config), do: "Thread not found"
   defp error_message(:post_not_found, _config), do: "Post not found"
   defp error_message(:invalid_password, config), do: config.error.password
+  defp error_message(:banned, _config), do: "You are banned."
   defp error_message(:thread_locked, config), do: config.error.locked
   defp error_message(:invalid_referer, config), do: config.error.referer
   defp error_message(:antispam, config), do: config.error.antispam

@@ -1245,6 +1245,23 @@ defmodule Eirinchan.PostsTest do
            ]
   end
 
+  test "create_post generates and stores tripcodes from poster names" do
+    board = board_fixture()
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"name" => "Anon#secret", "body" => "first post", "post" => "New Topic"},
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.name == "Anon"
+    assert String.starts_with?(thread.tripcode, "!")
+    assert String.length(thread.tripcode) == 11
+    assert Posts.compat_body(thread) =~ "<tinyboard trip>#{thread.tripcode}</tinyboard>"
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)
