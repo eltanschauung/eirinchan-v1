@@ -10,6 +10,8 @@ config :eirinchan, Eirinchan.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
+config :eirinchan, build_output_root: Path.expand("../tmp/dev_build", __DIR__)
+
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

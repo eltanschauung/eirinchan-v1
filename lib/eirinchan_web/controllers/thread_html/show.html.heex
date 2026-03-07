@@ -11,7 +11,9 @@
     <input type="text" name="name" placeholder="Name" />
     <input type="text" name="email" placeholder="Email" />
     <textarea name="body" placeholder="Reply"></textarea>
-    <button type="submit" name="post" value="Reply">Reply</button>
+    <button type="submit" name="post" value={@config.button_reply}>
+      <%= @config.button_reply %>
+    </button>
   </form>
 </section>
 

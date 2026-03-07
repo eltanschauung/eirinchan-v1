@@ -5,20 +5,42 @@ defmodule Eirinchan.Posts do
 
   import Ecto.Query, only: [from: 2]
 
+  alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Posts.Post
   alias Eirinchan.Repo
+  alias Eirinchan.Runtime.Config
 
   @spec create_post(BoardRecord.t(), map(), keyword()) ::
-          {:ok, Post.t()} | {:error, :thread_not_found} | {:error, Ecto.Changeset.t()}
+          {:ok, Post.t(), map()}
+          | {:error,
+             :thread_not_found
+             | :invalid_post_mode
+             | :invalid_referer
+             | :board_locked
+             | :body_required
+             | :reply_hard_limit}
+          | {:error, Ecto.Changeset.t()}
   def create_post(%BoardRecord{} = board, attrs, opts \\ []) do
     repo = Keyword.get(opts, :repo, Repo)
-    thread_param = blank_to_nil(Map.get(attrs, "thread") || Map.get(attrs, :thread))
+    config = Keyword.get(opts, :config, Config.compose())
+    request = Keyword.get(opts, :request, %{})
+    attrs = normalize_attrs(attrs)
+    thread_param = blank_to_nil(Map.get(attrs, "thread"))
+    op? = is_nil(thread_param)
+    attrs = normalize_post_identity(attrs, config)
+    noko = noko?(attrs["email"], config)
+    attrs = normalize_noko_email(attrs)
 
-    if thread_param do
-      create_reply(board, thread_param, attrs, repo)
-    else
-      create_thread(board, attrs, repo)
+    with :ok <- validate_post_button(op?, attrs, config),
+         :ok <- validate_referer(request, config),
+         :ok <- validate_board_lock(config),
+         {:ok, thread} <- fetch_thread(board, thread_param, repo),
+         :ok <- validate_body(op?, attrs, config),
+         :ok <- validate_reply_limit(board, thread, config, repo),
+         {:ok, post} <- insert_post(board, thread, attrs, repo) do
+      _ = Build.rebuild_after_post(board, post, config: config, repo: repo)
+      {:ok, post, %{noko: noko}}
     end
   end
 
@@ -60,10 +82,9 @@ defmodule Eirinchan.Posts do
     end
   end
 
-  defp create_thread(board, attrs, repo) do
+  defp insert_post(board, nil, attrs, repo) do
     attrs =
       attrs
-      |> normalize_attrs()
       |> Map.put("board_id", board.id)
       |> Map.put("thread_id", nil)
 
@@ -72,28 +93,15 @@ defmodule Eirinchan.Posts do
     |> repo.insert()
   end
 
-  defp create_reply(board, thread_id, attrs, repo) do
-    thread_id = normalize_thread_id(thread_id)
+  defp insert_post(board, thread, attrs, repo) do
+    attrs =
+      attrs
+      |> Map.put("board_id", board.id)
+      |> Map.put("thread_id", thread.id)
 
-    case repo.one(
-           from post in Post,
-             where:
-               post.id == ^thread_id and post.board_id == ^board.id and is_nil(post.thread_id)
-         ) do
-      nil ->
-        {:error, :thread_not_found}
-
-      thread ->
-        attrs =
-          attrs
-          |> normalize_attrs()
-          |> Map.put("board_id", board.id)
-          |> Map.put("thread_id", thread.id)
-
-        %Post{}
-        |> Post.create_changeset(attrs)
-        |> repo.insert()
-    end
+    %Post{}
+    |> Post.create_changeset(attrs)
+    |> repo.insert()
   end
 
   defp normalize_attrs(attrs) do
@@ -114,6 +122,119 @@ defmodule Eirinchan.Posts do
   end
 
   defp blank_to_nil(value), do: value
+
+  defp normalize_post_identity(attrs, config) do
+    attrs
+    |> Map.update("name", config.anonymous, &default_name(&1, config))
+    |> Map.update("subject", nil, &trim_to_nil/1)
+    |> Map.update("password", nil, &trim_to_nil/1)
+    |> Map.update("email", nil, &normalize_email/1)
+  end
+
+  defp default_name(nil, config), do: config.anonymous
+
+  defp default_name(value, config) do
+    case trim_to_nil(value) do
+      nil -> config.anonymous
+      trimmed -> trimmed
+    end
+  end
+
+  defp trim_to_nil(nil), do: nil
+
+  defp trim_to_nil(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp normalize_email(nil), do: nil
+
+  defp normalize_email(value),
+    do: value |> String.trim() |> String.replace(" ", "%20") |> blank_to_nil()
+
+  defp normalize_noko_email(attrs) do
+    case String.downcase(attrs["email"] || "") do
+      "noko" -> Map.put(attrs, "email", nil)
+      "nonoko" -> Map.put(attrs, "email", nil)
+      _ -> attrs
+    end
+  end
+
+  defp noko?(email, config) do
+    case String.downcase(email || "") do
+      "noko" -> true
+      "nonoko" -> false
+      _ -> config.always_noko
+    end
+  end
+
+  defp validate_post_button(true, attrs, config) do
+    if attrs["post"] == config.button_newtopic, do: :ok, else: {:error, :invalid_post_mode}
+  end
+
+  defp validate_post_button(false, attrs, config) do
+    if attrs["post"] == config.button_reply, do: :ok, else: {:error, :invalid_post_mode}
+  end
+
+  defp validate_referer(_request, %{referer_match: false}), do: :ok
+
+  defp validate_referer(request, config) do
+    referer = request[:referer] || request["referer"]
+
+    if is_binary(referer) and Regex.match?(config.referer_match, URI.decode(referer)) do
+      :ok
+    else
+      {:error, :invalid_referer}
+    end
+  end
+
+  defp validate_board_lock(config) do
+    if config.board_locked, do: {:error, :board_locked}, else: :ok
+  end
+
+  defp fetch_thread(_board, nil, _repo), do: {:ok, nil}
+
+  defp fetch_thread(board, thread_param, repo) do
+    thread_id = normalize_thread_id(thread_param)
+
+    case repo.one(
+           from post in Post,
+             where:
+               post.id == ^thread_id and post.board_id == ^board.id and is_nil(post.thread_id)
+         ) do
+      nil -> {:error, :thread_not_found}
+      thread -> {:ok, thread}
+    end
+  end
+
+  defp validate_body(op?, attrs, config) do
+    require_body = if(op?, do: config.force_body_op, else: config.force_body)
+
+    if require_body and is_nil(trim_to_nil(attrs["body"])) do
+      {:error, :body_required}
+    else
+      :ok
+    end
+  end
+
+  defp validate_reply_limit(_board, nil, _config, _repo), do: :ok
+
+  defp validate_reply_limit(board, thread, config, repo) do
+    if config.reply_hard_limit in [0, nil] do
+      :ok
+    else
+      replies =
+        repo.aggregate(
+          from(post in Post, where: post.board_id == ^board.id and post.thread_id == ^thread.id),
+          :count,
+          :id
+        )
+
+      if replies >= config.reply_hard_limit, do: {:error, :reply_hard_limit}, else: :ok
+    end
+  end
 
   defp normalize_thread_id(value) when is_integer(value), do: value
 

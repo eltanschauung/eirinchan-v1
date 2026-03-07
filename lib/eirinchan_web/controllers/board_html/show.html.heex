@@ -14,7 +14,9 @@
     <input type="text" name="subject" placeholder="Subject" />
     <input type="password" name="password" placeholder="Password" />
     <textarea name="body" placeholder="Comment"></textarea>
-    <button type="submit" name="post" value="New Thread">Post</button>
+    <button type="submit" name="post" value={@config.button_newtopic}>
+      <%= @config.button_newtopic %>
+    </button>
   </form>
 </section>
 
