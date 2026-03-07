@@ -84,6 +84,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert response =~ ~s(href="/stylesheets/style.css")
     assert response =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
+    assert response =~ ~s(data-stylesheet="yotsuba.css")
     assert response =~ ~s(src="/main.js")
     assert response =~ ~s(title="Meta">meta</a>)
     assert response =~ "Board notice"
