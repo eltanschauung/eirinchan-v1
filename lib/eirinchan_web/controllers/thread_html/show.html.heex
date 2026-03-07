@@ -1,29 +1,44 @@
-<.flash_group flash={@flash} />
 <% post = @summary.thread %>
 <% template = PostView.template_assigns(@board, post, @config) %>
-<div class="boardlist top">
-  <span class="boardlist-links">
-    <%= for board <- @boards do %>
-      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
-    <% end %>
-  </span>
+<div class="boardlist">
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
+      [
+      <%= for {link, index} <- Enum.with_index(links) do %>
+        <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
+                                                                                                                                    length(
+                                                                                                                                      links
+                                                                                                                                    ) -
+                                                                                                                                      1,
+                                                                                                                                  do:
+                                                                                                                                    raw(
+                                                                                                                                      " / "
+                                                                                                                                    ) %>
+      <% end %>
+      ]
+    </span>
+  <% end %>
 </div>
 
-<a id="top"></a>
-<header>
-  <h1>
-    / <%= @board.uri %> / - <%= PostView.post_title(
-      template.board,
-      template.post,
-      template.config
-    ) %>
-  </h1>
-  <div class="subtitle"><%= @board.title %></div>
-</header>
+<script type="text/javascript">
+  if (typeof do_boardlist !== 'undefined') do_boardlist();
+</script>
 
-<section :if={@announcement} class="blotter">
-  <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
-</section>
+<a id="top"></a>
+<img
+  :if={@board.uri == "bant" || @config.banners != []}
+  class="board_image"
+  src="/b.php"
+  style="width:300px;height:100px"
+  alt=""
+/>
+
+<header>
+  <h1><%= PostView.board_heading(@board) %></h1>
+  <div class="subtitle"><%= @board_chrome.subtitle || @board.subtitle %></div>
+  <span style="display:none">/ <%= @board.uri %> / - <%= @board.title %></span>
+</header>
 
 <div class="banner">
   Posting mode: Reply
@@ -33,56 +48,76 @@
   <a class="unimportant" href="#bottom">[Go to bottom]</a>
 </div>
 
-<form class="search-form compact-search" action={~p"/search"} method="get">
-  <p>
-    <input type="hidden" name="board" value={@board.uri} />
-    <input type="text" name="q" placeholder={"#{@board.uri} search"} />
-    <input type="submit" value="Search" />
-  </p>
-</form>
-
 <form
   name="post"
   id="reply-form"
+  onsubmit="return dopost(this);"
+  enctype="multipart/form-data"
   action={~p"/#{@board.uri}/post"}
   method="post"
-  enctype="multipart/form-data"
   data-thread-reply-form
   data-remember-stuff
   data-board-uri={@board.uri}
   data-draft-key={@summary.thread.id}
 >
   <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+  <input type="hidden" name="board" value={@board.uri} />
   <input type="hidden" name="thread" value={@summary.thread.id} />
+
   <table>
     <tr :if={!@config.field_disable_name}>
       <th>Name</th>
       <td>
-        <input type="text" name="name" size="25" />
+        <input
+          type="text"
+          name="name"
+          size="25"
+          maxlength="35"
+          autocomplete="off"
+          placeholder={@config.anonymous}
+        />
         <span :if={@config.country_flags && @config.allow_no_country}>
-          <input id="no_country_reply" type="checkbox" name="no_country" value="1" />
+          <input id="no_country_reply" name="no_country" type="checkbox" value="1" />
           <label for="no_country_reply">Don't show my flag</label>
         </span>
       </td>
     </tr>
     <tr :if={!@config.field_disable_email}>
       <th>Email</th>
-      <td><input type="text" name="email" size="25" /></td>
+      <td>
+        <input type="text" name="email" size="25" maxlength="40" autocomplete="off" />
+      </td>
     </tr>
     <tr :if={!@config.field_disable_reply_subject}>
       <th>Subject</th>
       <td>
-        <input type="text" name="subject" size="25" />
-        <input type="submit" name="post" value={@config.button_reply} />
+        <input type="text" name="subject" size="25" maxlength="100" autocomplete="off" />
+        <input
+          accesskey="s"
+          style="margin-left:2px;"
+          type="submit"
+          name="post"
+          value={@config.button_reply}
+        />
         <span>
-          <input id="spoiler_reply" type="checkbox" name="spoiler" value="1" />
+          <input id="spoiler_reply" name="spoiler" type="checkbox" value="1" />
           <label for="spoiler_reply">Spoiler Image</label>
+        </span>
+      </td>
+    </tr>
+    <tr :if={@config.field_disable_reply_subject}>
+      <th></th>
+      <td>
+        <input accesskey="s" type="submit" name="post" value={@config.button_reply} />
+        <span>
+          <input id="spoiler_reply_compact" name="spoiler" type="checkbox" value="1" />
+          <label for="spoiler_reply_compact">Spoiler Image</label>
         </span>
       </td>
     </tr>
     <tr>
       <th>Comment</th>
-      <td><textarea name="body" rows="5" cols="35" data-post-body></textarea></td>
+      <td><textarea name="body" id="body" rows="5" cols="35" data-post-body></textarea></td>
     </tr>
     <tr :if={captcha_enabled?(@config) && @config.captcha.provider == "native"} class="captcha">
       <th>Verification</th>
@@ -106,15 +141,18 @@
       </td>
     </tr>
     <tr :if={@config.user_flag}>
-      <th>Flag</th>
+      <th>Flags</th>
       <td>
         <input
           :if={@config.user_flag && @config.multiple_flags}
-          type="text"
-          id="user_flag_reply"
+          style="float:left;"
           name="user_flag"
-          value={@config.default_user_flag}
+          type="text"
           size="25"
+          maxlength="300"
+          autocomplete="off"
+          id="user_flag_reply"
+          value={@config.default_user_flag}
         />
         <select
           :if={@config.user_flag && !@config.multiple_flags}
@@ -142,11 +180,8 @@
     <tr id="upload">
       <th>File</th>
       <td>
-        <input :if={@config.max_images > 1} type="file" name="files[]" multiple /><input
-          :if={@config.max_images <= 1}
-          type="file"
-          name="file"
-        />
+        <input :if={@config.max_images > 1} type="file" name="files[]" multiple />
+        <input :if={@config.max_images <= 1} type="file" name="file" id="upload_file" />
       </td>
     </tr>
     <tr :if={@current_moderator}>
@@ -162,7 +197,7 @@
     <tr :if={!@config.field_disable_password}>
       <th>Password</th>
       <td>
-        <input type="password" name="password" size="12" />
+        <input type="password" name="password" size="12" maxlength="18" autocomplete="off" />
         <span class="unimportant">(For file deletion.)</span>
       </td>
     </tr>
@@ -179,122 +214,204 @@
   </table>
 </form>
 
+<script type="text/javascript">
+  rememberStuff();
+</script>
+
 <hr />
+<%= if @board_chrome.post_form_blotter_html do %>
+  <%= raw(@board_chrome.post_form_blotter_html) %>
+  <hr />
+<% end %>
 
-<div class="thread" id={"thread_#{post.id}"} data-board={@board.uri}>
-  <div class="post op" id={"op_#{post.id}"}>
-    <p class="intro">
-      <span :if={post.subject} class="subject"><%= post.subject %></span>
-      <span class="name"><%= PostView.display_name(post, @config) %></span>
-      <span :if={post.tripcode}><%= post.tripcode %></span>
-      <span :if={post.capcode} class="capcode"><%= post.capcode %></span>
-      <span :if={post.flag_alts != []} class="poster_id">
-        <%= Enum.join(post.flag_alts, ", ") %>
-      </span>
-      <time><%= PostView.formatted_timestamp(post) %></time>
-      <a
-        class="post_no"
-        href={Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)}
-      >
-        No.
-      </a>
-      <a
-        class="post_no"
-        href={Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config) <> "#p#{post.id}"}
-        data-quote-to={post.id}
-      >
-        <%= post.id %>
-      </a>
-      <%= if post.sticky, do: raw(" <span class=\"state-icon\">[Sticky]</span>") %>
-      <%= if post.locked, do: raw(" <span class=\"state-icon\">[Locked]</span>") %>
-      <%= if post.cycle, do: raw(" <span class=\"state-icon\">[Cyclical]</span>") %>
-      <%= if post.sage, do: raw(" <span class=\"state-icon\">[Bumplocked]</span>") %>
-    </p>
+<form name="postcontrols" id="thread-post-controls" action={~p"/#{@board.uri}/post"} method="post">
+  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+  <input type="hidden" name="board" value={@board.uri} />
+  <input type="hidden" id="thread_delete_post_id" name="delete_post_id" value="" />
+  <input type="hidden" id="thread_report_post_id" name="report_post_id" value="" />
 
-    <%= for file <- PostView.all_files(post) do %>
-      <div class="file">
-        <p class="fileinfo"><%= PostView.file_info(file) %></p>
-        <a href={file.file_path}>
-          <img
-            class="post-image"
-            src={file.thumb_path || file.file_path}
-            alt={PostView.file_display_name(file)}
-            loading="lazy"
-          />
-        </a>
-      </div>
-    <% end %>
-
-    <blockquote class="body">
-      <%= if PostView.show_body?(post, @config) do %>
-        <%= if post.raw_html, do: raw(post.body), else: post.body %>
+  <div class="thread" id={"thread_#{post.id}"} data-board={@board.uri}>
+    <a id={to_string(post.id)} class="post_anchor"></a>
+    <div class="files">
+      <%= for file <- PostView.all_files(post) do %>
+        <div class={[
+          "file",
+          if(length(PostView.all_files(post)) > 1, do: "multifile", else: nil)
+        ]}>
+          <p class="fileinfo">
+            File:
+            <a href={file.file_path} target="_blank"><%= PostView.stored_file_name(file) %></a>
+            <span>
+              (<%= PostView.file_info_details(file, @config) %>)
+            </span>
+          </p>
+          <a href={file.file_path} target="_blank">
+            <img
+              class="post-image"
+              src={file.thumb_path || file.file_path}
+              style={PostView.thumb_style(file, @config, op?: true)}
+              alt=""
+            />
+          </a>
+        </div>
       <% end %>
-      <span :if={post.tag} class="tag-line">
-        Tag: <%= if is_map(@config.allowed_tags),
-          do: Map.get(@config.allowed_tags, post.tag, post.tag),
-          else: post.tag %>
-      </span>
-      <span :if={@config.fileboard && PostView.show_fileboard_summary?(post)} class="tag-line">
-        Fileboard: <%= PostView.fileboard_summary(post) %>
-      </span>
-    </blockquote>
-    <p :if={post.flag_alts != []}>Flags: <%= Enum.join(post.flag_alts, ", ") %></p>
-    <p :if={post.capcode}>Capcode: <%= post.capcode %></p>
-  </div>
+    </div>
 
-  <form class="delete-form" action={~p"/#{@board.uri}/post"} method="post">
-    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-    <input type="hidden" name="delete_post_id" value={@summary.thread.id} />
-    <input type="password" name="password" placeholder="Password" />
-    <button type="submit">Delete</button>
-  </form>
+    <div
+      class="post op"
+      id={"op_#{post.id}"}
+      style={if length(PostView.all_files(post)) > 1, do: "clear:both", else: nil}
+    >
+      <p class="intro">
+        <input
+          type="checkbox"
+          class="delete"
+          name={"delete_#{post.id}"}
+          id={"delete_#{post.id}"}
+          value={post.id}
+          data-post-select
+        />
+        <label for={"delete_#{post.id}"}>
+          <span :if={post.subject} class="subject"><%= post.subject %></span>
+          <span class="name"><%= PostView.display_name(post, @config) %></span>
+          <span :if={post.tripcode} class="trip"><%= post.tripcode %></span>
+          <span :if={post.capcode} class="capcode"><%= post.capcode %></span>
+          <%= for flag <- PostView.post_flags(post, @config) do %>
+            <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
+          <% end %>
+          <time><%= PostView.formatted_timestamp(post) %></time>
+        </label>
+        <a
+          class="post_no"
+          id={"post_no_#{post.id}"}
+          onclick={"highlightReply(#{post.id})"}
+          href={
+            PostView.reply_path(
+              template.board,
+              template.post,
+              template.post,
+              template.config,
+              :post
+            )
+          }
+        >
+          No.
+        </a>
+        <a
+          class="post_no"
+          onclick={"citeReply(#{post.id})"}
+          href={
+            PostView.reply_path(
+              template.board,
+              template.post,
+              template.post,
+              template.config,
+              :quote
+            )
+          }
+          data-quote-to={post.id}
+        >
+          <%= post.id %>
+        </a>
+        <%= for icon <- PostView.state_icons(post, @config) do %>
+          <img class="icon" title={icon.title} src={icon.path} alt={icon.title} />
+        <% end %>
+      </p>
 
-  <%= if @summary.replies == [] do %>
-    <p class="omitted">No replies yet.</p>
-  <% else %>
+      <div class="body">
+        <%= if post.raw_html do %>
+          <%= raw(post.body || "") %>
+        <% else %>
+          <%= post.body %>
+        <% end %>
+        <span :if={post.tag} class="tag-line">
+          Tag: <%= if is_map(@config.allowed_tags),
+            do: Map.get(@config.allowed_tags, post.tag, post.tag),
+            else: post.tag %>
+        </span>
+        <span :if={@config.fileboard && PostView.show_fileboard_summary?(post)} class="tag-line">
+          Fileboard: <%= PostView.fileboard_summary(post) %>
+        </span>
+      </div>
+      <p :if={post.flag_alts != []}>Flags: <%= Enum.join(post.flag_alts, ", ") %></p>
+      <p :if={post.capcode}>Capcode: <%= post.capcode %></p>
+    </div>
+
     <%= for reply <- @summary.replies do %>
       <div class="post reply" id={"reply_#{reply.id}"}>
         <p class="intro">
-          <span :if={reply.subject} class="subject"><%= reply.subject %></span>
-          <span class="name"><%= PostView.display_name(reply, @config) %></span>
-          <span :if={reply.tripcode}><%= reply.tripcode %></span>
-          <span :if={reply.capcode} class="capcode"><%= reply.capcode %></span>
-          <span :if={reply.flag_alts != []} class="poster_id">
-            <%= Enum.join(reply.flag_alts, ", ") %>
-          </span>
-          <time><%= PostView.formatted_timestamp(reply) %></time>
+          <a id={to_string(reply.id)} class="post_anchor"></a>
+          <input
+            type="checkbox"
+            class="delete"
+            name={"delete_#{reply.id}"}
+            id={"delete_#{reply.id}"}
+            value={reply.id}
+            data-post-select
+          />
+          <label for={"delete_#{reply.id}"}>
+            <span :if={reply.subject} class="subject"><%= reply.subject %></span>
+            <span class="name"><%= PostView.display_name(reply, @config) %></span>
+            <span :if={reply.tripcode} class="trip"><%= reply.tripcode %></span>
+            <span :if={reply.capcode} class="capcode"><%= reply.capcode %></span>
+            <%= for flag <- PostView.post_flags(reply, @config) do %>
+              <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
+            <% end %>
+            <time><%= PostView.formatted_timestamp(reply) %></time>
+          </label>
           <a
             class="post_no"
-            href={Eirinchan.ThreadPaths.thread_path(@board, post, @config) <> "#p#{reply.id}"}
+            id={"post_no_#{reply.id}"}
+            onclick={"highlightReply(#{reply.id})"}
+            href={PostView.reply_path(@board, post, reply, @config, :post)}
           >
             No.
           </a>
           <a
             class="post_no"
-            href={Eirinchan.ThreadPaths.thread_path(@board, post, @config) <> "#p#{reply.id}"}
+            onclick={"citeReply(#{reply.id})"}
+            href={PostView.reply_path(@board, post, reply, @config, :quote)}
             data-quote-to={reply.id}
           >
             <%= reply.id %>
           </a>
         </p>
 
-        <%= for file <- PostView.all_files(reply) do %>
-          <div class="file">
-            <p class="fileinfo"><%= PostView.file_info(file) %></p>
-            <a href={file.file_path}>
-              <img
-                class="post-image"
-                src={file.thumb_path || file.file_path}
-                alt={PostView.file_display_name(file)}
-                loading="lazy"
-              />
-            </a>
-          </div>
-        <% end %>
+        <div class="files">
+          <%= for file <- PostView.all_files(reply) do %>
+            <div class={[
+              "file",
+              if(length(PostView.all_files(reply)) > 1, do: "multifile", else: nil)
+            ]}>
+              <p class="fileinfo">
+                File:
+                <a href={file.file_path} target="_blank">
+                  <%= PostView.stored_file_name(file) %>
+                </a>
+                <span>
+                  (<%= PostView.file_info_details(file, @config) %>)
+                </span>
+              </p>
+              <a href={file.file_path} target="_blank">
+                <img
+                  class="post-image"
+                  src={file.thumb_path || file.file_path}
+                  style={PostView.thumb_style(file, @config)}
+                  alt=""
+                />
+              </a>
+            </div>
+          <% end %>
+        </div>
 
-        <blockquote class="body">
-          <%= if PostView.show_body?(reply, @config) do %>
-            <%= if reply.raw_html, do: raw(reply.body), else: reply.body %>
+        <div
+          class="body"
+          style={if length(PostView.all_files(reply)) > 1, do: "clear:both", else: nil}
+        >
+          <%= if reply.raw_html do %>
+            <%= raw(reply.body || "") %>
+          <% else %>
+            <%= reply.body %>
           <% end %>
           <span :if={reply.tag} class="tag-line">
             Tag: <%= if is_map(@config.allowed_tags),
@@ -307,36 +424,76 @@
           >
             Fileboard: <%= PostView.fileboard_summary(reply) %>
           </span>
-        </blockquote>
+        </div>
         <p :if={reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
         <p :if={reply.capcode}>Capcode: <%= reply.capcode %></p>
       </div>
-
-      <form class="delete-form" action={~p"/#{@board.uri}/post"} method="post">
-        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-        <input type="hidden" name="delete_post_id" value={reply.id} />
-        <input type="password" name="password" placeholder="Password" />
-        <button type="submit">Delete</button>
-      </form>
+      <br />
     <% end %>
-  <% end %>
 
-  <div id="thread-interactions" class="pages">
-    <a id="thread-return" href={Eirinchan.ThreadPaths.board_page_path(@board, @page_num, @config)}>
-      [Return]
-    </a>
-    <a id="thread-top" href="#top">[Go to top]</a>
-    <a id="thread-catalog" href={"/#{@board.uri}/catalog.html"}>Catalog</a>
-    <a id="link-quick-reply" href="#reply-form">[Post a Reply]</a>
+    <br class="clear" />
+    <hr />
   </div>
+
+  <div id="thread-interactions">
+    <span id="thread-links">
+      <a
+        id="thread-return"
+        href={Eirinchan.ThreadPaths.board_page_path(@board, @page_num, @config)}
+      >
+        [Return]
+      </a>
+      <a id="thread-top" href="#top">[Go to top]</a>
+      <a id="thread-catalog" href={"/#{@board.uri}/catalog.html"}>[Orin]</a>
+      <a id="archive-button" href="#" rel="nofollow" referrerpolicy="same-origin" target="_blank">
+        [Archive This Thread]
+      </a>
+    </span>
+    <span id="thread-quick-reply">
+      <a id="link-quick-reply" href="#reply-form">[Post a Reply]</a>
+    </span>
+
+    <div id="post-moderation-fields">
+      <div id="delete-fields">
+        Delete Post [<input title="Delete file only" type="checkbox" name="file" id="delete_file" />
+        <label for="delete_file">File</label>] <label for="password">Password</label>
+        <input id="password" type="password" name="password" size="12" maxlength="18" />
+        <input type="submit" name="delete" value="Delete" data-post-action="delete" />
+      </div>
+
+      <div id="report-fields">
+        <label for="reason">Reason</label>
+        <input id="reason" type="text" name="reason" size="20" maxlength="30" />
+        <input type="submit" name="report" value="Report" data-post-action="report" />
+      </div>
+    </div>
+  </div>
+
   <div class="clearfix"></div>
-</div>
+</form>
 
 <a id="bottom"></a>
 <div class="boardlist bottom">
-  <span class="boardlist-links">
-    <%= for board <- @boards do %>
-      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
-    <% end %>
-  </span>
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
+      [
+      <%= for {link, index} <- Enum.with_index(links) do %>
+        <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
+                                                                                                                                    length(
+                                                                                                                                      links
+                                                                                                                                    ) -
+                                                                                                                                      1,
+                                                                                                                                  do:
+                                                                                                                                    raw(
+                                                                                                                                      " / "
+                                                                                                                                    ) %>
+      <% end %>
+      ]
+    </span>
+  <% end %>
 </div>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>

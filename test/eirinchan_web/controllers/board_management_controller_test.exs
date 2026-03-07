@@ -169,6 +169,24 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert catalog_page =~ ~s(name="delete_post_id")
   end
 
+  test "bant catalog page renders the custom chrome shell", %{conn: conn} do
+    board = board_fixture(%{uri: "bant", title: "International Random"})
+    thread_fixture(board, %{body: "First body", subject: "First thread"})
+
+    page =
+      conn
+      |> get("/#{board.uri}/catalog.html")
+      |> html_response(200)
+
+    assert page =~ ~s(class="8chan vichan is-not-moderator theme-catalog active-catalog")
+    assert page =~ ~s(data-stylesheet="christmas.css")
+    assert page =~ "Return to Index"
+    assert page =~ "View News - 02/14/26"
+    assert page =~ "Sort by:"
+    assert page =~ ~s(id="Grid")
+    assert page =~ "We witches are not whale lol."
+  end
+
   test "board page respects field disable flags and single-file selector mode", %{conn: conn} do
     board =
       board_fixture(%{

@@ -42,7 +42,12 @@ defmodule EirinchanWeb.BoardController do
           threads: threads,
           config: config,
           boards: Boards.list_boards(),
-          board_chrome: chrome
+          board_chrome: chrome,
+          body_class: catalog_body_class(conn),
+          body_data_stylesheet: board_data_stylesheet(board),
+          extra_stylesheets: board_extra_stylesheets(board),
+          hide_theme_switcher: true,
+          skip_app_stylesheet: true
         )
 
       {:error, :not_found} ->
@@ -86,6 +91,13 @@ defmodule EirinchanWeb.BoardController do
       if conn.assigns[:current_moderator], do: "is-moderator", else: "is-not-moderator"
 
     "8chan vichan #{moderator_class} active-index"
+  end
+
+  defp catalog_body_class(conn) do
+    moderator_class =
+      if conn.assigns[:current_moderator], do: "is-moderator", else: "is-not-moderator"
+
+    "8chan vichan #{moderator_class} theme-catalog active-catalog"
   end
 
   defp board_data_stylesheet(%{uri: "bant"}), do: "christmas.css"

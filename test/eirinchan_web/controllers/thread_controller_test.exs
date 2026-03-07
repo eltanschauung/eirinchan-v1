@@ -176,6 +176,20 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ "/ #{board.uri} /"
   end
 
+  test "bant thread pages render the custom chrome shell", %{conn: conn} do
+    board = board_fixture(%{uri: "bant", title: "International Random"})
+    thread = thread_fixture(board, %{body: "Thread body"})
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+
+    assert page =~ ~s(class="8chan vichan is-not-moderator active-thread")
+    assert page =~ ~s(data-stylesheet="christmas.css")
+    assert page =~ ~s(src="/b.php")
+    assert page =~ "losers, creeps, whales"
+    assert page =~ "[Archive This Thread]"
+    assert page =~ "data-description=\"0\""
+  end
+
   test "thread reply forms respect captcha mode for replies only", %{conn: conn} do
     board =
       board_fixture(%{
