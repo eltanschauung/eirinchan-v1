@@ -227,4 +227,62 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
     assert redirected_to(resolve_conn) == "/manage/boards/#{board.uri}/ban-appeals/browser"
   end
+
+  test "browser IP history page supports notes and delete-by-ip actions", %{conn: conn} do
+    moderator = moderator_fixture(%{role: "admin"})
+    board = board_fixture(%{uri: "tea", title: "Tea"})
+
+    {:ok, thread, _meta} =
+      Eirinchan.Posts.create_post(
+        board,
+        %{"body" => "green leaf", "subject" => "teaware", "post" => "New Topic"},
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{
+          referer: "http://example.test/#{board.uri}/index.html",
+          remote_ip: {198, 51, 100, 7}
+        }
+      )
+
+    page =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage/boards/#{board.uri}/ip/198.51.100.7/browser")
+      |> html_response(200)
+
+    assert page =~ "IP History: 198.51.100.7"
+    assert page =~ "green leaf"
+
+    note_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> post("/manage/boards/#{board.uri}/ip/198.51.100.7/browser/notes", %{
+        "body" => "Watch this IP"
+      })
+
+    assert redirected_to(note_conn) == "/manage/boards/#{board.uri}/ip/198.51.100.7/browser"
+
+    note = hd(Eirinchan.Moderation.list_ip_notes("198.51.100.7", board_id: board.id))
+
+    update_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> patch("/manage/boards/#{board.uri}/ip/198.51.100.7/browser/notes/#{note.id}", %{
+        "body" => "Updated note"
+      })
+
+    assert redirected_to(update_conn) == "/manage/boards/#{board.uri}/ip/198.51.100.7/browser"
+
+    delete_posts_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> delete("/manage/boards/#{board.uri}/ip/198.51.100.7/browser/posts")
+
+    assert redirected_to(delete_posts_conn) ==
+             "/manage/boards/#{board.uri}/ip/198.51.100.7/browser"
+
+    refute Eirinchan.Repo.get(Eirinchan.Posts.Post, thread.id)
+  end
 end

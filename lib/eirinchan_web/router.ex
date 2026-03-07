@@ -57,6 +57,13 @@ defmodule EirinchanWeb.Router do
     post "/login/browser", ManagePageController, :create_session
     get "/", ManagePageController, :dashboard
     get "/recent-posts/browser", ManagePageController, :recent_posts
+    get "/ip/:ip/browser", ManagePageController, :ip_history
+    delete "/ip/:ip/browser/posts", ManagePageController, :delete_ip_posts
+    get "/boards/:uri/ip/:ip/browser", ManagePageController, :board_ip_history
+    post "/boards/:uri/ip/:ip/browser/notes", ManagePageController, :create_ip_note
+    patch "/boards/:uri/ip/:ip/browser/notes/:id", ManagePageController, :update_ip_note
+    delete "/boards/:uri/ip/:ip/browser/notes/:id", ManagePageController, :delete_ip_note
+    delete "/boards/:uri/ip/:ip/browser/posts", ManagePageController, :delete_board_ip_posts
     get "/boards/:uri/reports/browser", ManagePageController, :reports
     delete "/boards/:uri/reports/browser/:id", ManagePageController, :dismiss_report
 

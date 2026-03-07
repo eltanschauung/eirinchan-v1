@@ -46,7 +46,16 @@
         <h2>#<%= post.id %> on /<%= post.board.uri %>/</h2>
         <p :if={post.subject}><strong><%= post.subject %></strong></p>
         <p :if={post.body}><%= post.body %></p>
-        <p>IP: <%= post.ip_subnet || "unknown" %></p>
+        <p>
+          IP:
+          <%= if post.ip_subnet do %>
+            <a href={"/manage/boards/#{post.board.uri}/ip/#{post.ip_subnet}/browser"}>
+              <%= post.ip_subnet %>
+            </a>
+          <% else %>
+            unknown
+          <% end %>
+        </p>
         <p>Posted: <%= post.inserted_at %></p>
       </article>
     <% end %>
