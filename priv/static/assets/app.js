@@ -201,6 +201,51 @@
     return false;
   }
 
+  function initializePostControls(form) {
+    if (!form) return;
+
+    const selectors = form.querySelectorAll("[data-post-select]");
+    if (!selectors.length) return;
+
+    Array.prototype.forEach.call(selectors, function (field) {
+      field.addEventListener("change", function () {
+        if (!field.checked) return;
+
+        Array.prototype.forEach.call(selectors, function (other) {
+          if (other !== field) other.checked = false;
+        });
+      });
+    });
+
+    form.addEventListener("submit", function (event) {
+      const submitter = event.submitter;
+      if (!submitter || !submitter.dataset.postAction) return;
+
+      const selected = Array.prototype.find.call(selectors, function (field) {
+        return field.checked;
+      });
+
+      if (!selected) {
+        event.preventDefault();
+        return;
+      }
+
+      const deleteField = form.querySelector('input[name="delete_post_id"]');
+      const reportField = form.querySelector('input[name="report_post_id"]');
+
+      if (deleteField) deleteField.value = "";
+      if (reportField) reportField.value = "";
+
+      if (submitter.dataset.postAction === "delete" && deleteField) {
+        deleteField.value = selected.value;
+      }
+
+      if (submitter.dataset.postAction === "report" && reportField) {
+        reportField.value = selected.value;
+      }
+    });
+  }
+
   Array.prototype.forEach.call(
     document.querySelectorAll("form[data-remember-stuff]"),
     function (form) {
@@ -218,6 +263,7 @@
   );
 
   clearPostedDrafts();
+  initializePostControls(document.querySelector("#thread-post-controls"));
 
   document.addEventListener("click", function (event) {
     const link = event.target.closest("[data-quote-to]");

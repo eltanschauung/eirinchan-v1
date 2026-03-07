@@ -1,73 +1,158 @@
-<.flash_group flash={@flash} />
-<div class="boardlist top">
-  <span class="boardlist-links">
-    <%= for board <- @boards do %>
-      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
-    <% end %>
-  </span>
-</div>
-
-<header>
-  <h1>/ <%= @board.uri %> / - <%= @board_title %></h1>
-  <div class="subtitle">
-    <a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>[Return]</a>
-  </div>
-</header>
-
-<section :if={@announcement} class="blotter">
-  <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
-</section>
-
-<form class="search-form compact-search" action={~p"/search"} method="get">
-  <p>
-    <input type="hidden" name="board" value={@board.uri} />
-    <input type="text" name="q" placeholder={"#{@board.uri} search"} />
-    <input type="submit" value="Search" />
-  </p>
-</form>
-
-<h2 style="text-align:center">Catalog</h2>
-
-<div id="catalog">
-  <%= if @threads == [] do %>
-    <p class="unimportant">No threads yet.</p>
-  <% else %>
-    <%= for summary <- @threads do %>
-      <% post = summary.thread %>
-      <% template = PostView.template_assigns(@board, post, @config) %>
-      <div class="catalog-thread" id={"catalog-#{post.id}"}>
-        <a href={
-          Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)
-        }>
-          <img
-            :if={post.thumb_path || post.file_path}
-            src={post.thumb_path || post.file_path}
-            alt={post.file_name || "upload"}
-            loading="lazy"
-          />
-        </a>
-        <div class="catalog-label">
-          <strong>
-            <%= PostView.post_title(template.board, template.post, template.config) %>
-          </strong>
-          <p :if={post.body}><%= post.body %></p>
-          <p class="unimportant"><%= summary.reply_count %> replies</p>
-          <form action={~p"/#{@board.uri}/post"} method="post">
-            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-            <input type="hidden" name="delete_post_id" value={summary.thread.id} />
-            <input type="password" name="password" placeholder="Password" />
-            <button type="submit">Delete</button>
-          </form>
-        </div>
-      </div>
-    <% end %>
+<div class="boardlist">
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
+      [
+      <%= for {link, index} <- Enum.with_index(links) do %>
+        <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
+                                                                                                                                    length(
+                                                                                                                                      links
+                                                                                                                                    ) -
+                                                                                                                                      1,
+                                                                                                                                  do:
+                                                                                                                                    raw(
+                                                                                                                                      " / "
+                                                                                                                                    ) %>
+      <% end %>
+      ]
+    </span>
   <% end %>
 </div>
 
-<div class="boardlist bottom">
-  <span class="boardlist-links">
-    <%= for board <- @boards do %>
-      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
+<script type="text/javascript">
+  if (typeof do_boardlist !== 'undefined') do_boardlist();
+</script>
+
+<header>
+  <img
+    :if={@board.uri == "bant" || @config.banners != []}
+    class="board_image"
+    style="margin-bottom:1em;width:300px;height:100px"
+    src="/b.php"
+    alt=""
+  />
+  <h1><%= PostView.board_heading(@board) %></h1>
+  <div style="text-align:center;" id="indexLink">
+    <a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>Return to Index</a>
+  </div>
+  <div class="subtitle">
+    <%= if @board.uri == "bant", do: "", else: @board_chrome.subtitle || @board.subtitle %>
+  </div>
+</header>
+
+<%= if @board_chrome.top_news_html do %>
+  <%= raw(@board_chrome.top_news_html) %>
+<% end %>
+
+<%= if @board_chrome.show_default_announcement && @announcement do %>
+  <div class="blotter">
+    <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
+  </div>
+<% end %>
+
+<hr />
+<%= if @board_chrome.post_form_blotter_html do %>
+  <%= raw(@board_chrome.post_form_blotter_html) %>
+  <hr />
+<% end %>
+
+<span>Sort by: </span>
+<select id="sort_by" style="display: inline-block">
+  <option selected value="bump:desc">Bump order</option>
+  <option value="time:desc">Creation date</option>
+  <option value="reply:desc">Reply count</option>
+</select>
+<span> Image size: </span>
+<select id="image_size" style="display: inline-block">
+  <option selected value="large">Default</option>
+  <option value="small">Small</option>
+</select>
+
+<h2 style="text-align:center">Catalog</h2>
+
+<div class="threads">
+  <div id="Grid">
+    <%= if @threads == [] do %>
+      <p class="unimportant">No threads yet.</p>
+    <% else %>
+      <%= for summary <- @threads do %>
+        <% post = summary.thread %>
+        <% template = PostView.template_assigns(@board, post, @config) %>
+        <div
+          class="mix"
+          data-reply={summary.reply_count}
+          data-bump={PostView.unix_timestamp(post.bump_at || post.inserted_at)}
+          data-time={PostView.unix_timestamp(post.inserted_at)}
+          data-id={post.id}
+          data-sticky={to_string(post.sticky || false)}
+          data-locked={to_string(post.locked || false)}
+        >
+          <div class="thread grid-li grid-size-large" id={"catalog-#{post.id}"}>
+            <a href={
+              Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)
+            }>
+              <img
+                :if={post.thumb_path || post.file_path || @config.image_deleted}
+                src={post.thumb_path || post.file_path || @config.image_deleted}
+                loading="lazy"
+                id={"img-#{post.id}"}
+                data-subject={post.subject || ""}
+                data-name={PostView.display_name(post, @config)}
+                data-muhdifference=""
+                class={[@board.uri, "thread-image"]}
+                title={PostView.formatted_timestamp(post)}
+              />
+            </a>
+            <div class="replies">
+              <strong>R: <%= summary.reply_count %> / I: <%= summary.image_count %></strong>
+              <p :if={post.subject} class="intro">
+                <span class="subject"><%= post.subject %></span>
+              </p>
+              <p :if={!post.subject}>
+                <%= PostView.post_title(template.board, template.post, template.config) %>
+              </p>
+              <%= if post.raw_html do %>
+                <%= raw(post.body || "") %>
+              <% else %>
+                <%= post.body %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        <form class="catalog-delete" action={~p"/#{@board.uri}/post"} method="post" hidden>
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="delete_post_id" value={summary.thread.id} />
+        </form>
+      <% end %>
     <% end %>
-  </span>
+  </div>
 </div>
+
+<hr />
+<a name="bottom"></a>
+<%= if @board.uri != "bant" do %>
+  <div class="boardlist bottom">
+    <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+      <% links = group[:links] || group %>
+      <span class="sub" data-description={group[:description]}>
+        [
+        <%= for {link, index} <- Enum.with_index(links) do %>
+          <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
+                                                                                                                                      length(
+                                                                                                                                        links
+                                                                                                                                      ) -
+                                                                                                                                        1,
+                                                                                                                                    do:
+                                                                                                                                      raw(
+                                                                                                                                        " / "
+                                                                                                                                      ) %>
+        <% end %>
+        ]
+      </span>
+    <% end %>
+  </div>
+<% end %>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>

@@ -6,6 +6,7 @@ defmodule EirinchanWeb.ThreadController do
   alias Eirinchan.Build
   alias Eirinchan.Posts
   alias Eirinchan.ThreadPaths
+  alias EirinchanWeb.BoardChrome
 
   plug EirinchanWeb.Plugs.LoadBoard
 
@@ -35,7 +36,13 @@ defmodule EirinchanWeb.ThreadController do
             summary: summary,
             config: config,
             page_num: page_num,
-            boards: Boards.list_boards()
+            boards: Boards.list_boards(),
+            board_chrome: BoardChrome.for_board(board),
+            body_class: board_body_class(conn),
+            body_data_stylesheet: board_data_stylesheet(board),
+            extra_stylesheets: board_extra_stylesheets(board),
+            hide_theme_switcher: true,
+            skip_app_stylesheet: true
           )
         end
 
@@ -53,4 +60,17 @@ defmodule EirinchanWeb.ThreadController do
     |> hd()
     |> String.to_integer()
   end
+
+  defp board_body_class(conn) do
+    moderator_class =
+      if conn.assigns[:current_moderator], do: "is-moderator", else: "is-not-moderator"
+
+    "8chan vichan #{moderator_class} active-thread"
+  end
+
+  defp board_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
+  defp board_data_stylesheet(_board), do: nil
+
+  defp board_extra_stylesheets(%{uri: "bant"}), do: ["/stylesheets/christmas.css"]
+  defp board_extra_stylesheets(_board), do: []
 end
