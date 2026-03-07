@@ -127,7 +127,7 @@ password hashing and upgrade path parity: partial
 session cookie model parity (__Host/__Secure jail options): incomplete
 check_login + session validation parity: partial
 permission level hierarchy parity (janitor/mod/admin): partial
-board-scoped permissions parity: incomplete
+board-scoped permissions parity: partial
 secure route token generation parity: incomplete
 CSRF enforcement for secure/secure_POST actions: incomplete
 mod logout/session destruction parity: partial

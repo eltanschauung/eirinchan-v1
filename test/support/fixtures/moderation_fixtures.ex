@@ -13,4 +13,9 @@ defmodule Eirinchan.ModerationFixtures do
 
     moderator
   end
+
+  def grant_board_access_fixture(moderator, board) do
+    {:ok, _access} = Moderation.grant_board_access(moderator, board)
+    moderator
+  end
 end

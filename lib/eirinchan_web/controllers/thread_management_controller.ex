@@ -3,6 +3,7 @@ defmodule EirinchanWeb.ThreadManagementController do
 
   alias Eirinchan.Boards
   alias Eirinchan.Boards.{Board, BoardRecord}
+  alias Eirinchan.Moderation
   alias Eirinchan.Posts
   alias Eirinchan.Runtime.Config
 
@@ -10,6 +11,7 @@ defmodule EirinchanWeb.ThreadManagementController do
 
   def show(conn, %{"uri" => uri, "thread_id" => thread_id}) do
     with board when not is_nil(board) <- Boards.get_board_by_uri(uri),
+         :ok <- authorize_board(conn, board),
          {:ok, [thread | _]} <- Posts.get_thread(board, thread_id) do
       render(conn, :show, thread: thread)
     else
@@ -20,6 +22,7 @@ defmodule EirinchanWeb.ThreadManagementController do
 
   def update(conn, %{"uri" => uri, "thread_id" => thread_id} = params) do
     with board_record when not is_nil(board_record) <- Boards.get_board_by_uri(uri),
+         :ok <- authorize_board(conn, board_record),
          {:ok, thread} <-
            Posts.update_thread_state(
              board_record,
@@ -31,6 +34,14 @@ defmodule EirinchanWeb.ThreadManagementController do
     else
       nil -> {:error, :not_found}
       error -> error
+    end
+  end
+
+  defp authorize_board(conn, board) do
+    if Moderation.board_access?(conn.assigns.current_moderator, board) do
+      :ok
+    else
+      {:error, :forbidden}
     end
   end
 
