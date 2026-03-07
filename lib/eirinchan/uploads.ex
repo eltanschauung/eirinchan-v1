@@ -40,16 +40,30 @@ defmodule Eirinchan.Uploads do
           {:ok, map()} | {:error, atom()}
   def store(%BoardRecord{} = board, %Post{} = post, %Plug.Upload{} = upload, config) do
     with {:ok, metadata} <- describe(upload, config) do
-      store(board, post, upload, config, metadata)
+      store(board, post, upload, config, metadata, nil)
     end
   end
 
   @spec store(BoardRecord.t(), Post.t(), Plug.Upload.t(), map(), map()) ::
           {:ok, map()} | {:error, atom()}
   def store(%BoardRecord{} = board, %Post{} = post, %Plug.Upload{} = upload, config, metadata) do
-    storage_name = "#{post.id}#{metadata.ext}"
+    store(board, post, upload, config, metadata, nil)
+  end
+
+  @spec store(BoardRecord.t(), Post.t(), Plug.Upload.t(), map(), map(), String.t() | nil) ::
+          {:ok, map()} | {:error, atom()}
+  def store(
+        %BoardRecord{} = board,
+        %Post{} = post,
+        %Plug.Upload{} = upload,
+        config,
+        metadata,
+        suffix
+      ) do
+    base_name = if is_binary(suffix), do: "#{post.id}-#{suffix}", else: "#{post.id}"
+    storage_name = "#{base_name}#{metadata.ext}"
     destination = Path.join([board_root(), board.uri, config.dir.img, storage_name])
-    thumb_name = "#{post.id}s.png"
+    thumb_name = "#{base_name}s.png"
     thumb_destination = Path.join([board_root(), board.uri, config.dir.thumb, thumb_name])
 
     destination

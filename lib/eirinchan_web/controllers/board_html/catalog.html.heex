@@ -42,6 +42,22 @@
               </figcaption>
             </figure>
           <% end %>
+          <%= for file <- summary.thread.extra_files || [] do %>
+            <figure>
+              <a href={file.file_path}>
+                <img
+                  src={file.thumb_path || file.file_path}
+                  alt={file.file_name || "upload"}
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                <a href={file.file_path}>
+                  <%= file.file_name || Path.basename(file.file_path) %>
+                </a>
+              </figcaption>
+            </figure>
+          <% end %>
           <p><%= summary.thread.body %></p>
           <form action={~p"/#{@board.uri}/post"} method="post">
             <input type="hidden" name="delete_post_id" value={summary.thread.id} />
