@@ -70,6 +70,26 @@ defmodule Eirinchan.Reports do
     end
   end
 
+  @spec dismiss_reports_for_post(BoardRecord.t(), String.t() | integer(), keyword()) ::
+          {:ok, non_neg_integer()}
+  def dismiss_reports_for_post(%BoardRecord{} = board, post_id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+    {count, _} =
+      repo.update_all(
+        from(
+          report in Report,
+          where:
+            report.board_id == ^board.id and report.post_id == ^normalize_id(post_id) and
+              is_nil(report.dismissed_at)
+        ),
+        set: [dismissed_at: now]
+      )
+
+    {:ok, count}
+  end
+
   defp fetch_target_post(board, attrs, repo) do
     case repo.get_by(Post, id: normalize_id(Map.get(attrs, "post_id")), board_id: board.id) do
       nil ->

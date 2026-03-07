@@ -23,4 +23,14 @@ defmodule EirinchanWeb.ReportManagementController do
       error -> error
     end
   end
+
+  def delete_post(conn, %{"uri" => uri, "post_id" => post_id}) do
+    with board when not is_nil(board) <- Boards.get_board_by_uri(uri),
+         {:ok, _count} <- Reports.dismiss_reports_for_post(board, post_id) do
+      send_resp(conn, :no_content, "")
+    else
+      nil -> {:error, :not_found}
+      error -> error
+    end
+  end
 end

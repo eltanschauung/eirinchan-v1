@@ -46,6 +46,7 @@ defmodule EirinchanWeb.Router do
     get "/boards/:uri/threads/:thread_id", ThreadManagementController, :show
     patch "/boards/:uri/threads/:thread_id", ThreadManagementController, :update
     get "/boards/:uri/reports", ReportManagementController, :index
+    delete "/boards/:uri/reports/post/:post_id", ReportManagementController, :delete_post
     delete "/boards/:uri/reports/:id", ReportManagementController, :delete
   end
 
