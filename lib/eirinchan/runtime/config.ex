@@ -56,6 +56,7 @@ defmodule Eirinchan.Runtime.Config do
     user_flags: %{},
     duplicate_file_mode: false,
     max_filesize: 5_000_000,
+    multiimage_method: "split",
     max_filename_display_length: 64,
     thumb_width: 250,
     thumb_height: 250,

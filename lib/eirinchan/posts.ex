@@ -600,12 +600,16 @@ defmodule Eirinchan.Posts do
         :ok
 
       true ->
-        Enum.reduce_while(entries, :ok, fn %{upload: upload, metadata: metadata}, :ok ->
-          case validate_upload_entry(upload, metadata, config, op?) do
-            :ok -> {:cont, :ok}
-            error -> {:halt, error}
-          end
-        end)
+        with :ok <-
+               Enum.reduce_while(entries, :ok, fn %{upload: upload, metadata: metadata}, :ok ->
+                 case validate_upload_entry(upload, metadata, config, op?) do
+                   :ok -> {:cont, :ok}
+                   error -> {:halt, error}
+                 end
+               end),
+             :ok <- validate_total_upload_size(entries, config) do
+          :ok
+        end
     end
   end
 
@@ -652,6 +656,29 @@ defmodule Eirinchan.Posts do
       {:error, :file_too_large}
     else
       :ok
+    end
+  end
+
+  defp validate_total_upload_size(entries, config) when is_list(entries) do
+    max_filesize = config.max_filesize
+
+    cond do
+      not (is_integer(max_filesize) and max_filesize > 0) ->
+        :ok
+
+      entries == [] ->
+        :ok
+
+      config.multiimage_method == "split" ->
+        total_size =
+          Enum.reduce(entries, 0, fn %{metadata: metadata}, acc ->
+            acc + (metadata.file_size || 0)
+          end)
+
+        if total_size > max_filesize, do: {:error, :file_too_large}, else: :ok
+
+      true ->
+        :ok
     end
   end
 
