@@ -2,11 +2,12 @@ defmodule EirinchanWeb.BoardManagementController do
   use EirinchanWeb, :controller
 
   alias Eirinchan.Boards
+  alias Eirinchan.Moderation
 
   action_fallback EirinchanWeb.FallbackController
 
   def index(conn, _params) do
-    render(conn, :index, boards: Boards.list_boards())
+    render(conn, :index, boards: Moderation.list_accessible_boards(conn.assigns.current_moderator))
   end
 
   def create(conn, params) do
@@ -18,9 +19,9 @@ defmodule EirinchanWeb.BoardManagementController do
   end
 
   def show(conn, %{"uri" => uri}) do
-    case Boards.get_board_by_uri(uri) do
-      nil -> {:error, :not_found}
-      board -> render(conn, :show, board: board)
+    case load_authorized_board(conn, uri) do
+      {:ok, board} -> render(conn, :show, board: board)
+      error -> error
     end
   end
 
@@ -41,6 +42,20 @@ defmodule EirinchanWeb.BoardManagementController do
     else
       nil -> {:error, :not_found}
       error -> error
+    end
+  end
+
+  defp load_authorized_board(conn, uri) do
+    case Boards.get_board_by_uri(uri) do
+      nil ->
+        {:error, :not_found}
+
+      board ->
+        if Moderation.board_access?(conn.assigns.current_moderator, board) do
+          {:ok, board}
+        else
+          {:error, :forbidden}
+        end
     end
   end
 end

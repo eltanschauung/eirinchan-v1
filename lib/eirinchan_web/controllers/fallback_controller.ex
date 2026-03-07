@@ -7,6 +7,12 @@ defmodule EirinchanWeb.FallbackController do
     |> json(%{error: "not_found"})
   end
 
+  def call(conn, {:error, :forbidden}) do
+    conn
+    |> put_status(:forbidden)
+    |> json(%{error: "forbidden"})
+  end
+
   def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
     conn
     |> put_status(:unprocessable_entity)
