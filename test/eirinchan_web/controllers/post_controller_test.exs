@@ -255,6 +255,28 @@ defmodule EirinchanWeb.PostControllerTest do
     assert %{"error" => "File type not allowed."} = json_response(reply_conn, 422)
   end
 
+  test "posting rejects extension-spoofed non-image uploads", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"]}
+      })
+
+    spoofed_upload =
+      duplicate_upload_fixture(upload_fixture("real.png", "png-bytes"), "notes.txt")
+
+    response_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => spoofed_upload,
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "File type not allowed."} = json_response(response_conn, 422)
+  end
+
   test "posting enforces required image uploads and file validation errors", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
 

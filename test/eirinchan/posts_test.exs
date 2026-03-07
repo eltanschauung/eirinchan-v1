@@ -210,6 +210,28 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post rejects extension-spoofed non-image uploads" do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"]}
+      })
+
+    spoofed_upload =
+      duplicate_upload_fixture(upload_fixture("real.png", "png-bytes"), "notes.txt")
+
+    assert {:error, :invalid_file_type} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => spoofed_upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
   test "create_post canonicalizes and truncates stored filenames" do
     board = board_fixture(%{config_overrides: %{max_filename_display_length: 12}})
 
