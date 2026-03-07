@@ -34,6 +34,19 @@ defmodule Eirinchan.Build do
     end
   end
 
+  @spec rebuild_after_post_update(BoardRecord.t(), Eirinchan.Posts.Post.t(), keyword()) ::
+          :ok | {:error, term()}
+  def rebuild_after_post_update(%BoardRecord{} = board, post, opts \\ []) do
+    config = Keyword.fetch!(opts, :config)
+    repo = Keyword.get(opts, :repo)
+    thread_id = post.thread_id || post.id
+
+    with :ok <- build_thread(board, thread_id, config: config, repo: repo),
+         :ok <- build_indexes(board, config: config, repo: repo) do
+      :ok
+    end
+  end
+
   @spec rebuild_after_delete(BoardRecord.t(), tuple(), keyword()) :: :ok | {:error, term()}
   def rebuild_after_delete(%BoardRecord{} = board, {:thread, thread}, opts) do
     config = Keyword.fetch!(opts, :config)

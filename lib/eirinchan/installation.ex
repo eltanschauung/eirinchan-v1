@@ -15,9 +15,13 @@ defmodule Eirinchan.Installation do
           | {:error, term()}
 
   def apply_persisted_repo_config do
-    case persisted_repo_config() do
-      nil -> :ok
-      config -> Application.put_env(:eirinchan, Repo, Keyword.merge(Repo.config(), config))
+    if mix_env() == :test do
+      :ok
+    else
+      case persisted_repo_config() do
+        nil -> :ok
+        config -> Application.put_env(:eirinchan, Repo, Keyword.merge(Repo.config(), config))
+      end
     end
   end
 
@@ -328,4 +332,12 @@ defmodule Eirinchan.Installation do
   defp error_string(reason) when is_binary(reason), do: reason
   defp error_string(reason) when is_atom(reason), do: Atom.to_string(reason)
   defp error_string(reason), do: inspect(reason)
+
+  defp mix_env do
+    if Code.ensure_loaded?(Mix) and function_exported?(Mix, :env, 0) do
+      Mix.env()
+    else
+      :prod
+    end
+  end
 end

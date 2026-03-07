@@ -134,6 +134,158 @@ defmodule Eirinchan.Posts do
     end
   end
 
+  @spec get_post(BoardRecord.t(), String.t() | integer(), keyword()) ::
+          {:ok, Post.t()} | {:error, :not_found}
+  def get_post(%BoardRecord{} = board, post_id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    with {:ok, normalized_post_id} <- normalize_thread_id(post_id),
+         %Post{} = post <- repo.get_by(Post, id: normalized_post_id, board_id: board.id) do
+      {:ok, repo.preload(post, :extra_files)}
+    else
+      _ -> {:error, :not_found}
+    end
+  end
+
+  @spec update_post(BoardRecord.t(), String.t() | integer(), map(), keyword()) ::
+          {:ok, Post.t()} | {:error, :not_found | Ecto.Changeset.t() | :cite_insert_failed}
+  def update_post(%BoardRecord{} = board, post_id, attrs, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+    attrs = normalize_attrs(attrs)
+
+    with {:ok, post} <- get_post(board, post_id, repo: repo),
+         {:ok, attrs} <- normalize_moderation_post_update(post, attrs, config) do
+      case repo.transaction(fn ->
+             with {:ok, updated_post} <-
+                    post
+                    |> Post.create_changeset(attrs)
+                    |> repo.update(),
+                  :ok <- replace_citations(board, updated_post, repo) do
+               repo.preload(updated_post, :extra_files)
+             else
+               {:error, reason} -> repo.rollback(reason)
+             end
+           end) do
+        {:ok, updated_post} ->
+          _ = Build.rebuild_after_post_update(board, updated_post, config: config, repo: repo)
+          {:ok, updated_post}
+
+        {:error, :not_found} ->
+          {:error, :not_found}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  @spec moderate_delete_post(BoardRecord.t(), String.t() | integer(), keyword()) ::
+          {:ok, map()} | {:error, :post_not_found | Ecto.Changeset.t()}
+  def moderate_delete_post(%BoardRecord{} = board, post_id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+
+    with {:ok, normalized_post_id} <- normalize_thread_id(post_id),
+         %Post{} = post <- repo.get_by(Post, id: normalized_post_id, board_id: board.id),
+         file_paths <- post_delete_file_paths(post, repo),
+         {:ok, _deleted_post} <- repo.delete(post) do
+      Enum.each(file_paths, &Uploads.remove/1)
+
+      result =
+        if is_nil(post.thread_id) do
+          _ = Build.rebuild_after_delete(board, {:thread, post}, config: config, repo: repo)
+          %{deleted_post_id: post.id, thread_id: post.id, thread_deleted: true}
+        else
+          _ =
+            Build.rebuild_after_delete(board, {:reply, post.thread_id}, config: config, repo: repo)
+
+          %{deleted_post_id: post.id, thread_id: post.thread_id, thread_deleted: false}
+        end
+
+      {:ok, result}
+    else
+      _ -> {:error, :post_not_found}
+    end
+  end
+
+  @spec delete_post_files(BoardRecord.t(), String.t() | integer(), keyword()) ::
+          {:ok, Post.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def delete_post_files(%BoardRecord{} = board, post_id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+
+    with {:ok, post} <- get_post(board, post_id, repo: repo) do
+      file_paths = post_delete_file_paths(post, repo)
+
+      case repo.transaction(fn ->
+             from(post_file in PostFile, where: post_file.post_id == ^post.id)
+             |> repo.delete_all()
+
+             attrs = %{
+               file_name: nil,
+               file_path: nil,
+               thumb_path: nil,
+               file_size: nil,
+               file_type: nil,
+               file_md5: nil,
+               image_width: nil,
+               image_height: nil,
+               spoiler: false
+             }
+
+             case post |> Post.create_changeset(attrs) |> repo.update() do
+               {:ok, updated_post} -> repo.preload(updated_post, :extra_files, force: true)
+               {:error, reason} -> repo.rollback(reason)
+             end
+           end) do
+        {:ok, updated_post} ->
+          Enum.each(file_paths, &Uploads.remove/1)
+          _ = Build.rebuild_after_post_update(board, updated_post, config: config, repo: repo)
+          {:ok, updated_post}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  @spec spoilerize_post_files(BoardRecord.t(), String.t() | integer(), keyword()) ::
+          {:ok, Post.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def spoilerize_post_files(%BoardRecord{} = board, post_id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+
+    with {:ok, post} <- get_post(board, post_id, repo: repo) do
+      case repo.transaction(fn ->
+             {:ok, updated_post} =
+               post
+               |> Post.create_changeset(%{spoiler: has_primary_file?(post)})
+               |> repo.update()
+
+             from(post_file in PostFile, where: post_file.post_id == ^post.id)
+             |> repo.update_all(set: [spoiler: true])
+
+             repo.preload(updated_post, :extra_files, force: true)
+           end) do
+        {:ok, updated_post} ->
+          if has_primary_file?(updated_post) do
+            :ok = Uploads.write_spoiler_thumbnail(updated_post.thumb_path, config)
+          end
+
+          Enum.each(updated_post.extra_files, fn post_file ->
+            :ok = Uploads.write_spoiler_thumbnail(post_file.thumb_path, config)
+          end)
+
+          _ = Build.rebuild_after_post_update(board, updated_post, config: config, repo: repo)
+          {:ok, updated_post}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
   @spec list_threads(BoardRecord.t(), keyword()) :: [Post.t()]
   def list_threads(%BoardRecord{} = board, opts \\ []) do
     config = Keyword.get(opts, :config, Config.compose())
@@ -1136,6 +1288,12 @@ defmodule Eirinchan.Posts do
     end)
   end
 
+  defp replace_citations(board, post, repo) do
+    from(cite in Cite, where: cite.post_id == ^post.id) |> repo.delete_all()
+    from(reference in NntpReference, where: reference.post_id == ^post.id) |> repo.delete_all()
+    store_citations(board, post, repo)
+  end
+
   defp extract_cited_post_ids(nil), do: []
 
   defp extract_cited_post_ids(body) do
@@ -1769,4 +1927,36 @@ defmodule Eirinchan.Posts do
       nil
     end
   end
+
+  defp normalize_moderation_post_update(post, attrs, config) do
+    attrs =
+      attrs
+      |> Map.take(["name", "email", "subject", "body", "raw_html"])
+      |> normalize_post_text(config)
+      |> maybe_normalize_raw_html()
+
+    slug =
+      if is_nil(post.thread_id) do
+        maybe_slugify(
+          %{
+            "subject" => Map.get(attrs, "subject", post.subject),
+            "body" => Map.get(attrs, "body", post.body)
+          },
+          config
+        )
+      else
+        post.slug
+      end
+
+    {:ok, Map.put(attrs, "slug", slug)}
+  end
+
+  defp maybe_normalize_raw_html(attrs) do
+    Map.update(attrs, "raw_html", false, &truthy?/1)
+  end
+
+  defp has_primary_file?(%Post{file_path: file_path}) when is_binary(file_path),
+    do: file_path != ""
+
+  defp has_primary_file?(_post), do: false
 end
