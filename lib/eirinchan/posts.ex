@@ -876,10 +876,10 @@ defmodule Eirinchan.Posts do
   defp maybe_infer_legacy_post_button(%{"mode" => mode} = attrs) do
     case String.downcase(String.trim(to_string(mode))) do
       "regist" ->
-        if blank_to_nil(Map.get(attrs, "thread")) do
-          Map.put(attrs, "post", "New Reply")
+        if is_nil(blank_to_nil(Map.get(attrs, "thread"))) do
+          Map.put(attrs, "post", "New Thread")
         else
-          Map.put(attrs, "post", "New Topic")
+          Map.put(attrs, "post", "Reply")
         end
 
       _ ->
@@ -1511,12 +1511,36 @@ defmodule Eirinchan.Posts do
   end
 
   defp validate_post_button(true, attrs, config) do
-    if attrs["post"] == config.button_newtopic, do: :ok, else: {:error, :invalid_post_mode}
+    if valid_post_button?(attrs["post"], config.button_newtopic, ["New Topic", "New Thread"]) do
+      :ok
+    else
+      {:error, :invalid_post_mode}
+    end
   end
 
   defp validate_post_button(false, attrs, config) do
-    if attrs["post"] == config.button_reply, do: :ok, else: {:error, :invalid_post_mode}
+    if valid_post_button?(attrs["post"], config.button_reply, ["New Reply", "Reply"]) do
+      :ok
+    else
+      {:error, :invalid_post_mode}
+    end
   end
+
+  defp valid_post_button?(value, configured, aliases) when is_binary(value) do
+    normalized =
+      value
+      |> String.trim()
+      |> String.downcase()
+
+    accepted =
+      [configured | aliases]
+      |> Enum.filter(&is_binary/1)
+      |> Enum.map(&(String.trim(&1) |> String.downcase()))
+
+    normalized in accepted
+  end
+
+  defp valid_post_button?(_value, _configured, _aliases), do: false
 
   defp validate_referer(_request, %{referer_match: false}, _board), do: :ok
 

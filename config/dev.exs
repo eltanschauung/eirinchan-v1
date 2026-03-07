@@ -72,6 +72,6 @@ config :phoenix, :plug_init_mode, :runtime
 
 config :phoenix_live_view,
   # Include HEEx debug annotations as HTML comments in rendered markup
-  debug_heex_annotations: true,
+  debug_heex_annotations: false,
   # Enable helpful, but potentially expensive runtime checks
   enable_expensive_runtime_checks: true

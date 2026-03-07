@@ -46,7 +46,19 @@ defmodule EirinchanWeb.PostController do
         end
 
       :delete ->
-        case Posts.delete_post(board, params["delete_post_id"], params["password"], config: config) do
+        delete_file_only = delete_file_only?(params)
+
+        delete_action =
+          if delete_file_only?(params) do
+            Posts.delete_post_files(board, params["delete_post_id"], config: config)
+          else
+            Posts.delete_post(board, params["delete_post_id"], params["password"], config: config)
+          end
+
+        case delete_action do
+          {:ok, result} when delete_file_only ->
+            respond_deleted_file(conn, board, result, params)
+
           {:ok, result} ->
             respond_deleted(conn, board, result, params)
 
@@ -114,6 +126,24 @@ defmodule EirinchanWeb.PostController do
         thread_id: thread_id,
         redirect: redirect_path,
         noko: meta.noko
+      })
+    else
+      redirect(conn, to: redirect_path)
+    end
+  end
+
+  defp respond_deleted_file(conn, board, post, params) do
+    config = conn.assigns.current_board_config
+    thread_id = post.thread_id || post.id
+    redirect_path = thread_redirect_or_board(board, thread_id, params, config)
+
+    if params["json_response"] == "1" do
+      json(conn, %{
+        deleted_post_id: post.id,
+        thread_id: thread_id,
+        thread_deleted: false,
+        file_deleted_only: true,
+        redirect: redirect_path
       })
     else
       redirect(conn, to: redirect_path)
@@ -225,6 +255,7 @@ defmodule EirinchanWeb.PostController do
   defp normalize_legacy_params(params) do
     params
     |> put_legacy_password()
+    |> put_legacy_selected_checkbox_id()
     |> put_legacy_action_id()
     |> put_legacy_report_id()
   end
@@ -255,6 +286,13 @@ defmodule EirinchanWeb.PostController do
     end
   end
 
+  defp put_legacy_selected_checkbox_id(params) do
+    case selected_checkbox_id(params) do
+      nil -> params
+      id -> Map.put_new(params, "delete[]", id)
+    end
+  end
+
   defp put_legacy_report_id(params) do
     legacy_id = legacy_selected_post_id(params)
 
@@ -271,16 +309,25 @@ defmodule EirinchanWeb.PostController do
   end
 
   defp legacy_action(params) do
-    case params["mode"] do
-      mode when is_binary(mode) ->
-        case String.downcase(String.trim(mode)) do
-          "delete" -> :delete
-          "report" -> :report
-          _ -> nil
-        end
+    cond do
+      Map.has_key?(params, "delete") ->
+        :delete
 
-      _ ->
-        nil
+      Map.has_key?(params, "report") ->
+        :report
+
+      true ->
+        case params["mode"] do
+          mode when is_binary(mode) ->
+            case String.downcase(String.trim(mode)) do
+              "delete" -> :delete
+              "report" -> :report
+              _ -> nil
+            end
+
+          _ ->
+            nil
+        end
     end
   end
 
@@ -303,6 +350,21 @@ defmodule EirinchanWeb.PostController do
     do: values |> Map.values() |> Enum.find_value(&first_legacy_id/1)
 
   defp first_legacy_id(_value), do: nil
+
+  defp selected_checkbox_id(params) do
+    Enum.find_value(params, fn
+      {"delete_" <> id, value} ->
+        if truthy_checkbox?(value), do: id, else: nil
+
+      _ ->
+        nil
+    end)
+  end
+
+  defp truthy_checkbox?(value) when value in ["on", "1", 1, true], do: true
+  defp truthy_checkbox?(_value), do: false
+
+  defp delete_file_only?(params), do: truthy_checkbox?(params["file"])
 
   defp thread_redirect_or_board(board, nil, _params, _config), do: "/#{board.uri}"
 
