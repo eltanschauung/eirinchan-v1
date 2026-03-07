@@ -44,7 +44,8 @@ defmodule EirinchanWeb.ThreadController do
             base_stylesheet: "/stylesheets/style.css",
             body_class: board_body_class(conn),
             body_data_stylesheet: board_data_stylesheet(board),
-            head_html: PublicShell.head_html("thread", board_name: board.uri),
+            head_html:
+              PublicShell.head_html("thread", board_name: board.uri, thread_id: summary.thread.id),
             javascript_urls: PublicShell.javascript_urls(),
             body_end_html: PublicShell.body_end_html(),
             primary_stylesheet: board_primary_stylesheet(board),

@@ -89,7 +89,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert response =~ ~s(title="Meta">meta</a>)
     assert response =~ "Board notice"
     assert response =~ "Visible on boards"
-    assert response =~ ~s(action="/search")
+    assert response =~ ~s(action="/search.php")
     assert response =~ ~s(name="board" value="#{board.uri}")
     assert response =~ "No threads yet."
   end

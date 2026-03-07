@@ -1,13 +1,352 @@
-main.public-page {
+html,
+body {
+  min-height: 100%;
+}
+
+body.8chan.vichan {
+  background: #ffe url("/stylesheets/img/fade-yotsuba.png") repeat-x 50% 0;
+  color: #800000;
+  font: 10pt arial, helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body.8chan.vichan > .boardlist:first-of-type {
+  background: #f0e0d6;
+  border-bottom: 1px solid #d9bfb7;
+  margin: 0 0 8px;
+  padding: 3px 0 2px;
+}
+
+div.boardlist {
+  color: #b86;
+  font-size: 9pt;
+  text-align: center;
+}
+
+div.boardlist span.sub {
+  display: inline-block;
+  margin: 0 3px;
+}
+
+div.boardlist.bottom {
+  margin-top: 14px;
+  padding-top: 4px;
+}
+
+div.boardlist a,
+div.pages a,
+.banner a,
+#thread-links a,
+#thread-quick-reply a {
+  color: #800;
+}
+
+img.board_image,
+img.banner {
   display: block;
+  margin: 10px auto;
+}
+
+header {
+  margin: 0.75em 0 0.3em;
+  text-align: center;
+}
+
+header h1,
+header div.subtitle {
+  color: #800000;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: -2px;
+  margin: 0;
+}
+
+header div.subtitle {
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.banner {
+  color: #af0a0f;
+  margin: 0.5em 0;
+  text-align: center;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #d9bfb7;
+  height: 0;
+}
+
+div.blotter {
+  color: maroon;
+  font-size: 10pt;
+  font-weight: 700;
+  margin: 6px auto;
+  text-align: center;
+}
+
+#blotterContainer {
+  margin: 8px 0 10px;
+  text-align: center;
+}
+
+#blotterContainer hr {
+  margin: 6px auto;
+  max-width: 500px;
+}
+
+.news-button {
+  color: #800;
+  cursor: pointer;
+  font-size: 10pt;
+}
+
+.news-blotter {
+  color: maroon;
+  display: none;
+  font-size: 8pt;
+  margin: 0 auto;
+  max-width: 420px;
+}
+
+.news-blotter h1 {
+  font-size: 16pt;
+  letter-spacing: -1px;
+  margin: 0 0 6px;
+}
+
+.news-blotter table {
+  margin: 0 auto;
+  width: 100%;
+}
+
+.news-blotter td {
+  padding: 1px 4px;
+  text-align: left;
+  vertical-align: top;
+}
+
+form[name="post"] {
+  margin: 0 auto 0.5em;
+  text-align: center;
+}
+
+form[name="post"] table {
+  border-collapse: separate;
+  border-spacing: 1px;
+  margin: 0 auto;
+}
+
+form[name="post"] table th {
+  background: #ea8;
+  border: 1px solid #800;
+  color: #800;
+  font-size: 10pt;
+  font-weight: 700;
+  padding: 0 5px;
+  white-space: nowrap;
+}
+
+form[name="post"] table td {
+  text-align: left;
+}
+
+form[name="post"] input[type="text"],
+form[name="post"] input[type="password"],
+form[name="post"] textarea,
+#post-moderation-fields input[type="text"],
+#post-moderation-fields input[type="password"] {
+  border: 1px solid #a9a9a9;
+  box-sizing: border-box;
+}
+
+form[name="post"] textarea {
+  min-width: 23rem;
+}
+
+.thread {
+  display: block;
+  margin: 0.5em 0 0;
+}
+
+.files {
+  float: left;
+  margin-right: 0.5em;
+}
+
+.file {
+  float: left;
+  margin: 0.15em 20px 0.4em 0;
+  text-align: center;
+}
+
+.fileinfo {
+  display: block;
+  margin: 0.2em 0;
+}
+
+.post-image {
+  border: none;
+}
+
+div.post.op {
+  display: block;
+  margin: 0;
+}
+
+div.post.reply {
+  background: #f0e0d6;
+  border: 1px solid #d9bfb7;
+  display: inline-block;
+  margin: 0.18em 0 0.45em 2em;
+  max-width: 78%;
+  min-width: 24em;
+  padding: 0.35em 0.55em 0.45em;
+}
+
+.intro {
+  margin: 0 0 0.25em;
+}
+
+.intro span.subject {
+  color: #d00;
+  font-weight: 700;
+}
+
+.intro span.name {
+  color: #117743;
+  font-weight: 700;
+}
+
+.intro .trip {
+  color: #117743;
+}
+
+.intro time {
+  color: #800;
+}
+
+div.post div.body {
+  color: #000;
+  line-height: 1.35;
+  margin: 0.5em 0 0.2em;
+  overflow-wrap: anywhere;
+}
+
+div.post.reply div.body {
+  margin-left: 0;
+}
+
+div.post.reply div.body a {
+  color: navy;
+}
+
+.omitted {
+  color: #707070;
+}
+
+div.pages {
+  background: #f0e0d6;
+  border: 1px solid #d9bfb7;
+  display: inline-block;
+  margin: 0.75em 0;
+  padding: 0.1em 0.5em;
+}
+
+div.pages.top {
+  display: block;
+  text-align: center;
+}
+
+div.pages a.selected {
+  color: #800;
+  font-weight: 700;
+}
+
+div.pages form {
+  display: inline;
+}
+
+div.pages form input {
+  font-size: inherit;
+}
+
+#post-moderation-fields {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  margin: 0.8em auto;
+  text-align: center;
+}
+
+#delete-fields,
+#report-fields {
+  display: inline-block;
+}
+
+#thread-interactions {
+  margin-top: 0.75em;
+}
+
+#thread-links,
+#thread-quick-reply {
+  display: inline-block;
+}
+
+#thread-links > a,
+#thread-quick-reply > a {
+  margin-right: 0.35em;
+}
+
+.theme-catalog header {
+  margin-bottom: 0.8em;
+}
+
+.theme-catalog #Grid {
+  margin: 0 auto;
+}
+
+.theme-catalog div.thread {
+  background: #f0e0d6;
+  border: 1px solid #d9bfb7;
+}
+
+.theme-catalog div.thread .replies {
+  color: #000;
+}
+
+.theme-catalog img.thread-image {
+  background: #fff;
+}
+
+footer {
+  margin: 1.5em 0 2em;
+  text-align: center;
+}
+
+footer p.unimportant {
+  margin: 0.35em 0;
+}
+
+.public-panel,
+.installer-shell,
+.mod-shell {
+  margin: 1em auto;
+  max-width: 980px;
 }
 
 .public-panel {
+  background: rgba(240, 224, 214, 0.5);
   border: 1px solid #d9bfb7;
-  background: rgba(240, 224, 214, 0.35);
   padding: 0.75em 1em;
-  margin: 1em auto;
-  max-width: 980px;
 }
 
 .public-panel h2,
@@ -20,33 +359,10 @@ main.public-page {
   width: 100%;
 }
 
-.public-panel ul,
-.public-panel ol {
-  margin: 0.6em 0 0.6em 1.6em;
-}
-
 .search-form,
-.feedback-form,
-.installer-shell,
-.mod-shell {
+.feedback-form {
   max-width: 980px;
   margin: 0 auto;
-}
-
-.styles {
-  float: right;
-  margin: 0.5em 0 1em;
-  color: #b86;
-}
-
-.styles a {
-  margin-left: 0.25em;
-  text-decoration: none;
-}
-
-#style-select {
-  float: right;
-  margin-bottom: 10px;
 }
 
 #client-error,
