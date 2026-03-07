@@ -33,7 +33,7 @@ cite tracking extraction and persistence: incomplete
 flood table writes and repeat checks: incomplete
 thread bump logic and bump-limit behavior: partial
 reply_hard_limit/image_hard_limit enforcement: partial
-report creation branch inside post endpoint parity: incomplete
+report creation branch inside post endpoint parity: partial
 post deletion branch inside post endpoint parity: incomplete
 ban appeal submission branch inside post endpoint parity: incomplete
 JSON response mode for ajax posting: partial
@@ -96,7 +96,7 @@ board metadata table parity: partial
 per-board post storage model parity or compatible replacement: partial
 post files JSON payload compatibility layer: incomplete
 cites table behavior parity: incomplete
-reports table behavior parity: incomplete
+reports table behavior parity: partial
 feedback table behavior parity: incomplete
 feedback_comments table behavior parity: incomplete
 bans table behavior parity: incomplete
@@ -135,8 +135,8 @@ mod logout/session destruction parity: incomplete
 [Moderation - Core Operations]
 moderator dashboard parity (counts and quick links): incomplete
 recent posts moderation view parity: incomplete
-reports queue parity: incomplete
-report dismiss variants (single/post/ip) parity: incomplete
+reports queue parity: partial
+report dismiss variants (single/post/ip) parity: partial
 feedback queue parity in mod panel: incomplete
 feedback delete action parity: incomplete
 feedback mark-as-read action parity: incomplete

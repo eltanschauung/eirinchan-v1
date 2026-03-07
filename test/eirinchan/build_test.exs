@@ -1,5 +1,5 @@
 defmodule Eirinchan.BuildTest do
-  use Eirinchan.DataCase, async: true
+  use Eirinchan.DataCase, async: false
 
   alias Eirinchan.Build
   alias Eirinchan.Posts

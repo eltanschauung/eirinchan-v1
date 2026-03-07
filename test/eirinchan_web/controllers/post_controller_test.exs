@@ -121,4 +121,38 @@ defmodule EirinchanWeb.PostControllerTest do
 
     assert %{"error" => "Invalid referer."} = json_response(bad_referer, 403)
   end
+
+  test "report branch creates a report and returns thread redirect metadata", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{slugify: true}})
+    thread = thread_fixture(board, %{subject: "Reported subject", body: "Thread body"})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post("/#{board.uri}/post", %{
+        "report_post_id" => Integer.to_string(thread.id),
+        "reason" => "Spam thread",
+        "json_response" => "1"
+      })
+
+    assert %{"report_id" => _id, "redirect" => redirect, "status" => "ok"} =
+             json_response(conn, 200)
+
+    assert redirect =~ "/#{board.uri}/res/#{thread.id}-reported-subject.html"
+  end
+
+  test "report branch rejects unknown posts", %{conn: conn} do
+    board = board_fixture()
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post("/#{board.uri}/post", %{
+        "report_post_id" => "999999",
+        "reason" => "Spam thread",
+        "json_response" => "1"
+      })
+
+    assert %{"error" => "Post not found"} = json_response(conn, 404)
+  end
 end
