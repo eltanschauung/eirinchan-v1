@@ -65,6 +65,32 @@ defmodule Eirinchan.PostsTest do
     path
   end
 
+  defp fake_geoip_lookup_fixture do
+    root = Path.join(System.tmp_dir!(), "eirinchan-geoip-#{System.unique_integer([:positive])}")
+    File.mkdir_p!(root)
+    db_path = Path.join(root, "GeoLite2-Country.mmdb")
+    bin_path = Path.join(root, "fake-mmdblookup")
+
+    File.write!(db_path, "fake-db")
+
+    File.write!(
+      bin_path,
+      """
+      #!/usr/bin/env bash
+      if printf '%s ' "$@" | grep -q 'country iso_code'; then
+        printf '  "US" <utf8_string>\\n'
+      elif printf '%s ' "$@" | grep -q 'country names en'; then
+        printf '  "United States" <utf8_string>\\n'
+      else
+        exit 1
+      fi
+      """
+    )
+
+    File.chmod!(bin_path, 0o755)
+    %{db_path: db_path, bin_path: bin_path, root: root}
+  end
+
   test "create_post creates an OP when no thread is supplied" do
     board = board_fixture()
 
@@ -989,6 +1015,37 @@ defmodule Eirinchan.PostsTest do
 
     assert thread.flag_codes == ["us", "sau"]
     assert thread.flag_alts == ["United States", "Sauce"]
+  end
+
+  test "create_post can resolve country metadata via a GeoIP2 lookup command" do
+    board = board_fixture()
+    geoip = fake_geoip_lookup_fixture()
+
+    on_exit(fn ->
+      File.rm_rf!(geoip.root)
+    end)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "geoip body",
+                 "post" => "New Topic"
+               },
+               config:
+                 post_config(%{
+                   country_flags: true,
+                   geoip2_database_path: geoip.db_path,
+                   geoip2_lookup_bin: geoip.bin_path
+                 }),
+               request: %{
+                 referer: "http://example.test/#{board.uri}/index.html",
+                 remote_ip: {198, 51, 100, 25}
+               }
+             )
+
+    assert thread.flag_codes == ["us"]
+    assert thread.flag_alts == ["United States"]
   end
 
   test "create_post stores allowed OP tags and proxy metadata and encodes compatibility modifiers" do

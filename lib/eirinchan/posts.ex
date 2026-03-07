@@ -11,6 +11,7 @@ defmodule Eirinchan.Posts do
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Captcha
+  alias Eirinchan.GeoIp
   alias Eirinchan.Moderation
   alias Eirinchan.Moderation.ModUser
   alias Eirinchan.Posts.Cite
@@ -1242,22 +1243,6 @@ defmodule Eirinchan.Posts do
     end
   end
 
-  defp country_metadata(request, config) do
-    request
-    |> request_country_metadata()
-    |> case do
-      nil ->
-        request
-        |> request_remote_ip()
-        |> lookup_country_metadata(config.country_flag_data)
-
-      metadata ->
-        metadata
-    end
-    |> normalize_country_metadata()
-    |> reject_excluded_country(config.country_flag_exclusions)
-  end
-
   defp request_country_metadata(request) do
     Map.get(request, :country) || Map.get(request, "country") ||
       case {Map.get(request, :country_code) || Map.get(request, "country_code"),
@@ -1277,7 +1262,36 @@ defmodule Eirinchan.Posts do
   defp lookup_country_metadata(nil, _country_flag_data), do: nil
 
   defp lookup_country_metadata(remote_ip, country_flag_data) when is_map(country_flag_data) do
-    Map.get(country_flag_data, remote_ip) || Map.get(country_flag_data, to_string(remote_ip))
+    Map.get(country_flag_data, remote_ip) || Map.get(country_flag_data, to_string(remote_ip)) ||
+      remote_ip
+  end
+
+  defp lookup_country_metadata(remote_ip, _country_flag_data), do: remote_ip
+
+  defp country_metadata(request, config) do
+    request
+    |> request_country_metadata()
+    |> case do
+      nil ->
+        request
+        |> request_remote_ip()
+        |> lookup_country_metadata(config.country_flag_data)
+        |> case do
+          %{code: _code, name: _name} = metadata ->
+            metadata
+
+          remote_ip ->
+            case GeoIp.lookup_country(remote_ip, config) do
+              {:ok, metadata} -> metadata
+              :error -> nil
+            end
+        end
+
+      metadata ->
+        metadata
+    end
+    |> normalize_country_metadata()
+    |> reject_excluded_country(config.country_flag_exclusions)
   end
 
   defp normalize_country_metadata(nil), do: nil
