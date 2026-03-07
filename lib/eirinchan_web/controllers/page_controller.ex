@@ -173,8 +173,10 @@ defmodule EirinchanWeb.PageController do
 
   defp public_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
 
-  defp public_extra_stylesheets(%{uri: "bant"}), do: []
-  defp public_extra_stylesheets(_board), do: []
+  defp public_extra_stylesheets(%{uri: "bant"}),
+    do: ["/stylesheets/eirinchan-public.css", "/stylesheets/eirinchan-bant.css"]
+
+  defp public_extra_stylesheets(_board), do: ["/stylesheets/eirinchan-public.css"]
 
   defp global_catalog_threads do
     Boards.list_boards()

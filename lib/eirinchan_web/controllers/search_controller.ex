@@ -12,6 +12,7 @@ defmodule EirinchanWeb.SearchController do
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
   alias EirinchanWeb.BoardChrome
+  alias EirinchanWeb.PublicShell
   alias EirinchanWeb.RequestMeta
   import Ecto.Query, only: [from: 2]
 
@@ -83,11 +84,19 @@ defmodule EirinchanWeb.SearchController do
 
     conn
     |> assign(:page_title, "Search")
+    |> assign(:public_shell, true)
     |> assign(:base_stylesheet, "/stylesheets/style.css")
     |> assign(:primary_stylesheet, stylesheet)
     |> assign(:primary_stylesheet_id, "stylesheet")
     |> assign(:body_class, "8chan vichan is-not-moderator active-search")
     |> assign(:body_data_stylesheet, Path.basename(stylesheet))
+    |> assign(:head_html, PublicShell.head_html("search"))
+    |> assign(:javascript_urls, PublicShell.javascript_urls())
+    |> assign(:body_end_html, PublicShell.body_end_html())
+    |> assign(:extra_stylesheets, [
+      "/stylesheets/eirinchan-public.css",
+      "/stylesheets/eirinchan-bant.css"
+    ])
     |> assign(:skip_app_stylesheet, true)
     |> assign(:skip_flash_group, true)
   end
