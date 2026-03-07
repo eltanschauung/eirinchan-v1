@@ -12,10 +12,27 @@ defmodule EirinchanWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug :fetch_session
+    plug EirinchanWeb.Plugs.FetchCurrentModerator
+  end
+
+  pipeline :manage_api do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug EirinchanWeb.Plugs.FetchCurrentModerator
+    plug EirinchanWeb.Plugs.RequireModerator
   end
 
   scope "/manage", EirinchanWeb do
     pipe_through :api
+
+    post "/login", ManageSessionController, :create
+    get "/session", ManageSessionController, :show
+    delete "/logout", ManageSessionController, :delete
+  end
+
+  scope "/manage", EirinchanWeb do
+    pipe_through :manage_api
 
     get "/feedback", FeedbackManagementController, :index
     patch "/feedback/:id/read", FeedbackManagementController, :mark_read

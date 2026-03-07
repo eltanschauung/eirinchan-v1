@@ -2,7 +2,12 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
   use EirinchanWeb.ConnCase, async: true
 
   test "creates, updates, shows, and deletes boards over HTTP", %{conn: conn} do
-    conn = put_req_header(conn, "accept", "application/json")
+    moderator = moderator_fixture()
+
+    conn =
+      conn
+      |> login_moderator(moderator)
+      |> put_req_header("accept", "application/json")
 
     conn =
       post(conn, ~p"/manage/boards", %{
@@ -22,18 +27,33 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
            } = json_response(conn, 201)
 
     assert %{"data" => %{"uri" => "tech"}} =
-             conn |> recycle() |> get(~p"/manage/boards/tech") |> json_response(200)
+             conn
+             |> recycle()
+             |> login_moderator(moderator)
+             |> get(~p"/manage/boards/tech")
+             |> json_response(200)
 
     assert %{"data" => %{"title" => "Technology+"}} =
              conn
              |> recycle()
+             |> login_moderator(moderator)
              |> patch(~p"/manage/boards/tech", %{title: "Technology+"})
              |> json_response(200)
 
-    assert response(conn |> recycle() |> delete(~p"/manage/boards/tech"), 204)
+    assert response(
+             conn
+             |> recycle()
+             |> login_moderator(moderator)
+             |> delete(~p"/manage/boards/tech"),
+             204
+           )
 
     assert %{"error" => "not_found"} =
-             conn |> recycle() |> get(~p"/manage/boards/tech") |> json_response(404)
+             conn
+             |> recycle()
+             |> login_moderator(moderator)
+             |> get(~p"/manage/boards/tech")
+             |> json_response(404)
   end
 
   test "board page loads through the DB-backed board context", %{conn: conn} do
