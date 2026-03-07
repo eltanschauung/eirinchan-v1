@@ -169,8 +169,7 @@ defmodule EirinchanWeb.PageController do
 
   defp public_body_class(page_kind), do: "8chan vichan is-not-moderator #{page_kind}"
 
-  defp public_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
-  defp public_data_stylesheet(_board), do: nil
+  defp public_data_stylesheet(_board), do: "yotsuba.css"
 
   defp public_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
 
