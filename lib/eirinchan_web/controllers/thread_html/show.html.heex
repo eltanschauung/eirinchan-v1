@@ -46,10 +46,13 @@
       </figcaption>
     </figure>
   <% end %>
-  <p><%= @summary.thread.body %></p>
+  <p>
+    <%= if @summary.thread.raw_html, do: raw(@summary.thread.body), else: @summary.thread.body %>
+  </p>
   <p :if={@summary.thread.flag_alts != []}>
     Flags: <%= Enum.join(@summary.thread.flag_alts, ", ") %>
   </p>
+  <p :if={@summary.thread.capcode}>Capcode: <%= @summary.thread.capcode %></p>
   <p :if={@summary.thread.tag}>
     Tag: <%= if is_map(@config.allowed_tags),
       do: Map.get(@config.allowed_tags, @summary.thread.tag, @summary.thread.tag),
@@ -80,6 +83,10 @@
       name="password"
       placeholder="Password"
     />
+    <input :if={@current_moderator} type="text" name="capcode" placeholder="Capcode" />
+    <label :if={@current_moderator}>
+      <input type="checkbox" name="raw" value="1" /> Raw HTML
+    </label>
     <label :if={@config.country_flags && @config.allow_no_country}>
       <input type="checkbox" name="no_country" value="1" /> No country
     </label>
@@ -151,8 +158,9 @@
             </figcaption>
           </figure>
         <% end %>
-        <p><%= reply.body %></p>
+        <p><%= if reply.raw_html, do: raw(reply.body), else: reply.body %></p>
         <p :if={reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
+        <p :if={reply.capcode}>Capcode: <%= reply.capcode %></p>
         <p :if={reply.tag}>
           Tag: <%= if is_map(@config.allowed_tags),
             do: Map.get(@config.allowed_tags, reply.tag, reply.tag),

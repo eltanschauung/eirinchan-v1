@@ -16,7 +16,8 @@ defmodule EirinchanWeb.PostController do
     request =
       Map.merge(request, %{
         remote_ip: conn.remote_ip,
-        forwarded_for: List.first(get_req_header(conn, "x-forwarded-for"))
+        forwarded_for: List.first(get_req_header(conn, "x-forwarded-for")),
+        moderator: conn.assigns[:current_moderator]
       })
 
     case branch(params) do
