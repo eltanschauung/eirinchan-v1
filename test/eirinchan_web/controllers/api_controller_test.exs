@@ -114,4 +114,29 @@ defmodule EirinchanWeb.ApiControllerTest do
     assert op["cyclical"] == 1
     assert op["bumplimit"] == 1
   end
+
+  test "thread api omits image dimensions for non-image uploads", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"]}
+      })
+
+    thread =
+      thread_fixture(board, %{
+        body: "Thread body",
+        subject: "Thread subject",
+        file: raw_upload_fixture("notes.txt", "hello")
+      })
+
+    thread_json =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> get("/api/#{board.uri}/res/#{thread.id}")
+      |> json_response(200)
+
+    assert [op | _] = thread_json["posts"]
+    assert op["ext"] == ".txt"
+    refute Map.has_key?(op, "w")
+    refute Map.has_key?(op, "h")
+  end
 end

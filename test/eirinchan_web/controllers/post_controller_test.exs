@@ -101,6 +101,49 @@ defmodule EirinchanWeb.PostControllerTest do
     assert get_resp_header(thumb_conn, "content-type") == ["image/png; charset=utf-8"]
   end
 
+  test "posting serves allowed non-image uploads with placeholder thumbs", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"]}
+      })
+
+    create_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => raw_upload_fixture("notes.txt", "hello"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => id} = json_response(create_conn, 200)
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ "/#{board.uri}/thumb/#{id}s.png"
+
+    file_conn =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/src/#{id}.txt")
+
+    assert response(file_conn, 200) == "hello"
+    assert get_resp_header(file_conn, "content-type") == ["text/plain; charset=utf-8"]
+
+    thumb_conn =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/thumb/#{id}s.png")
+
+    assert response(thumb_conn, 200) != ""
+    assert get_resp_header(thumb_conn, "content-type") == ["image/png; charset=utf-8"]
+  end
+
   test "posting enforces required image uploads and file validation errors", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
 
@@ -191,13 +234,14 @@ defmodule EirinchanWeb.PostControllerTest do
 
   test "posting rejects duplicate files when global duplicate mode is enabled", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{duplicate_file_mode: "global"}})
+    upload = upload_fixture("first.png", "same-bytes")
 
     first_conn =
       conn
       |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
       |> post(~p"/#{board.uri}/post", %{
         "body" => "first post",
-        "file" => upload_fixture("first.png", "same-bytes"),
+        "file" => upload,
         "json_response" => "1",
         "post" => "New Topic"
       })
@@ -210,7 +254,7 @@ defmodule EirinchanWeb.PostControllerTest do
       |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
       |> post(~p"/#{board.uri}/post", %{
         "body" => "second post",
-        "file" => upload_fixture("second.png", "same-bytes"),
+        "file" => duplicate_upload_fixture(upload, "second.png"),
         "json_response" => "1",
         "post" => "New Topic"
       })
