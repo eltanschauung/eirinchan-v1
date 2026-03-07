@@ -6,6 +6,7 @@
 
 <nav>
   <a href={~p"/"}>Home</a>
+  <a :if={@moderator.role == "admin"} href={~p"/manage/config/browser"}>Instance Config</a>
   <a href={~p"/manage/announcement/browser"}>Announcement</a>
   <a href={~p"/manage/pages/browser"}>Pages</a>
   <a href={~p"/news"}>News</a>
@@ -34,6 +35,7 @@
 
         <section :if={@moderator.role == "admin"}>
           <h4>Edit Board</h4>
+          <p><a href={"/manage/boards/#{board.uri}/config/browser"}>Board Config</a></p>
           <form action={"/manage/boards/#{board.uri}/browser"} method="post">
             <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
             <input type="hidden" name="_method" value="patch" />

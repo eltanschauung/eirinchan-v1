@@ -1,0 +1,21 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Board Config</h1>
+  <p>Editing /<%= @board.uri %>/ runtime overrides as JSON.</p>
+  <p :if={@error}><%= @error %></p>
+</section>
+
+<nav>
+  <a href={~p"/manage"}>Manage</a>
+  <a href={"/#{@board.uri}"}>/ <%= @board.uri %> /</a>
+</nav>
+
+<section>
+  <form action={"/manage/boards/#{@board.uri}/config/browser"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+    <input type="hidden" name="_method" value="patch" />
+    <label for="config_json">JSON</label>
+    <textarea id="config_json" name="config_json" rows="24" cols="100"><%= @config_json %></textarea>
+    <button type="submit">Save Board Config</button>
+  </form>
+</section>

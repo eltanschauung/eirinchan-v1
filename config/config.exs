@@ -13,6 +13,7 @@ config :eirinchan,
   ip_access_list: %{enabled: false, entries: [], path: Path.expand("../var/access.conf", __DIR__)},
   ip_privacy: %{enabled: true, cloak_key: "eirinchan-dev-ip", immune_ips: [], immune_cidrs: []},
   site_assets: %{version: nil, custom_javascript: []},
+  instance_config_path: Path.expand("../var/settings.json", __DIR__),
   proxy_request: %{
     trust_headers: false,
     trusted_ips: [],

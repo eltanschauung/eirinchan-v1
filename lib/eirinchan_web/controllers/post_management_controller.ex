@@ -6,6 +6,7 @@ defmodule EirinchanWeb.PostManagementController do
   alias Eirinchan.Moderation
   alias Eirinchan.Posts
   alias Eirinchan.Runtime.Config
+  alias Eirinchan.Settings
 
   action_fallback EirinchanWeb.FallbackController
 
@@ -114,9 +115,9 @@ defmodule EirinchanWeb.PostManagementController do
     board =
       board_record
       |> BoardRecord.to_board()
-      |> Board.with_runtime_paths(Config.compose())
+      |> Board.with_runtime_paths(Config.compose(nil, Settings.current_instance_config(), %{}))
 
-    Config.compose(nil, %{}, board_record.config_overrides,
+    Config.compose(nil, Settings.current_instance_config(), board_record.config_overrides,
       board: board,
       request_host: request_host
     )

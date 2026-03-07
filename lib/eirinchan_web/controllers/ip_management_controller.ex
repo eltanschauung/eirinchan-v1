@@ -124,7 +124,10 @@ defmodule EirinchanWeb.IpManagementController do
   end
 
   defp board_config(board_record, request_host) do
-    Eirinchan.Runtime.Config.compose(nil, %{}, board_record.config_overrides,
+    Eirinchan.Runtime.Config.compose(
+      nil,
+      Eirinchan.Settings.current_instance_config(),
+      board_record.config_overrides,
       board: Eirinchan.Boards.BoardRecord.to_board(board_record),
       request_host: request_host
     )
