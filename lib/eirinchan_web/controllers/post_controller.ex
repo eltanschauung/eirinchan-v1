@@ -7,6 +7,7 @@ defmodule EirinchanWeb.PostController do
   alias Eirinchan.Posts
   alias Eirinchan.Reports
   alias Eirinchan.ThreadPaths
+  alias EirinchanWeb.RequestMeta
 
   plug EirinchanWeb.Plugs.LoadBoard
 
@@ -18,8 +19,8 @@ defmodule EirinchanWeb.PostController do
 
     request =
       Map.merge(request, %{
-        remote_ip: conn.remote_ip,
-        forwarded_for: List.first(get_req_header(conn, "x-forwarded-for")),
+        remote_ip: RequestMeta.effective_remote_ip(conn),
+        forwarded_for: RequestMeta.forwarded_for(conn),
         moderator: conn.assigns[:current_moderator]
       })
 
