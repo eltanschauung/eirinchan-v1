@@ -33,6 +33,7 @@ defmodule EirinchanWeb.BoardController do
         threads = Enum.flat_map(pages, & &1.threads)
 
         render(conn, :catalog,
+          layout: false,
           board: board,
           board_title: board.title,
           announcement: Announcement.current(),
@@ -54,6 +55,7 @@ defmodule EirinchanWeb.BoardController do
     case Posts.list_threads_page(board, page, config: config) do
       {:ok, page_data} ->
         render(conn, :show,
+          layout: false,
           board: board,
           board_title: board.title,
           announcement: Announcement.current(),
