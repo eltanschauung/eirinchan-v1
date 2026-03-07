@@ -10,7 +10,7 @@ post submission orchestration pipeline parity (end-to-end): partial
 thread display pipeline parity (OP + replies + omitted counters): partial
 index display pipeline parity (pagination + previews + links): partial
 catalog display pipeline parity: incomplete
-API display pipeline parity (thread/page/catalog JSON): incomplete
+API display pipeline parity (thread/page/catalog JSON): partial
 
 [Posting Pipeline - Validation and Business Rules]
 OP vs reply branch handling parity: partial
@@ -235,13 +235,13 @@ purge integration support parity: incomplete
 logging backends parity (error_log/file/stderr/syslog): incomplete
 
 [API and Client Compatibility]
-4chan-style JSON field compatibility: incomplete
+4chan-style JSON field compatibility: partial
 extra_files compatibility in API responses: incomplete
 country fields in API responses from modifiers: incomplete
 poster ID API field parity: incomplete
 semantic_url API slug field parity: incomplete
 boards.json API parity: incomplete
-catalog.json and threads.json API parity: incomplete
+catalog.json and threads.json API parity: partial
 
 [Frontend Behavior and UX]
 post form field disable toggles parity (name/email/subject/password): incomplete
@@ -251,7 +251,7 @@ post success draft clearing cookie behavior parity: incomplete
 file selector multi-upload UX parity: incomplete
 captcha lazy loading behavior parity: incomplete
 stylesheet/theme chooser behavior parity: incomplete
-board/thread nav links parity (catalog, index, return links): incomplete
+board/thread nav links parity (catalog, index, return links): partial
 
 [Infrastructure, Performance, and Operations]
 cache driver parity (php/apcu/memcached/redis/fs/none): incomplete
