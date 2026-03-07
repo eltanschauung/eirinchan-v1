@@ -10,6 +10,7 @@ import Config
 config :eirinchan,
   ecto_repos: [Eirinchan.Repo],
   feedback_store_ip: false,
+  ip_privacy: %{cloak_key: "eirinchan-dev-ip"},
   proxy_request: %{
     trust_headers: false,
     trusted_ips: [],

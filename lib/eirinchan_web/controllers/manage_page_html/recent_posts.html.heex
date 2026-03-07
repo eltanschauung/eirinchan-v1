@@ -49,9 +49,13 @@
         <p>
           IP:
           <%= if post.ip_subnet do %>
-            <a href={"/manage/boards/#{post.board.uri}/ip/#{post.ip_subnet}/browser"}>
-              <%= post.ip_subnet %>
-            </a>
+            <%= if EirinchanWeb.IpPresentation.show_raw_ip?(@moderator) do %>
+              <a href={"/manage/boards/#{post.board.uri}/ip/#{post.ip_subnet}/browser"}>
+                <%= post.ip_subnet %>
+              </a>
+            <% else %>
+              <%= EirinchanWeb.IpPresentation.display_ip(post.ip_subnet, @moderator) %>
+            <% end %>
           <% else %>
             unknown
           <% end %>

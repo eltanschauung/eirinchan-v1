@@ -12,7 +12,13 @@ defmodule EirinchanWeb.IpManagementController do
          :ok <- authorize_board(conn, board) do
       posts = Moderation.list_ip_posts(ip, board_ids: [board.id])
       notes = Moderation.list_ip_notes(ip, board_id: board.id)
-      render(conn, :show, ip: ip, posts: posts, notes: notes)
+
+      render(conn, :show,
+        ip: ip,
+        posts: posts,
+        notes: notes,
+        moderator: conn.assigns.current_moderator
+      )
     else
       nil -> {:error, :not_found}
       error -> error
@@ -23,7 +29,13 @@ defmodule EirinchanWeb.IpManagementController do
     boards = Moderation.list_accessible_boards(conn.assigns.current_moderator)
     posts = Moderation.list_ip_posts(ip, board_ids: Enum.map(boards, & &1.id))
     notes = Moderation.list_ip_notes(ip, board_ids: Enum.map(boards, & &1.id))
-    render(conn, :show, ip: ip, posts: posts, notes: notes)
+
+    render(conn, :show,
+      ip: ip,
+      posts: posts,
+      notes: notes,
+      moderator: conn.assigns.current_moderator
+    )
   end
 
   def create_note(conn, %{"uri" => uri, "ip" => ip, "body" => body}) do
@@ -37,7 +49,7 @@ defmodule EirinchanWeb.IpManagementController do
            }) do
       conn
       |> put_status(:created)
-      |> render(:note, note: note)
+      |> render(:note, note: note, moderator: conn.assigns.current_moderator)
     else
       nil -> {:error, :not_found}
       error -> error
@@ -49,7 +61,7 @@ defmodule EirinchanWeb.IpManagementController do
          :ok <- authorize_board(conn, board),
          {:ok, note} <- load_board_note(id, board.id),
          {:ok, note} <- Moderation.update_ip_note(note, %{body: body}) do
-      render(conn, :note, note: note)
+      render(conn, :note, note: note, moderator: conn.assigns.current_moderator)
     else
       nil -> {:error, :not_found}
       error -> error
