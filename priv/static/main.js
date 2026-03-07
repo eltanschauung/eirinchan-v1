@@ -74,6 +74,7 @@
     }
 
     var selected =
+      (window.styles && window.styles[cookieTheme] ? cookieTheme : null) ||
       findStyleNameByThemeName(cookieTheme) ||
       (window.styles && window.styles[storedLabel] ? storedLabel : null);
 
@@ -140,7 +141,6 @@
     function (styleName, link) {
       var style = window.styles[styleName];
       var stylePath = style && (style.uri || style);
-      var themeName = (style && style.name) || window.styleThemeNames[styleName];
       if (!stylePath) return;
 
       var node = document.getElementById('stylesheet');
@@ -160,13 +160,15 @@
       } catch (_error) {
       }
 
-      if (themeName) {
+      if (styleName) {
         document.cookie =
-          'theme=' + encodeURIComponent(themeName) + '; path=/; max-age=' + 60 * 60 * 24 * 365;
+          'theme=' + encodeURIComponent(styleName) + '; path=/; max-age=' + 60 * 60 * 24 * 365;
       }
 
       document.querySelectorAll('div.styles a').forEach(function (styleLink) {
-        styleLink.className = styleLink === link ? 'selected' : '';
+        var matchesCurrentStyle =
+          styleLink === link || styleLink.textContent === '[' + styleName + ']';
+        styleLink.className = matchesCurrentStyle ? 'selected' : '';
       });
 
       var chooser = document.querySelector('#style-select select');

@@ -63,14 +63,7 @@ defmodule EirinchanWeb.PublicShell do
         value -> ~s(, thread_id = "#{value}")
       end
 
-    selected_style =
-      opts
-      |> Keyword.get(:theme_name, "default")
-      |> case do
-        "default" -> "Yotsuba"
-        "yotsuba" -> "Yotsuba"
-        value -> label_for_theme_option(value, Keyword.get(opts, :theme_options, []))
-      end
+    selected_style = Keyword.get(opts, :theme_label, "Yotsuba")
 
     styles_json =
       opts
@@ -122,12 +115,6 @@ defmodule EirinchanWeb.PublicShell do
 
   def body_end_html do
     "<script type=\"text/javascript\">ready();</script>"
-  end
-
-  defp label_for_theme_option(name, options) do
-    Enum.find_value(options, "Yotsuba", fn option ->
-      if option.name == name, do: option.label
-    end)
   end
 
   defp board_heading(board), do: "/#{board.uri}/ - #{board.title}"

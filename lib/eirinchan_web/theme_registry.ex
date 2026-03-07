@@ -40,6 +40,12 @@ defmodule EirinchanWeb.ThemeRegistry do
     |> Enum.uniq_by(& &1.label)
   end
 
+  def public_default do
+    default_theme()
+    |> public_lookup()
+    |> Kernel.||(public_all() |> List.first())
+  end
+
   def default_theme do
     case Settings.default_theme() do
       value when is_binary(value) and value != "" -> value
@@ -55,20 +61,16 @@ defmodule EirinchanWeb.ThemeRegistry do
 
   def valid_theme?(name), do: not is_nil(fetch(name))
 
-  def canonical_public_name(name) when is_binary(name) do
-    case fetch(name) do
-      %{label: label} ->
-        public_all()
-        |> Enum.find_value(default_theme(), fn option ->
-          if option.label == label, do: option.name
-        end)
+  def public_lookup(identifier) when is_binary(identifier) do
+    value = String.trim(identifier)
 
-      _ ->
-        default_theme()
-    end
+    public_all()
+    |> Enum.find(fn option ->
+      option.name == value or option.label == value
+    end)
   end
 
-  def canonical_public_name(_name), do: default_theme()
+  def public_lookup(_identifier), do: nil
 
   defp themes do
     installed =

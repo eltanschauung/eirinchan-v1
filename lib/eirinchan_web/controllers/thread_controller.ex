@@ -50,7 +50,7 @@ defmodule EirinchanWeb.ThreadController do
               PublicShell.head_html("thread",
                 board_name: board.uri,
                 thread_id: summary.thread.id,
-                theme_name: conn.assigns[:theme_name],
+                theme_label: conn.assigns[:theme_label],
                 theme_options: conn.assigns[:theme_options]
               ),
             head_after_assets_html: PublicShell.thread_meta_html(board, summary.thread, config),
