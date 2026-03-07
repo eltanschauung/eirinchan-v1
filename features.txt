@@ -30,7 +30,7 @@ wordfilter pipeline integration: partial
 markup pre-processing and modifier escaping parity: partial
 raw HTML posting mode for authorized moderators: partial
 cite tracking extraction and persistence: partial
-flood table writes and repeat checks: incomplete
+flood table writes and repeat checks: partial
 thread bump logic and bump-limit behavior: partial
 reply_hard_limit/image_hard_limit enforcement: partial
 report creation branch inside post endpoint parity: partial
@@ -101,9 +101,9 @@ feedback table behavior parity: partial
 feedback_comments table behavior parity: partial
 bans table behavior parity: partial
 mod users/modlogs/pms table behavior parity: partial
-search_queries rate-limiting table behavior parity: incomplete
+search_queries rate-limiting table behavior parity: partial
 nntp_references table behavior parity: partial
-antispam/flood table behavior parity: incomplete
+antispam/flood table behavior parity: partial
 schema migration tooling from existing MySQL data: incomplete
 
 [Rendering, Build, and Static Generation]
