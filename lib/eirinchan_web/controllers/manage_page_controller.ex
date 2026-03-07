@@ -6,6 +6,7 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.Bans
   alias Eirinchan.Installation
   alias Eirinchan.Moderation
+  alias Eirinchan.News
   alias Eirinchan.Reports
   alias Eirinchan.Runtime.Config
   alias EirinchanWeb.ManageSecurity
@@ -45,9 +46,82 @@ defmodule EirinchanWeb.ManagePageController do
       render(conn, :dashboard,
         moderator: moderator,
         boards: Moderation.list_accessible_boards(moderator),
+        news_entries: News.list_entries(limit: 10),
         error: nil,
         params: %{"uri" => nil, "title" => nil, "subtitle" => nil}
       )
+    end
+  end
+
+  def news(conn, _params) do
+    with {:ok, moderator} <- ensure_moderator(conn) do
+      render(conn, :news,
+        moderator: moderator,
+        news_entries: News.list_entries(),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
+    end
+  end
+
+  def create_news(conn, %{"title" => title, "body" => body}) do
+    with {:ok, moderator} <- ensure_news_editor(conn),
+         {:ok, _entry} <-
+           News.create_entry(%{title: title, body: body, mod_user_id: moderator.id}) do
+      conn
+      |> put_flash(:info, "News entry created.")
+      |> redirect(to: ~p"/manage/news/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_news_error(conn, "Moderator access required.")
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_news_error(conn, format_changeset(changeset), :unprocessable_entity)
+    end
+  end
+
+  def update_news(conn, %{"id" => id, "title" => title, "body" => body}) do
+    with {:ok, _moderator} <- ensure_news_editor(conn),
+         %News.Entry{} = entry <- News.get_entry(id),
+         {:ok, _entry} <- News.update_entry(entry, %{title: title, body: body}) do
+      conn
+      |> put_flash(:info, "News entry updated.")
+      |> redirect(to: ~p"/manage/news/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_news_error(conn, "Moderator access required.")
+
+      nil ->
+        render_news_error(conn, "News entry not found.", :not_found)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_news_error(conn, format_changeset(changeset), :unprocessable_entity)
+    end
+  end
+
+  def delete_news(conn, %{"id" => id}) do
+    with {:ok, _moderator} <- ensure_news_editor(conn),
+         %News.Entry{} = entry <- News.get_entry(id),
+         {:ok, _entry} <- News.delete_entry(entry) do
+      conn
+      |> put_flash(:info, "News entry deleted.")
+      |> redirect(to: ~p"/manage/news/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_news_error(conn, "Moderator access required.")
+
+      nil ->
+        render_news_error(conn, "News entry not found.", :not_found)
     end
   end
 
@@ -369,6 +443,7 @@ defmodule EirinchanWeb.ManagePageController do
         |> render(:dashboard,
           moderator: conn.assigns[:current_moderator],
           boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
+          news_entries: News.list_entries(limit: 10),
           error: "Administrator access required.",
           params: Map.take(stringify(params), ["uri", "title", "subtitle"])
         )
@@ -379,6 +454,7 @@ defmodule EirinchanWeb.ManagePageController do
         |> render(:dashboard,
           moderator: conn.assigns.current_moderator,
           boards: Moderation.list_accessible_boards(conn.assigns.current_moderator),
+          news_entries: News.list_entries(limit: 10),
           error: format_changeset(changeset),
           params: Map.take(stringify(params), ["uri", "title", "subtitle"])
         )
@@ -471,6 +547,12 @@ defmodule EirinchanWeb.ManagePageController do
     end
   end
 
+  defp ensure_news_editor(conn) do
+    with {:ok, moderator} <- ensure_moderator(conn) do
+      if moderator.role in ["admin", "mod"], do: {:ok, moderator}, else: {:error, :forbidden}
+    end
+  end
+
   defp stringify(params), do: Enum.into(params, %{}, fn {k, v} -> {to_string(k), v} end)
 
   defp render_dashboard_error(conn, message, params, status \\ :forbidden) do
@@ -479,8 +561,19 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:dashboard,
       moderator: conn.assigns[:current_moderator],
       boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
+      news_entries: News.list_entries(limit: 10),
       error: message,
       params: Map.take(stringify(params), ["uri", "title", "subtitle"])
+    )
+  end
+
+  defp render_news_error(conn, message, status \\ :forbidden) do
+    conn
+    |> put_status(status)
+    |> render(:news,
+      moderator: conn.assigns[:current_moderator],
+      news_entries: News.list_entries(),
+      error: message
     )
   end
 

@@ -56,6 +56,10 @@ defmodule EirinchanWeb.Router do
     get "/login", ManagePageController, :login
     post "/login/browser", ManagePageController, :create_session
     get "/", ManagePageController, :dashboard
+    get "/news/browser", ManagePageController, :news
+    post "/news/browser", ManagePageController, :create_news
+    patch "/news/browser/:id", ManagePageController, :update_news
+    delete "/news/browser/:id", ManagePageController, :delete_news
     get "/recent-posts/browser", ManagePageController, :recent_posts
     get "/ip/:ip/browser", ManagePageController, :ip_history
     delete "/ip/:ip/browser/posts", ManagePageController, :delete_ip_posts
@@ -161,6 +165,7 @@ defmodule EirinchanWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/news", PageController, :news
     get "/feedback", FeedbackController, :show
     post "/feedback", FeedbackController, :create
     get "/:board/thumb/:filename", UploadedFileController, :show_thumb
