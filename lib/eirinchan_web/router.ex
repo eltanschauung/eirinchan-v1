@@ -184,6 +184,10 @@ defmodule EirinchanWeb.Router do
 
     get "/", PageController, :home
     get "/news", PageController, :news
+    get "/catalog", PageController, :catalog
+    get "/ukko", PageController, :ukko
+    get "/recent", PageController, :recent
+    get "/sitemap.xml", PageController, :sitemap
     get "/search", SearchController, :show
     get "/pages/:slug", PageController, :page
     get "/feedback", FeedbackController, :show

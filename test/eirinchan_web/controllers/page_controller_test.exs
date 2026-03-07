@@ -98,4 +98,71 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "How to post"
     assert page =~ "pagewriter"
   end
+
+  test "GET /catalog renders a global catalog across boards", %{conn: conn} do
+    moderator_fixture()
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
+
+    other_board =
+      board_fixture(%{uri: "meta#{System.unique_integer([:positive])}", title: "Meta"})
+
+    thread_fixture(board, %{subject: "Tea thread", body: "Green tea"})
+    thread_fixture(other_board, %{subject: "Meta thread", body: "Board ops"})
+
+    page =
+      conn
+      |> get("/catalog")
+      |> html_response(200)
+
+    assert page =~ "Global Catalog"
+    assert page =~ "Tea thread"
+    assert page =~ "Meta thread"
+  end
+
+  test "GET /ukko renders aggregated board threads", %{conn: conn} do
+    moderator_fixture()
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
+    thread_fixture(board, %{subject: "Tea ukko", body: "Ukko body"})
+
+    page =
+      conn
+      |> get("/ukko")
+      |> html_response(200)
+
+    assert page =~ "Ukko"
+    assert page =~ "Tea ukko"
+    assert page =~ board.uri
+  end
+
+  test "GET /recent renders recent posts across boards", %{conn: conn} do
+    moderator_fixture()
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
+    thread = thread_fixture(board, %{subject: "Recent thread", body: "Opening"})
+    reply_fixture(board, thread, %{body: "Recent reply"})
+
+    page =
+      conn
+      |> get("/recent")
+      |> html_response(200)
+
+    assert page =~ "Recent Posts"
+    assert page =~ "Recent reply"
+    assert page =~ board.uri
+  end
+
+  test "GET /sitemap.xml renders board and thread urls", %{conn: conn} do
+    moderator_fixture()
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
+    thread = thread_fixture(board, %{subject: "Mapped", body: "XML body"})
+
+    xml =
+      conn
+      |> get("/sitemap.xml")
+      |> response(200)
+
+    assert xml =~ "<?xml version=\"1.0\""
+    assert xml =~ "<loc>/#{board.uri}</loc>"
+    assert xml =~ "<loc>/#{board.uri}/catalog.html</loc>"
+    assert xml =~ "<loc>/#{board.uri}/res/#{thread.id}.html</loc>"
+  end
 end

@@ -1,0 +1,34 @@
+<section>
+  <h1>Global Catalog</h1>
+  <nav>
+    <a href={~p"/"}>Home</a>
+    <a href={~p"/ukko"}>Ukko</a>
+    <a href={~p"/recent"}>Recent</a>
+  </nav>
+</section>
+
+<section :if={@announcement}>
+  <h2>Announcement</h2>
+  <article>
+    <h3><%= @announcement.title %></h3>
+    <p><%= @announcement.body %></p>
+  </article>
+</section>
+
+<section>
+  <%= if @threads == [] do %>
+    <p>No threads yet.</p>
+  <% else %>
+    <%= for %{board: board, summary: summary} <- @threads do %>
+      <article id={"catalog-#{summary.thread.id}"}>
+        <h2>
+          <a href={"/#{board.uri}/res/#{summary.thread.id}.html"}>
+            /<%= board.uri %>/ <%= summary.thread.subject || "Untitled" %>
+          </a>
+        </h2>
+        <p><%= summary.thread.body %></p>
+        <p><%= summary.reply_count %> replies</p>
+      </article>
+    <% end %>
+  <% end %>
+</section>
