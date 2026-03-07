@@ -281,7 +281,11 @@
               File:
               <a href={file.file_path} target="_blank"><%= PostView.stored_file_name(file) %></a>
               <span>
-                (<%= PostView.file_info_details(file, @config) %>)
+                (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
+                  do: raw(", " <> PostView.file_dimensions(file)) %>, <span
+                  class="postfilename"
+                  title={PostView.original_file_name(file)}
+                ><%= PostView.original_file_name(file) %></span>)
               </span>
             </p>
             <a href={file.file_path} target="_blank">
@@ -315,13 +319,16 @@
             <%= for flag <- PostView.post_flags(thread, @config) do %>
               <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
             <% end %>
-            <time><%= PostView.formatted_timestamp(thread) %></time>
+            <time datetime={PostView.iso_timestamp(thread)}>
+              <%= PostView.formatted_timestamp(thread) %>
+            </time>
           </label>
+          &nbsp;
           <a
             class="post_no"
             id={"post_no_#{thread.id}"}
             onclick={"highlightReply(#{thread.id})"}
-            href={PostView.reply_path(@board, thread, thread, @config, :post)}
+            href={PostView.thread_path(@board, thread, @config) <> "##{thread.id}"}
           >
             No.
           </a>
@@ -344,11 +351,7 @@
           <a href={PostView.thread_path(@board, thread, @config)}>[Reply]</a>
         </p>
         <div class="body">
-          <%= if thread.raw_html do %>
-            <%= raw(thread.body || "") %>
-          <% else %>
-            <%= thread.body %>
-          <% end %>
+          <%= raw(PostView.body_html(thread, @board, thread, @config)) %>
           <span
             :if={@config.fileboard && PostView.show_fileboard_summary?(thread)}
             style="display:none"
@@ -377,13 +380,16 @@
               <%= for flag <- PostView.post_flags(reply, @config) do %>
                 <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
               <% end %>
-              <time><%= PostView.formatted_timestamp(reply) %></time>
+              <time datetime={PostView.iso_timestamp(reply)}>
+                <%= PostView.formatted_timestamp(reply) %>
+              </time>
             </label>
+            &nbsp;
             <a
               class="post_no"
               id={"post_no_#{reply.id}"}
               onclick={"highlightReply(#{reply.id})"}
-              href={PostView.reply_path(@board, thread, reply, @config, :post)}
+              href={PostView.thread_path(@board, thread, @config) <> "##{reply.id}"}
             >
               No.
             </a>
@@ -408,7 +414,11 @@
                     <%= PostView.stored_file_name(file) %>
                   </a>
                   <span>
-                    (<%= PostView.file_info_details(file, @config) %>)
+                    (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
+                      do: raw(", " <> PostView.file_dimensions(file)) %>, <span
+                      class="postfilename"
+                      title={PostView.original_file_name(file)}
+                    ><%= PostView.original_file_name(file) %></span>)
                   </span>
                 </p>
                 <a href={file.file_path} target="_blank">
@@ -426,11 +436,7 @@
             class="body"
             style={if length(PostView.all_files(reply)) > 1, do: "clear:both", else: nil}
           >
-            <%= if reply.raw_html do %>
-              <%= raw(reply.body || "") %>
-            <% else %>
-              <%= reply.body %>
-            <% end %>
+            <%= raw(PostView.body_html(reply, @board, thread, @config)) %>
           </div>
         </div>
         <br />

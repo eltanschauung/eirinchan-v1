@@ -215,14 +215,24 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
     assert redirected_to(update_conn) == "/manage/announcement/browser"
 
+    announcement_page =
+      update_conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> get("/manage/announcement/browser")
+      |> html_response(200)
+
+    assert announcement_page =~ "Banner Updated"
+    assert announcement_page =~ "Important notice updated"
+
     home_page =
       update_conn
       |> recycle()
       |> get("/")
       |> html_response(200)
 
-    assert home_page =~ "Banner Updated"
-    assert home_page =~ "Important notice updated"
+    refute home_page =~ "Banner Updated"
+    assert home_page =~ "View News - 02/14/26"
 
     delete_conn =
       conn
