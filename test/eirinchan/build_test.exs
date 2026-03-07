@@ -125,6 +125,47 @@ defmodule Eirinchan.BuildTest do
     assert op["h"] == 16
   end
 
+  test "non-image uploads build placeholder thumb references and omit image dimensions in api" do
+    File.rm_rf!(Build.board_root())
+
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          api: %{enabled: true},
+          allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"]
+        }
+      })
+
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+    upload = raw_upload_fixture("notes.txt", "hello")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening post body",
+                 "file" => upload,
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_json_path = Path.join([board_dir, config.dir.res, "#{thread.id}.json"])
+
+    assert File.read!(index_path) =~ thread.thumb_path
+    assert File.exists?(Path.join(board_dir, "thumb/#{thread.id}s.png"))
+
+    assert %{"posts" => [op]} = Jason.decode!(File.read!(thread_json_path))
+    assert op["filename"] == "notes"
+    assert op["ext"] == ".txt"
+    assert op["fsize"] == byte_size("hello")
+    refute Map.has_key?(op, "w")
+    refute Map.has_key?(op, "h")
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 

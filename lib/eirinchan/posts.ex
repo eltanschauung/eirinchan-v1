@@ -519,10 +519,14 @@ defmodule Eirinchan.Posts do
        do: :ok
 
   defp validate_image_dimensions(attrs, config) do
-    width = get_in(attrs, ["__upload_metadata__", :image_width]) || 0
-    height = get_in(attrs, ["__upload_metadata__", :image_height]) || 0
+    metadata = attrs["__upload_metadata__"]
+    width = metadata.image_width || 0
+    height = metadata.image_height || 0
 
     cond do
+      not Uploads.image?(metadata) ->
+        :ok
+
       width < 1 or height < 1 ->
         {:error, :invalid_image}
 
@@ -581,7 +585,7 @@ defmodule Eirinchan.Posts do
             where:
               post.board_id == ^board.id and
                 (post.id == ^thread.id or post.thread_id == ^thread.id) and
-                not is_nil(post.file_path)
+                like(post.file_type, "image/%")
           ),
           :count,
           :id
@@ -701,7 +705,7 @@ defmodule Eirinchan.Posts do
           post in Post,
           where:
             post.board_id == ^board.id and post.thread_id == ^thread.id and
-              not is_nil(post.file_path)
+              like(post.file_type, "image/%")
         ),
         :count,
         :id
@@ -745,7 +749,11 @@ defmodule Eirinchan.Posts do
   end
 
   defp image_count(post), do: if(image_post?(post), do: 1, else: 0)
-  defp image_post?(%Post{file_path: file_path}), do: is_binary(file_path) and file_path != ""
+
+  defp image_post?(%Post{file_path: file_path, file_type: file_type}) do
+    is_binary(file_path) and file_path != "" and is_binary(file_type) and
+      String.starts_with?(file_type, "image/")
+  end
 
   defp build_pages(board, total_pages, config) do
     for num <- 1..total_pages do

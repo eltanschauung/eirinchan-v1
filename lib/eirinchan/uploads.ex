@@ -11,16 +11,14 @@ defmodule Eirinchan.Uploads do
     normalized_name = normalized_input_filename(upload.filename)
 
     with {:ok, binary} <- File.read(upload.path) do
+      file_type = MIME.from_path(normalized_name)
+
       ext =
         normalized_name
         |> Path.extname()
         |> String.downcase()
 
-      image_metadata =
-        case image_metadata(upload.path) do
-          {:ok, data} -> data
-          {:error, :invalid_image} -> %{width: nil, height: nil}
-        end
+      image_metadata = maybe_image_metadata(upload.path, file_type)
 
       {:ok,
        %{
@@ -28,7 +26,7 @@ defmodule Eirinchan.Uploads do
          ext: ext,
          file_name: normalized_filename(normalized_name, config),
          file_size: byte_size(binary),
-         file_type: MIME.from_path(normalized_name),
+         file_type: file_type,
          file_md5: :crypto.hash(:md5, binary) |> Base.encode64(),
          image_width: image_metadata.width,
          image_height: image_metadata.height
@@ -64,7 +62,7 @@ defmodule Eirinchan.Uploads do
 
     case File.cp(upload.path, destination) do
       :ok ->
-        case generate_thumbnail(destination, thumb_destination, config) do
+        case generate_thumbnail(destination, thumb_destination, config, metadata) do
           :ok ->
             {:ok,
              Map.merge(metadata, %{
@@ -107,6 +105,22 @@ defmodule Eirinchan.Uploads do
     Application.fetch_env!(:eirinchan, :build_output_root)
   end
 
+  def image?(%{file_type: file_type}) when is_binary(file_type),
+    do: String.starts_with?(file_type, "image/")
+
+  def image?(_metadata), do: false
+
+  defp maybe_image_metadata(path, file_type) do
+    if String.starts_with?(file_type, "image/") do
+      case image_metadata(path) do
+        {:ok, data} -> data
+        {:error, :invalid_image} -> %{width: nil, height: nil}
+      end
+    else
+      %{width: nil, height: nil}
+    end
+  end
+
   defp image_metadata(path) do
     case System.cmd("identify", ["-format", "%w %h", path], stderr_to_stdout: true) do
       {output, 0} ->
@@ -123,12 +137,57 @@ defmodule Eirinchan.Uploads do
     end
   end
 
-  defp generate_thumbnail(source, destination, config) do
+  defp generate_thumbnail(source, destination, config, metadata) do
+    if image?(metadata) do
+      generate_image_thumbnail(source, destination, config)
+    else
+      generate_placeholder_thumbnail(destination, config, metadata)
+    end
+  end
+
+  defp generate_image_thumbnail(source, destination, config) do
     geometry = "#{config.thumb_width}x#{config.thumb_height}"
 
     case System.cmd(
            "convert",
            [source, "-auto-orient", "-thumbnail", geometry, destination],
+           stderr_to_stdout: true
+         ) do
+      {_output, 0} -> :ok
+      _ -> {:error, :upload_failed}
+    end
+  end
+
+  defp generate_placeholder_thumbnail(destination, config, metadata) do
+    size = "#{config.thumb_width}x#{config.thumb_height}"
+
+    label =
+      metadata.file_name
+      |> Path.extname()
+      |> String.trim_leading(".")
+      |> String.upcase()
+      |> case do
+        "" -> "FILE"
+        ext -> ext
+      end
+
+    case System.cmd(
+           "convert",
+           [
+             "-size",
+             size,
+             "xc:#f1ede3",
+             "-fill",
+             "#3b3426",
+             "-gravity",
+             "center",
+             "-pointsize",
+             "28",
+             "-annotate",
+             "0",
+             label,
+             destination
+           ],
            stderr_to_stdout: true
          ) do
       {_output, 0} -> :ok

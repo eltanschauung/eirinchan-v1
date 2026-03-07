@@ -76,7 +76,7 @@ duplicate file rejection in-thread scope: partial
 file hash generation parity (md5 strategy variants): partial
 filename truncation and canonicalization: partial
 image type validation and dimension checks: partial
-non-image file icon/thumbnail fallback behavior: incomplete
+non-image file icon/thumbnail fallback behavior: partial
 thumbnail generation pipeline (gd/imagick/convert/gm): partial
 spoiler image handling parity: incomplete
 minimum_copy_resize optimization parity: incomplete

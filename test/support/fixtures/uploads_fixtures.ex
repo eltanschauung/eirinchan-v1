@@ -41,6 +41,24 @@ defmodule Eirinchan.UploadsFixtures do
     }
   end
 
+  def duplicate_upload_fixture(%Plug.Upload{} = upload, filename \\ nil) do
+    duplicate_name = filename || upload.filename
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-upload-dup-#{System.unique_integer([:positive])}-#{Path.basename(duplicate_name)}"
+      )
+
+    File.cp!(upload.path, path)
+
+    %Plug.Upload{
+      path: path,
+      filename: duplicate_name,
+      content_type: upload.content_type
+    }
+  end
+
   defp normalize_opts(opts) when is_list(opts) do
     %{
       content: to_string(Keyword.get(opts, :content, "fixture")),

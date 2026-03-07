@@ -88,6 +88,37 @@ defmodule Eirinchan.PostsTest do
            )
   end
 
+  test "create_post stores placeholder thumbnails for allowed non-image uploads" do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"]}
+      })
+
+    upload = raw_upload_fixture("notes.txt", "hello")
+
+    assert {:ok, thread, %{noko: false}} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.file_name == "notes.txt"
+    assert thread.file_path == "/#{board.uri}/src/#{thread.id}.txt"
+    assert thread.thumb_path == "/#{board.uri}/thumb/#{thread.id}s.png"
+    assert thread.file_size == byte_size("hello")
+    assert thread.file_type == "text/plain"
+    assert thread.image_width == nil
+    assert thread.image_height == nil
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
+  end
+
   test "create_post canonicalizes and truncates stored filenames" do
     board = board_fixture(%{config_overrides: %{max_filename_display_length: 12}})
 
@@ -294,13 +325,14 @@ defmodule Eirinchan.PostsTest do
     board = board_fixture(%{config_overrides: %{duplicate_file_mode: "global"}})
     config = post_config(board.config_overrides)
     request = post_request(board.uri)
+    upload = upload_fixture("first.png", "same-bytes")
 
     assert {:ok, _thread, _meta} =
              Posts.create_post(
                board,
                %{
                  "body" => "Opening body",
-                 "file" => upload_fixture("first.png", "same-bytes"),
+                 "file" => upload,
                  "post" => "New Topic"
                },
                config: config,
@@ -312,7 +344,7 @@ defmodule Eirinchan.PostsTest do
                board,
                %{
                  "body" => "Second body",
-                 "file" => upload_fixture("second.png", "same-bytes"),
+                 "file" => duplicate_upload_fixture(upload, "second.png"),
                  "post" => "New Topic"
                },
                config: config,
@@ -324,13 +356,14 @@ defmodule Eirinchan.PostsTest do
     board = board_fixture(%{config_overrides: %{duplicate_file_mode: "thread"}})
     config = post_config(board.config_overrides)
     request = post_request(board.uri)
+    upload = upload_fixture("first.png", "thread-bytes")
 
     assert {:ok, thread, _meta} =
              Posts.create_post(
                board,
                %{
                  "body" => "Opening body",
-                 "file" => upload_fixture("first.png", "thread-bytes"),
+                 "file" => upload,
                  "post" => "New Topic"
                },
                config: config,
@@ -343,7 +376,7 @@ defmodule Eirinchan.PostsTest do
                %{
                  "thread" => Integer.to_string(thread.id),
                  "body" => "Reply body",
-                 "file" => upload_fixture("reply.png", "thread-bytes"),
+                 "file" => duplicate_upload_fixture(upload, "reply.png"),
                  "post" => "New Reply"
                },
                config: config,
@@ -351,13 +384,14 @@ defmodule Eirinchan.PostsTest do
              )
 
     other_board = board_fixture(%{config_overrides: %{duplicate_file_mode: "thread"}})
+    other_upload = duplicate_upload_fixture(upload, "other.png")
 
     assert {:ok, _other_thread, _meta} =
              Posts.create_post(
                other_board,
                %{
                  "body" => "Other body",
-                 "file" => upload_fixture("other.png", "thread-bytes"),
+                 "file" => other_upload,
                  "post" => "New Topic"
                },
                config: post_config(other_board.config_overrides),
