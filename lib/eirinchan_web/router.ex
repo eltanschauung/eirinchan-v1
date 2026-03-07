@@ -103,6 +103,7 @@ defmodule EirinchanWeb.Router do
   scope "/", EirinchanWeb do
     pipe_through :browser
 
+    get "/b.php", BannerController, :show
     post "/theme", ThemeController, :update
     get "/setup", SetupController, :show
     post "/setup", SetupController, :create

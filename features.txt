@@ -271,7 +271,7 @@ data import/export tools for migration: incomplete
 safe rollback and idempotent migration tooling: incomplete
 
 [Low Priority / Nice-to-Have]
-banner randomizer endpoint parity (b.php): incomplete
+banner randomizer endpoint parity (b.php): partial
 analytics hooks parity (if configured): incomplete
 custom javascript injection/parsing parity: partial
 country flag condensed CSS support parity: incomplete
