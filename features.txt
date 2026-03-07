@@ -254,8 +254,8 @@ stylesheet/theme chooser behavior parity: partial
 board/thread nav links parity (catalog, index, return links): partial
 
 [Infrastructure, Performance, and Operations]
-cache driver parity (php/apcu/memcached/redis/fs/none): incomplete
-lock/queue driver parity: incomplete
+cache driver parity (php/apcu/memcached/redis/fs/none): partial
+lock/queue driver parity: partial
 resource versioning/cache-busting parity: partial
 auto maintenance task parity: incomplete
 CLI/maintenance task parity: incomplete

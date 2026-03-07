@@ -129,7 +129,17 @@ defmodule Eirinchan.Runtime.Config do
       challenge: nil
     },
     api: %{enabled: false},
-    cache: %{enabled: false, ttl_seconds: 0},
+    cache: %{
+      enabled: false,
+      driver: "none",
+      prefix: "eirinchan_",
+      ttl_seconds: 0,
+      fs_path: "tmp/cache/eirinchan",
+      redis: %{host: "localhost", port: 6379, password: "", database: 1},
+      memcached: %{servers: ["127.0.0.1:11211"]}
+    },
+    lock: %{enabled: "none", path: "tmp/locks"},
+    queue: %{enabled: "db", path: "tmp/queue/build"},
     cookies: %{
       mod: "mod",
       js: "serv",

@@ -265,8 +265,9 @@ defmodule Eirinchan.Build do
 
     case config.generation_strategy do
       "defer" ->
-        with {:ok, _thread_job} <- BuildQueue.enqueue_thread(board, thread_id, repo: repo),
-             {:ok, _index_job} <- BuildQueue.enqueue_indexes(board, repo: repo) do
+        with {:ok, _thread_job} <-
+               BuildQueue.enqueue_thread(board, thread_id, repo: repo, config: config),
+             {:ok, _index_job} <- BuildQueue.enqueue_indexes(board, repo: repo, config: config) do
           :ok
         end
 
@@ -287,7 +288,7 @@ defmodule Eirinchan.Build do
 
     case config.generation_strategy do
       "defer" ->
-        case BuildQueue.enqueue_indexes(board, repo: repo) do
+        case BuildQueue.enqueue_indexes(board, repo: repo, config: config) do
           {:ok, _job} -> :ok
           error -> error
         end
