@@ -50,6 +50,19 @@ defmodule Eirinchan.PostsTest do
     String.trim(output)
   end
 
+  defp icon_fixture(name, opts) do
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-icon-#{System.unique_integer([:positive])}-#{Path.basename(name)}"
+      )
+
+    geometry = Keyword.get(opts, :geometry, "24x24")
+    color = Keyword.get(opts, :color, "#336699")
+    {_, 0} = System.cmd("convert", ["-size", geometry, "xc:#{color}", path])
+    path
+  end
+
   test "create_post creates an OP when no thread is supplied" do
     board = board_fixture()
 
@@ -247,6 +260,36 @@ defmodule Eirinchan.PostsTest do
              "80x40"
 
     assert identify_value(Eirinchan.Uploads.filesystem_path(reply.thumb_path), "%wx%h") == "40x20"
+  end
+
+  test "create_post uses configured file icons for non-image thumbnails" do
+    icon_path = icon_fixture("text.png", geometry: "24x24", color: "#113355")
+
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"],
+          file_thumb: Path.join(Path.dirname(icon_path), "%s"),
+          file_icons: %{".txt" => Path.basename(icon_path)}
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => raw_upload_fixture("notes.txt", "hello"),
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    thumb_path = Eirinchan.Uploads.filesystem_path(thread.thumb_path)
+
+    assert File.read!(thumb_path) == File.read!(icon_path)
+    assert identify_value(thumb_path, "%wx%h") == "24x24"
   end
 
   test "create_post stores extra files from a multi-file upload" do
