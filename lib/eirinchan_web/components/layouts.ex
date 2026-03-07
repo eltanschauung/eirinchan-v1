@@ -11,4 +11,12 @@ defmodule EirinchanWeb.Layouts do
   use EirinchanWeb, :html
 
   embed_templates "layouts/*"
+
+  def versioned_asset(path, nil), do: path
+  def versioned_asset(path, ""), do: path
+
+  def versioned_asset(path, version) do
+    separator = if String.contains?(path, "?"), do: "&", else: "?"
+    "#{path}#{separator}v=#{URI.encode_www_form(to_string(version))}"
+  end
 end

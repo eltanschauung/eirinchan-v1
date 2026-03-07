@@ -256,7 +256,7 @@ board/thread nav links parity (catalog, index, return links): partial
 [Infrastructure, Performance, and Operations]
 cache driver parity (php/apcu/memcached/redis/fs/none): incomplete
 lock/queue driver parity: incomplete
-resource versioning/cache-busting parity: incomplete
+resource versioning/cache-busting parity: partial
 auto maintenance task parity: incomplete
 CLI/maintenance task parity: incomplete
 debug SQL explain tooling parity: incomplete
@@ -273,7 +273,7 @@ safe rollback and idempotent migration tooling: incomplete
 [Low Priority / Nice-to-Have]
 banner randomizer endpoint parity (b.php): incomplete
 analytics hooks parity (if configured): incomplete
-custom javascript injection/parsing parity: incomplete
+custom javascript injection/parsing parity: partial
 country flag condensed CSS support parity: incomplete
 legacy compatibility shims for old post formats: incomplete
 deprecated feature switches compatibility layer: incomplete
