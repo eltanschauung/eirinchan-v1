@@ -634,6 +634,26 @@ defmodule EirinchanWeb.PostControllerTest do
     assert thread_page =~ "Flags: Mexico"
   end
 
+  test "posting rejects invalid captcha responses", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          captcha: %{enabled: true, provider: "hcaptcha", expected_response: "ok"}
+        }
+      })
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "Captcha validation failed."} = json_response(conn, 422)
+  end
+
   test "report branch creates a report and returns thread redirect metadata", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{slugify: true}})
     thread = thread_fixture(board, %{subject: "Reported subject", body: "Thread body"})

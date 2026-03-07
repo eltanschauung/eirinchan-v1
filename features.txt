@@ -54,9 +54,9 @@ post body modifier encoding compatibility (<tinyboard ...>): partial
 countFlags-style multi-flag count validation behavior: partial
 
 [Posting Pipeline - Anti-Abuse and Quality Gates]
-hidden input anti-spam hash validation: incomplete
-simple question anti-spam for OPs: incomplete
-captcha provider abstraction parity (native/recaptcha/hcaptcha): incomplete
+hidden input anti-spam hash validation: partial
+simple question anti-spam for OPs: partial
+captcha provider abstraction parity (native/recaptcha/hcaptcha): partial
 dynamic captcha mode logic parity: incomplete
 captcha error and refresh behavior parity: incomplete
 DNSBL check pipeline parity: incomplete

@@ -1119,6 +1119,101 @@ defmodule Eirinchan.PostsTest do
     assert Posts.compat_body(thread) =~ "<tinyboard raw html>1</tinyboard>"
   end
 
+  test "create_post enforces hidden antispam hash validation" do
+    board =
+      board_fixture(%{
+        config_overrides: %{hidden_input_name: "hash", hidden_input_hash: "expected"}
+      })
+
+    config = post_config(board.config_overrides)
+
+    assert {:error, :antispam} =
+             Posts.create_post(
+               board,
+               %{"body" => "first post", "post" => "New Topic"},
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert {:ok, _thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "first post", "hash" => "expected", "post" => "New Topic"},
+               config: config,
+               request: post_request(board.uri)
+             )
+  end
+
+  test "create_post enforces simple antispam question only for OPs" do
+    board =
+      board_fixture(%{
+        config_overrides: %{antispam_question: "2+2?", antispam_question_answer: "4"}
+      })
+
+    config = post_config(board.config_overrides)
+
+    assert {:error, :antispam} =
+             Posts.create_post(
+               board,
+               %{"body" => "first post", "post" => "New Topic"},
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "antispam_answer" => "4",
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "reply body",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+  end
+
+  test "create_post validates captcha responses across providers" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          captcha: %{enabled: true, provider: "recaptcha", expected_response: "ok"}
+        }
+      })
+
+    assert {:error, :invalid_captcha} =
+             Posts.create_post(
+               board,
+               %{"body" => "first post", "post" => "New Topic"},
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert {:ok, _thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "g-recaptcha-response" => "ok",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)
