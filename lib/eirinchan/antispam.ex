@@ -99,6 +99,20 @@ defmodule Eirinchan.Antispam do
     |> repo.all()
   end
 
+  def purge_old(config, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    retention_seconds = max(Map.get(config, :antispam_retention_seconds, 172_800), 0)
+    cutoff = DateTime.add(DateTime.utc_now(), -retention_seconds, :second)
+
+    {flood_count, _} =
+      repo.delete_all(from entry in FloodEntry, where: entry.inserted_at < ^cutoff)
+
+    {search_count, _} =
+      repo.delete_all(from entry in SearchQuery, where: entry.inserted_at < ^cutoff)
+
+    flood_count + search_count
+  end
+
   defp per_ip_search_rate_limited?(_repo, _query, nil, _board_id, _window, _count), do: false
   defp per_ip_search_rate_limited?(_repo, nil, _ip_subnet, _board_id, _window, _count), do: false
 

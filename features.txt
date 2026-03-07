@@ -257,10 +257,10 @@ board/thread nav links parity (catalog, index, return links): partial
 cache driver parity (php/apcu/memcached/redis/fs/none): partial
 lock/queue driver parity: partial
 resource versioning/cache-busting parity: partial
-auto maintenance task parity: incomplete
-CLI/maintenance task parity: incomplete
-debug SQL explain tooling parity: incomplete
-error observability and structured logging: incomplete
+auto maintenance task parity: partial
+CLI/maintenance task parity: partial
+debug SQL explain tooling parity: partial
+error observability and structured logging: partial
 
 [Install, Migration, and Admin Tooling]
 installer parity for initial setup: partial

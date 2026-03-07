@@ -41,6 +41,9 @@ defmodule Eirinchan.Runtime.Config do
     wordfilters: [],
     hidden_input_name: "hash",
     hidden_input_hash: nil,
+    auto_maintenance: false,
+    maintenance_interval_seconds: 60 * 60 * 12,
+    antispam_retention_seconds: 60 * 60 * 48,
     antispam_question: false,
     antispam_question_answer: nil,
     flood_time_ip: 0,
@@ -156,7 +159,8 @@ defmodule Eirinchan.Runtime.Config do
       type: "error_log",
       name: "tinyboard",
       syslog_stderr: false,
-      file_path: "/var/log/vichan.log"
+      file_path: "/var/log/vichan.log",
+      format: "logfmt"
     },
     error: %{
       bot: "Invalid post action.",

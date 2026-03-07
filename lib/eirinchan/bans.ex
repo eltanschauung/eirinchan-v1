@@ -154,6 +154,20 @@ defmodule Eirinchan.Bans do
     end
   end
 
+  @spec purge_expired(keyword()) :: non_neg_integer()
+  def purge_expired(opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    now = DateTime.utc_now()
+
+    {count, _rows} =
+      repo.delete_all(
+        from ban in Ban,
+          where: ban.active == true and not is_nil(ban.expires_at) and ban.expires_at <= ^now
+      )
+
+    count
+  end
+
   defp ban_matches?(_ban, nil), do: false
   defp ban_matches?(%Ban{ip_subnet: nil}, _remote_ip), do: false
 

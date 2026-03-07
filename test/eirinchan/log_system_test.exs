@@ -78,4 +78,23 @@ defmodule Eirinchan.LogSystemTest do
     assert output =~ "reason=banned"
     assert output =~ "board=tea"
   end
+
+  test "json-formatted logs emit structured metadata" do
+    output =
+      capture_io(:stderr, fn ->
+        assert :ok ==
+                 LogSystem.log(
+                   :warning,
+                   "post.error",
+                   "post.error",
+                   %{reason: :invalid_password, board: "meta", log_format: "json"},
+                   %{log_system: %{type: "stderr"}}
+                 )
+      end)
+
+    decoded = Jason.decode!(String.trim(output))
+    assert decoded["event"] == "post.error"
+    assert decoded["metadata"]["reason"] == "invalid_password"
+    assert decoded["metadata"]["board"] == "meta"
+  end
 end
