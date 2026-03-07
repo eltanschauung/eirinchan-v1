@@ -117,4 +117,48 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert redirected_to(rebuild_conn) == "/manage"
     assert File.exists?(Path.join([Build.board_root(), board.uri, "res", "#{thread.id}.html"]))
   end
+
+  test "browser recent posts page filters by board, query, and ip", %{conn: conn} do
+    moderator = moderator_fixture(%{role: "admin"})
+    board = board_fixture(%{uri: "tea", title: "Tea"})
+    other_board = board_fixture(%{uri: "meta", title: "Meta"})
+
+    {:ok, matching_post, _meta} =
+      Eirinchan.Posts.create_post(
+        board,
+        %{"body" => "green leaf", "subject" => "teaware", "post" => "New Topic"},
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{
+          referer: "http://example.test/#{board.uri}/index.html",
+          remote_ip: {198, 51, 100, 7}
+        }
+      )
+
+    {:ok, _other_post, _meta} =
+      Eirinchan.Posts.create_post(
+        other_board,
+        %{"body" => "other board", "subject" => "meta", "post" => "New Topic"},
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, other_board.config_overrides),
+        request: %{
+          referer: "http://example.test/#{other_board.uri}/index.html",
+          remote_ip: {203, 0, 113, 9}
+        }
+      )
+
+    page =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage/recent-posts/browser", %{
+        "board" => board.uri,
+        "query" => "leaf",
+        "ip" => "198.51.100.7",
+        "limit" => "10"
+      })
+      |> html_response(200)
+
+    assert page =~ "Recent Posts"
+    assert page =~ Integer.to_string(matching_post.id)
+    assert page =~ "green leaf"
+    refute page =~ "other board"
+  end
 end

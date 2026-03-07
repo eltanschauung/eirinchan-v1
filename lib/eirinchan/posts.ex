@@ -341,6 +341,8 @@ defmodule Eirinchan.Posts do
     repo = Keyword.get(opts, :repo, Repo)
     limit = Keyword.get(opts, :limit, 25)
     board_ids = Keyword.get(opts, :board_ids)
+    search_query = Keyword.get(opts, :query)
+    ip_subnet = Keyword.get(opts, :ip_subnet)
 
     query =
       from post in Post,
@@ -353,7 +355,27 @@ defmodule Eirinchan.Posts do
         _ -> query
       end
 
-    repo.all(query)
+    query =
+      case trim_to_nil(search_query) do
+        nil ->
+          query
+
+        term ->
+          pattern = "%#{term}%"
+
+          from post in query,
+            where: ilike(post.body, ^pattern) or ilike(post.subject, ^pattern)
+      end
+
+    query =
+      case trim_to_nil(ip_subnet) do
+        nil -> query
+        normalized_ip -> from post in query, where: post.ip_subnet == ^normalized_ip
+      end
+
+    query
+    |> repo.all()
+    |> repo.preload(:board)
   end
 
   @spec list_cites_for_post(Post.t() | integer(), keyword()) :: [Cite.t()]
