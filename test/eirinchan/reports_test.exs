@@ -47,4 +47,25 @@ defmodule Eirinchan.ReportsTest do
     assert dismissed.dismissed_at
     assert Reports.list_reports(board) == []
   end
+
+  test "dismiss_reports_for_post clears all open reports for a post" do
+    board = board_fixture()
+    thread = thread_fixture(board)
+
+    assert {:ok, first_report} =
+             Reports.create_report(board, %{
+               "report_post_id" => Integer.to_string(thread.id),
+               "reason" => "Rule violation"
+             })
+
+    assert {:ok, second_report} =
+             Reports.create_report(board, %{
+               "report_post_id" => Integer.to_string(thread.id),
+               "reason" => "Spam"
+             })
+
+    assert Enum.map(Reports.list_reports(board), & &1.id) == [first_report.id, second_report.id]
+    assert {:ok, 2} = Reports.dismiss_reports_for_post(board, thread.id)
+    assert Reports.list_reports(board) == []
+  end
 end

@@ -100,7 +100,7 @@ reports table behavior parity: partial
 feedback table behavior parity: partial
 feedback_comments table behavior parity: partial
 bans table behavior parity: incomplete
-mod users/modlogs/pms table behavior parity: incomplete
+mod users/modlogs/pms table behavior parity: partial
 search_queries rate-limiting table behavior parity: incomplete
 nntp_references table behavior parity: incomplete
 antispam/flood table behavior parity: incomplete
@@ -122,15 +122,15 @@ catalog_link behavior parity: partial
 fileboard mode rendering parity: incomplete
 
 [Moderation - Authentication and Authorization]
-moderator login flow parity: incomplete
-password hashing and upgrade path parity: incomplete
+moderator login flow parity: partial
+password hashing and upgrade path parity: partial
 session cookie model parity (__Host/__Secure jail options): incomplete
-check_login + session validation parity: incomplete
-permission level hierarchy parity (janitor/mod/admin): incomplete
+check_login + session validation parity: partial
+permission level hierarchy parity (janitor/mod/admin): partial
 board-scoped permissions parity: incomplete
 secure route token generation parity: incomplete
 CSRF enforcement for secure/secure_POST actions: incomplete
-mod logout/session destruction parity: incomplete
+mod logout/session destruction parity: partial
 
 [Moderation - Core Operations]
 moderator dashboard parity (counts and quick links): incomplete
