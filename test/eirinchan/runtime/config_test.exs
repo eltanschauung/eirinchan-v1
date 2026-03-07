@@ -102,4 +102,31 @@ defmodule Eirinchan.Runtime.ConfigTest do
 
     assert config.default_user_flag == "country,sau,spc"
   end
+
+  test "derives jailed moderator cookie names with host and secure prefixes" do
+    host_config =
+      Config.compose(
+        %{
+          root: "/",
+          cookies: %{mod: "mod", jail: true},
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    secure_config =
+      Config.compose(
+        %{
+          root: "/chan/",
+          cookies: %{mod: "mod", jail: true},
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    assert host_config.cookies.mod_cookie_name == "__Host-mod"
+    assert secure_config.cookies.mod_cookie_name == "__Secure-mod"
+  end
 end

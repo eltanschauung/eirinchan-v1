@@ -30,6 +30,7 @@ defmodule EirinchanWeb.ThreadManagementControllerTest do
              conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> patch("/manage/boards/#{board.uri}/threads/#{older_thread.id}", %{
                "sticky" => "true",
                "locked" => "true",
@@ -61,6 +62,7 @@ defmodule EirinchanWeb.ThreadManagementControllerTest do
     conn =
       conn
       |> login_moderator(moderator)
+      |> put_secure_manage_token()
       |> put_req_header("accept", "application/json")
       |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{"locked" => "true"})
 

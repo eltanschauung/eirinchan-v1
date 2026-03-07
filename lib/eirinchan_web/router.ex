@@ -38,6 +38,7 @@ defmodule EirinchanWeb.Router do
     plug EirinchanWeb.Plugs.FetchCurrentModerator
     plug EirinchanWeb.Plugs.RequireModerator
     plug EirinchanWeb.Plugs.RequireModeratorRole, role: "mod"
+    plug EirinchanWeb.Plugs.RequireSecureManageToken
   end
 
   pipeline :manage_admin do
@@ -46,6 +47,7 @@ defmodule EirinchanWeb.Router do
     plug EirinchanWeb.Plugs.FetchCurrentModerator
     plug EirinchanWeb.Plugs.RequireModerator
     plug EirinchanWeb.Plugs.RequireModeratorRole, role: "admin"
+    plug EirinchanWeb.Plugs.RequireSecureManageToken
   end
 
   scope "/manage", EirinchanWeb do
@@ -53,6 +55,7 @@ defmodule EirinchanWeb.Router do
 
     post "/login", ManageSessionController, :create
     get "/session", ManageSessionController, :show
+    get "/secure-token", ManageSessionController, :secure_token
     delete "/logout", ManageSessionController, :delete
   end
 

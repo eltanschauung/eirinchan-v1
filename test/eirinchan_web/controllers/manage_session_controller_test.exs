@@ -9,8 +9,16 @@ defmodule EirinchanWeb.ManageSessionControllerTest do
       |> put_req_header("accept", "application/json")
       |> post("/manage/login", %{"username" => moderator.username, "password" => "secret123"})
 
-    assert %{"data" => %{"id" => id, "username" => "admin", "role" => "admin"}} =
-             json_response(login_conn, 200)
+    assert %{
+             "data" => %{
+               "id" => id,
+               "username" => "admin",
+               "role" => "admin",
+               "secure_token" => secure_token
+             }
+           } = json_response(login_conn, 200)
+
+    assert is_binary(secure_token)
 
     session_conn =
       login_conn
@@ -18,7 +26,16 @@ defmodule EirinchanWeb.ManageSessionControllerTest do
       |> put_req_header("accept", "application/json")
       |> get("/manage/session")
 
-    assert %{"data" => %{"id" => ^id, "username" => "admin"}} = json_response(session_conn, 200)
+    assert %{"data" => %{"id" => ^id, "username" => "admin", "secure_token" => ^secure_token}} =
+             json_response(session_conn, 200)
+
+    token_conn =
+      login_conn
+      |> recycle()
+      |> put_req_header("accept", "application/json")
+      |> get("/manage/secure-token")
+
+    assert %{"data" => %{"secure_token" => ^secure_token}} = json_response(token_conn, 200)
 
     logout_conn =
       login_conn
@@ -83,6 +100,7 @@ defmodule EirinchanWeb.ManageSessionControllerTest do
              janitor_conn
              |> recycle()
              |> login_moderator(janitor)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{"locked" => "true"})
              |> json_response(403)
@@ -99,6 +117,7 @@ defmodule EirinchanWeb.ManageSessionControllerTest do
              conn
              |> recycle()
              |> login_moderator(mod)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{"locked" => "true"})
              |> json_response(200)
@@ -107,8 +126,22 @@ defmodule EirinchanWeb.ManageSessionControllerTest do
              conn
              |> recycle()
              |> login_moderator(mod)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> post("/manage/boards", %{uri: "staff", title: "Staff"})
+             |> json_response(403)
+  end
+
+  test "mutating manage routes reject missing secure tokens", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board)
+    moderator = moderator_fixture(%{role: "mod"}) |> grant_board_access_fixture(board)
+
+    assert %{"error" => "invalid_secure_token"} =
+             conn
+             |> login_moderator(moderator)
+             |> put_req_header("accept", "application/json")
+             |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{"locked" => "true"})
              |> json_response(403)
   end
 end

@@ -7,6 +7,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     conn =
       conn
       |> login_moderator(moderator)
+      |> put_secure_manage_token()
       |> put_req_header("accept", "application/json")
 
     conn =
@@ -37,6 +38,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
              conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> patch(~p"/manage/boards/tech", %{title: "Technology+"})
              |> json_response(200)
 
@@ -44,6 +46,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
              conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> delete(~p"/manage/boards/tech"),
              204
            )

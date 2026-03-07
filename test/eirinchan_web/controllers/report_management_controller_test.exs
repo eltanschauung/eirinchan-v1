@@ -34,6 +34,7 @@ defmodule EirinchanWeb.ReportManagementControllerTest do
              conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> delete("/manage/boards/#{board.uri}/reports/#{report_id}"),
              204
@@ -80,6 +81,7 @@ defmodule EirinchanWeb.ReportManagementControllerTest do
              conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> delete("/manage/boards/#{board.uri}/reports/post/#{thread.id}"),
              204
