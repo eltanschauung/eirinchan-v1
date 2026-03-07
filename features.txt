@@ -79,8 +79,8 @@ image type validation and dimension checks: partial
 non-image file icon/thumbnail fallback behavior: partial
 thumbnail generation pipeline (gd/imagick/convert/gm): partial
 spoiler image handling parity: partial
-minimum_copy_resize optimization parity: incomplete
-image redraw mode behavior parity: incomplete
+minimum_copy_resize optimization parity: partial
+image redraw mode behavior parity: partial
 EXIF stripping behavior parity: partial
 EXIF orientation correction behavior parity: partial
 use_exiftool path behavior parity: incomplete
