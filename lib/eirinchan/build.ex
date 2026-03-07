@@ -58,7 +58,7 @@ defmodule Eirinchan.Build do
 
     case Posts.get_thread_view(board, thread_id, repo: repo) do
       {:ok, summary} ->
-        html = render_thread(board, summary)
+        html = render_thread(board, summary, config)
 
         output_paths =
           summary.thread
@@ -206,7 +206,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{delete_form}#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -225,7 +225,7 @@ defmodule Eirinchan.Build do
     """
   end
 
-  defp render_thread(board, summary) do
+  defp render_thread(board, summary, config) do
     replies_html =
       Enum.map_join(summary.replies, "\n", fn reply ->
         subject = html_escape(reply.subject || "Reply ##{reply.id}")
@@ -233,7 +233,7 @@ defmodule Eirinchan.Build do
         media = render_media(reply)
         delete_form = render_delete_form(board, reply.id)
 
-        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}<p>#{body}</p>#{render_post_flags(reply)}#{delete_form}</article>)
+        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
       end)
 
     """
@@ -247,6 +247,7 @@ defmodule Eirinchan.Build do
     #{render_media(summary.thread)}
     <p>#{html_escape(summary.thread.body || "")}</p>
     #{render_post_flags(summary.thread)}
+    #{render_post_tag(summary.thread, config)}
     #{render_delete_form(board, summary.thread.id)}
     </article>
     #{replies_html}
@@ -267,7 +268,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -327,12 +328,24 @@ defmodule Eirinchan.Build do
 
   defp render_post_flags(_post), do: ""
 
+  defp render_post_tag(%{tag: nil}, _config), do: ""
+  defp render_post_tag(%{tag: ""}, _config), do: ""
+
+  defp render_post_tag(%{tag: tag}, %{allowed_tags: allowed_tags}) when is_map(allowed_tags) do
+    label = Map.get(allowed_tags, tag, tag)
+    ~s(<p class="post-tag">Tag: #{html_escape(label)}</p>)
+  end
+
+  defp render_post_tag(%{tag: tag}, _config) do
+    ~s(<p class="post-tag">Tag: #{html_escape(tag)}</p>)
+  end
+
   defp render_preview_replies(replies) do
     Enum.map_join(replies, "\n", fn reply ->
       body = html_escape(reply.body || "")
       media = render_media(reply)
 
-      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}<p>#{body}</p>#{render_post_flags(reply)}</div>)
+      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_tag(reply, %{})}</div>)
     end)
   end
 

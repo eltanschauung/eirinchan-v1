@@ -48,9 +48,9 @@ default_user_flag behavior (defaults to country): partial
 user_flag allowlist validation and normalization: partial
 country pseudo-flag fallback behavior in user_flag pipeline: partial
 multi-flag alt text serialization parity: partial
-allowed_tags injection for OP tags: incomplete
-proxy_save modifier handling for forwarded IP headers: incomplete
-post body modifier encoding compatibility (<tinyboard ...>): incomplete
+allowed_tags injection for OP tags: partial
+proxy_save modifier handling for forwarded IP headers: partial
+post body modifier encoding compatibility (<tinyboard ...>): partial
 countFlags-style multi-flag count validation behavior: partial
 
 [Posting Pipeline - Anti-Abuse and Quality Gates]

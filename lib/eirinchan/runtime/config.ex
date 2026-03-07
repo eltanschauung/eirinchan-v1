@@ -58,6 +58,8 @@ defmodule Eirinchan.Runtime.Config do
     slug_max_size: 80,
     button_newtopic: "New Topic",
     button_reply: "New Reply",
+    allowed_tags: false,
+    proxy_save: false,
     country_flags: false,
     allow_no_country: false,
     country_flag_data: %{},

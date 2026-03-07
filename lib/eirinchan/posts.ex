@@ -53,7 +53,7 @@ defmodule Eirinchan.Posts do
            :ok <- validate_board_lock(config),
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
            :ok <- validate_thread_lock(thread),
-           {:ok, attrs} <- normalize_post_metadata(attrs, config, request),
+           {:ok, attrs} <- normalize_post_metadata(attrs, config, request, op?),
            :ok <- validate_body(op?, attrs, config),
            :ok <- validate_body_limits(attrs, config),
            :ok <- validate_upload(op?, attrs, config),
@@ -499,14 +499,31 @@ defmodule Eirinchan.Posts do
     |> Map.update("email", nil, &normalize_email/1)
   end
 
-  defp normalize_post_metadata(attrs, config, request) do
+  @spec compat_body(Post.t()) :: String.t()
+  def compat_body(%Post{} = post) do
+    modifiers =
+      []
+      |> maybe_append_modifier("flag", join_modifier_values(post.flag_codes))
+      |> maybe_append_modifier("flag alt", join_modifier_values(post.flag_alts))
+      |> maybe_append_modifier("tag", post.tag)
+      |> maybe_append_modifier("proxy", post.proxy)
+      |> maybe_append_modifier("capcode", post.capcode)
+      |> maybe_append_modifier("trip", post.tripcode)
+      |> maybe_append_modifier("raw html", if(post.raw_html, do: "1", else: nil))
+
+    Enum.join([post.body || "" | modifiers], "")
+  end
+
+  defp normalize_post_metadata(attrs, config, request, op?) do
     attrs =
       attrs
       |> normalize_post_identity(config)
       |> normalize_noko_email()
 
     with {:ok, attrs} <- normalize_country_flag(attrs, config, request),
-         {:ok, attrs} <- normalize_user_flag(attrs, config, request) do
+         {:ok, attrs} <- normalize_user_flag(attrs, config, request),
+         {:ok, attrs} <- normalize_post_tag(attrs, config, op?),
+         {:ok, attrs} <- normalize_proxy(attrs, config, request) do
       {:ok, attrs}
     end
   end
@@ -772,6 +789,66 @@ defmodule Eirinchan.Posts do
   end
 
   defp normalize_ip(ip) when is_binary(ip), do: String.trim(ip)
+
+  defp normalize_post_tag(attrs, %{allowed_tags: allowed_tags}, true) when is_map(allowed_tags) do
+    case Map.get(attrs, "tag") do
+      nil ->
+        {:ok, Map.put(attrs, "tag", nil)}
+
+      tag ->
+        normalized_tag = tag |> to_string() |> String.trim()
+
+        {:ok,
+         Map.put(
+           attrs,
+           "tag",
+           if(Map.has_key?(allowed_tags, normalized_tag), do: normalized_tag, else: nil)
+         )}
+    end
+  end
+
+  defp normalize_post_tag(attrs, _config, _op?), do: {:ok, Map.put(attrs, "tag", nil)}
+
+  defp normalize_proxy(attrs, %{proxy_save: true}, request) do
+    proxy =
+      (request[:forwarded_for] ||
+         request["forwarded_for"])
+      |> case do
+        nil ->
+          nil
+
+        value ->
+          value
+          |> to_string()
+          |> sanitize_forwarded_for()
+      end
+
+    {:ok, Map.put(attrs, "proxy", proxy)}
+  end
+
+  defp normalize_proxy(attrs, _config, _request), do: {:ok, Map.put(attrs, "proxy", nil)}
+
+  defp maybe_append_modifier(modifiers, _name, nil), do: modifiers
+  defp maybe_append_modifier(modifiers, _name, ""), do: modifiers
+
+  defp maybe_append_modifier(modifiers, name, value) do
+    modifiers ++ ["\n<tinyboard #{name}>#{value}</tinyboard>"]
+  end
+
+  defp join_modifier_values(values) when is_list(values), do: Enum.join(values, ",")
+  defp join_modifier_values(_values), do: nil
+
+  defp sanitize_forwarded_for(value) do
+    ipv4s = Regex.scan(~r/\b(?:\d{1,3}\.){3}\d{1,3}\b/u, value) |> List.flatten()
+
+    ipv6s =
+      Regex.scan(~r/\b(?:[0-9a-fA-F]{0,4}:){2,}[0-9a-fA-F:]{0,4}\b/u, value) |> List.flatten()
+
+    (ipv4s ++ ipv6s)
+    |> Enum.uniq()
+    |> Enum.join(", ")
+    |> trim_to_nil()
+  end
 
   defp noko?(email, config) do
     case String.downcase(email || "") do

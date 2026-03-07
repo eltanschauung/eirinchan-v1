@@ -112,4 +112,29 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     assert page =~ "Flags: Sauce"
   end
+
+  test "thread pages render stored OP tags", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_tags: %{"A" => "Anime", "M" => "Music"}}
+      })
+
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "tag" => "A",
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: %{referer: "http://www.example.com/#{board.uri}/index.html"}
+             )
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+
+    assert page =~ "Tag: Anime"
+  end
 end

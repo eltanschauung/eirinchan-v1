@@ -50,6 +50,11 @@
   <p :if={@summary.thread.flag_alts != []}>
     Flags: <%= Enum.join(@summary.thread.flag_alts, ", ") %>
   </p>
+  <p :if={@summary.thread.tag}>
+    Tag: <%= if is_map(@config.allowed_tags),
+      do: Map.get(@config.allowed_tags, @summary.thread.tag, @summary.thread.tag),
+      else: @summary.thread.tag %>
+  </p>
   <form action={~p"/#{@board.uri}/post"} method="post">
     <input type="hidden" name="delete_post_id" value={@summary.thread.id} />
     <input type="password" name="password" placeholder="Password" />
@@ -78,6 +83,12 @@
     <label :if={@config.country_flags && @config.allow_no_country}>
       <input type="checkbox" name="no_country" value="1" /> No country
     </label>
+    <select :if={is_map(@config.allowed_tags)} name="tag">
+      <option value="">None</option>
+      <%= for {tag, label} <- @config.allowed_tags do %>
+        <option value={tag}><%= label %></option>
+      <% end %>
+    </select>
     <input
       :if={@config.user_flag && @config.multiple_flags}
       type="text"
@@ -142,6 +153,11 @@
         <% end %>
         <p><%= reply.body %></p>
         <p :if={reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
+        <p :if={reply.tag}>
+          Tag: <%= if is_map(@config.allowed_tags),
+            do: Map.get(@config.allowed_tags, reply.tag, reply.tag),
+            else: reply.tag %>
+        </p>
         <form action={~p"/#{@board.uri}/post"} method="post">
           <input type="hidden" name="delete_post_id" value={reply.id} />
           <input type="password" name="password" placeholder="Password" />

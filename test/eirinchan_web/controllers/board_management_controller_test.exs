@@ -247,4 +247,19 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert Floki.find(document, ~s(input[name="no_country"][type="checkbox"])) != []
   end
+
+  test "board page renders allowed OP tag choices", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{allowed_tags: %{"A" => "Anime", "M" => "Music"}}})
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(select[name="tag"])) != []
+    assert page =~ "Anime"
+    assert page =~ "Music"
+  end
 end
