@@ -328,6 +328,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ "2+2?"
     assert Floki.find(document, ~s(input[name="antispam_answer"])) != []
     assert Floki.find(document, ~s(input[name="g-recaptcha-response"])) != []
+    assert Floki.find(document, ~s(input[name="g-recaptcha-response"][data-captcha-lazy])) != []
   end
 
   test "board page respects captcha mode for OP forms", %{conn: conn} do
@@ -345,6 +346,28 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert page =~ "2 + 2 = ?"
     assert Floki.find(Floki.parse_document!(page), ~s(input[name="captcha"])) != []
+  end
+
+  test "board page exposes rememberStuff hooks for thread and quick-reply forms", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board)
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(
+             document,
+             ~s(form#new-thread-form[data-remember-stuff][data-draft-key="new"])
+           ) != []
+
+    assert Floki.find(
+             document,
+             ~s(form[data-quick-reply-form="#{thread.id}"][data-remember-stuff])
+           ) != []
   end
 
   test "fileboard pages use filenames as thread titles when subjects are absent", %{conn: conn} do

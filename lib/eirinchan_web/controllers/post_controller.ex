@@ -95,6 +95,7 @@ defmodule EirinchanWeb.PostController do
   defp respond_created(conn, board, post, params, meta) do
     thread_id = post.thread_id || post.id
     config = conn.assigns.current_board_config
+    conn = put_post_success_cookie(conn, board, post)
 
     redirect_path =
       if meta.noko do
@@ -305,6 +306,20 @@ defmodule EirinchanWeb.PostController do
   defp captcha_field("recaptcha"), do: "g-recaptcha-response"
   defp captcha_field("hcaptcha"), do: "h-captcha-response"
   defp captcha_field(_provider), do: "captcha"
+
+  defp put_post_success_cookie(conn, board, %{thread_id: nil}) do
+    put_resp_cookie(conn, "eirinchan_posted", "#{board.uri}:new", max_age: 120, path: "/")
+  end
+
+  defp put_post_success_cookie(conn, board, %{thread_id: thread_id}) do
+    put_resp_cookie(
+      conn,
+      "eirinchan_posted",
+      "#{board.uri}:#{thread_id}",
+      max_age: 120,
+      path: "/"
+    )
+  end
 
   defp log_post_error(reason, status, conn) do
     level =

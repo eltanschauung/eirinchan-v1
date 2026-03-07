@@ -96,6 +96,9 @@
     method="post"
     enctype="multipart/form-data"
     data-thread-reply-form
+    data-remember-stuff
+    data-board-uri={@board.uri}
+    data-draft-key={@summary.thread.id}
   >
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="hidden" name="thread" value={@summary.thread.id} />
@@ -119,7 +122,10 @@
       name={@config.hidden_input_name}
       value={@config.hidden_input_hash}
     />
-    <label :if={captcha_enabled?(@config) && @config.captcha.provider == "native"}>
+    <label
+      :if={captcha_enabled?(@config) && @config.captcha.provider == "native"}
+      data-captcha-lazy
+    >
       <span><%= @config.captcha.challenge || "Captcha" %></span>
       <input type="text" name="captcha" placeholder="Captcha" />
     </label>
@@ -128,12 +134,14 @@
       type="text"
       name="g-recaptcha-response"
       placeholder="reCAPTCHA"
+      data-captcha-lazy
     />
     <input
       :if={captcha_enabled?(@config) && @config.captcha.provider == "hcaptcha"}
       type="text"
       name="h-captcha-response"
       placeholder="hCaptcha"
+      data-captcha-lazy
     />
     <input :if={@current_moderator} type="text" name="capcode" placeholder="Capcode" />
     <label :if={@current_moderator}>

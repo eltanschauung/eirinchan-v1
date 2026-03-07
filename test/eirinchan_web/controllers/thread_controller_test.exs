@@ -190,9 +190,23 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     assert page =~ "reply check"
     assert Floki.find(document, ~s(input[name="captcha"])) != []
+    assert Floki.find(document, ~s(label[data-captcha-lazy] input[name="captcha"])) != []
 
     board_page = conn |> recycle() |> get("/#{board.uri}") |> html_response(200)
     refute board_page =~ "reply check"
+  end
+
+  test "thread reply form exposes rememberStuff hooks", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board)
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(
+             document,
+             ~s(form#reply-form[data-remember-stuff][data-draft-key="#{thread.id}"])
+           ) != []
   end
 
   test "thread pages render poster tripcodes", %{conn: conn} do

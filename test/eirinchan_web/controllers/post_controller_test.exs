@@ -59,6 +59,33 @@ defmodule EirinchanWeb.PostControllerTest do
              json_response(conn, 200)
 
     assert redirect == "/#{board.uri}/res/#{thread.id}.html#p#{id}"
+
+    assert Enum.any?(
+             get_resp_header(conn, "set-cookie"),
+             &String.contains?(&1, "eirinchan_posted=#{board.uri}:#{thread.id}")
+           )
+  end
+
+  test "successful OP posts set a draft-clear cookie", %{conn: conn} do
+    board = board_fixture(%{title: "Technology"})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "name" => "anon",
+        "subject" => "launch",
+        "body" => "first post",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => _id} = json_response(conn, 200)
+
+    assert Enum.any?(
+             get_resp_header(conn, "set-cookie"),
+             &String.contains?(&1, "eirinchan_posted=#{board.uri}:new")
+           )
   end
 
   test "posting stores uploads and serves them back under board src paths", %{conn: conn} do
