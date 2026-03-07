@@ -1,6 +1,8 @@
 defmodule EirinchanWeb.PostView do
   @moduledoc false
 
+  import Phoenix.HTML, only: [html_escape: 1, safe_to_string: 1]
+
   alias Eirinchan.Posts.PostFile
   alias Eirinchan.ThreadPaths
 
@@ -219,8 +221,18 @@ defmodule EirinchanWeb.PostView do
     end
   end
 
-  def body_html(post) do
-    if post.raw_html, do: post.body, else: post.body
+  def body_html(post, board, thread, config) do
+    if post.raw_html do
+      post.body || ""
+    else
+      post.body
+      |> Kernel.||("")
+      |> html_escape()
+      |> safe_to_string()
+      |> String.split("\n", trim: false)
+      |> Enum.map(&format_body_line(&1, board, thread, config))
+      |> Enum.join("<br/>")
+    end
   end
 
   def omitted_text(summary) do
@@ -265,6 +277,23 @@ defmodule EirinchanWeb.PostView do
   end
 
   defp maybe_add_omitted(parts, _count, _label), do: parts
+
+  defp format_body_line(line, board, thread, config) do
+    rendered = render_quote_links(line, board, thread, config)
+
+    if String.starts_with?(rendered, "&gt;") and not String.starts_with?(rendered, "&gt;&gt;") do
+      ~s(<span class="quote">#{rendered}</span>)
+    else
+      rendered
+    end
+  end
+
+  defp render_quote_links(line, board, thread, config) do
+    Regex.replace(~r/&gt;&gt;(\d+)/, line, fn _match, id ->
+      href = ThreadPaths.thread_path(board, thread, config) <> "##{id}"
+      "<a onclick=\"highlightReply('#{id}', event);\" href=\"#{href}\">&gt;&gt;#{id}</a>"
+    end)
+  end
 
   defp human_file_size(size) when is_integer(size) and size >= 1_048_576 do
     "#{Float.round(size / 1_048_576, 2)} MB"

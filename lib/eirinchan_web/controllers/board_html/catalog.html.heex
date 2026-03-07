@@ -109,11 +109,7 @@
                 <span class="subject"><%= PostView.catalog_label(post, @config) %></span>
               </p>
               <%= if PostView.catalog_label(post, @config), do: raw(""), else: raw("<br />") %>
-              <%= if post.raw_html do %>
-                <%= raw(post.body || "") %>
-              <% else %>
-                <%= post.body %>
-              <% end %>
+              <%= raw(PostView.body_html(post, @board, post, @config)) %>
             </div>
           </div>
         </div>

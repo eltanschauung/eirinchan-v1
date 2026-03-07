@@ -187,6 +187,20 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ "We witches are not whale lol."
   end
 
+  test "catalog page renders formatted body excerpts", %{conn: conn} do
+    board = board_fixture()
+    thread_fixture(board, %{body: ">quoted\nsecond line"})
+
+    page =
+      conn
+      |> get("/#{board.uri}/catalog.html")
+      |> html_response(200)
+
+    assert page =~ ~s(class="quote")
+    assert page =~ "second line"
+    assert page =~ "<br/>"
+  end
+
   test "board page respects field disable flags and single-file selector mode", %{conn: conn} do
     board =
       board_fixture(%{
