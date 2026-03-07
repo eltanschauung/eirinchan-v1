@@ -192,8 +192,8 @@ IpAccessAuth minimal UI parity (no image/footer by default): incomplete
 ipcrypt hashing parity for public/mod contexts: incomplete
 ipcrypt_immune_ip single IP bypass behavior parity: incomplete
 ipcrypt_immune_ip CIDR range bypass behavior parity: incomplete
-cloak IP presentation parity in moderation templates: incomplete
-show_ip permission gating parity: incomplete
+cloak IP presentation parity in moderation templates: partial
+show_ip permission gating parity: partial
 proxy/IP header trust model parity: partial
 
 [Board and Content Management]

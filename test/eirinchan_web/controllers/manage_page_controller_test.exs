@@ -462,6 +462,42 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     refute Eirinchan.Repo.get(Eirinchan.Posts.Post, thread.id)
   end
 
+  test "janitor browser moderation pages cloak visible ip values", %{conn: conn} do
+    janitor = moderator_fixture(%{role: "janitor"})
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
+    grant_board_access_fixture(janitor, board)
+
+    {:ok, _thread, _meta} =
+      Eirinchan.Posts.create_post(
+        board,
+        %{"body" => "green leaf", "subject" => "teaware", "post" => "New Topic"},
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{
+          referer: "http://example.test/#{board.uri}/index.html",
+          remote_ip: {198, 51, 100, 7}
+        }
+      )
+
+    recent_page =
+      conn
+      |> login_moderator(janitor)
+      |> get("/manage/recent-posts/browser")
+      |> html_response(200)
+
+    assert recent_page =~ "cloaked-"
+    refute recent_page =~ "198.51.100.7"
+
+    history_page =
+      conn
+      |> recycle()
+      |> login_moderator(janitor)
+      |> get("/manage/boards/#{board.uri}/ip/198.51.100.7/browser")
+      |> html_response(200)
+
+    assert history_page =~ "IP History: cloaked-"
+    refute history_page =~ "IP History: 198.51.100.7"
+  end
+
   test "browser moderation pages can move threads and replies", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
     source_board = board_fixture(%{uri: "src"})

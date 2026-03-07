@@ -149,4 +149,26 @@ defmodule EirinchanWeb.IpManagementControllerTest do
     assert other_deleted_board_id == other_board.id
     assert Repo.get(Eirinchan.Posts.Post, other_thread.id) == nil
   end
+
+  test "janitors receive cloaked ip values in json views", %{conn: conn} do
+    board = board_fixture()
+    janitor = moderator_fixture(%{role: "janitor"})
+    grant_board_access_fixture(janitor, board)
+
+    thread = thread_fixture(board, %{body: "Board history body"})
+    {:ok, _thread} = Repo.update(Ecto.Changeset.change(thread, ip_subnet: "198.51.100.4"))
+
+    board_view =
+      conn
+      |> login_moderator(janitor)
+      |> put_req_header("accept", "application/json")
+      |> get("/manage/boards/#{board.uri}/ip/198.51.100.4")
+
+    assert %{"data" => %{"ip" => cloaked_ip, "posts" => [%{"ip_subnet" => cloaked_post_ip}]}} =
+             json_response(board_view, 200)
+
+    assert cloaked_ip =~ "cloaked-"
+    assert cloaked_post_ip == cloaked_ip
+    refute cloaked_ip == "198.51.100.4"
+  end
 end

@@ -1,34 +1,36 @@
 defmodule EirinchanWeb.IpManagementJSON do
-  def show(%{ip: ip, posts: posts, notes: notes}) do
+  alias EirinchanWeb.IpPresentation
+
+  def show(%{ip: ip, posts: posts, notes: notes, moderator: moderator}) do
     %{
       data: %{
-        ip: ip,
-        posts: Enum.map(posts, &post_data/1),
-        notes: Enum.map(notes, &note_data/1)
+        ip: IpPresentation.display_ip(ip, moderator),
+        posts: Enum.map(posts, &post_data(&1, moderator)),
+        notes: Enum.map(notes, &note_data(&1, moderator))
       }
     }
   end
 
-  def note(%{note: note}) do
-    %{data: note_data(note)}
+  def note(%{note: note, moderator: moderator}) do
+    %{data: note_data(note, moderator)}
   end
 
-  defp post_data(post) do
+  defp post_data(post, moderator) do
     %{
       id: post.id,
       board_id: post.board_id,
       thread_id: post.thread_id,
-      ip_subnet: post.ip_subnet,
+      ip_subnet: IpPresentation.display_ip(post.ip_subnet, moderator),
       subject: post.subject,
       body: post.body,
       inserted_at: post.inserted_at
     }
   end
 
-  defp note_data(note) do
+  defp note_data(note, moderator) do
     %{
       id: note.id,
-      ip_subnet: note.ip_subnet,
+      ip_subnet: IpPresentation.display_ip(note.ip_subnet, moderator),
       body: note.body,
       board_id: note.board_id,
       mod_user_id: note.mod_user_id,
