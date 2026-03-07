@@ -5,6 +5,7 @@ defmodule EirinchanWeb.BoardController do
 
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show]
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show_page]
+  plug EirinchanWeb.Plugs.LoadBoard when action in [:catalog]
 
   def show(conn, _params) do
     render_page(conn, 1)
@@ -17,6 +18,20 @@ defmodule EirinchanWeb.BoardController do
       |> String.to_integer()
 
     render_page(conn, page_num)
+  end
+
+  def catalog(conn, _params) do
+    board = conn.assigns.current_board
+    config = conn.assigns.current_board_config
+
+    case Posts.list_page_data(board, config: config) do
+      {:ok, pages} ->
+        threads = Enum.flat_map(pages, & &1.threads)
+        render(conn, :catalog, board: board, threads: threads, config: config)
+
+      {:error, :not_found} ->
+        send_resp(conn, :not_found, "Page not found")
+    end
   end
 
   defp render_page(conn, page) do

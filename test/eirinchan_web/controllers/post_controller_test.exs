@@ -59,6 +59,24 @@ defmodule EirinchanWeb.PostControllerTest do
     assert redirect == "/#{board.uri}/res/#{thread.id}.html#p#{id}"
   end
 
+  test "noko redirects use canonical slug thread paths when slugify is enabled", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{slugify: true}})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "email" => "noko",
+        "subject" => "Slug redirect subject",
+        "body" => "first post",
+        "post" => "New Topic"
+      })
+
+    thread_path = redirected_to(conn)
+    assert thread_path =~ "-slug-redirect-subject.html"
+    assert conn |> recycle() |> get(thread_path) |> html_response(200) =~ "first post"
+  end
+
   test "posting rejects replies to unknown threads", %{conn: conn} do
     board = board_fixture(%{title: "Technology"})
 

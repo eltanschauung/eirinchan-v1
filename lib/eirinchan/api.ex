@@ -11,6 +11,19 @@ defmodule Eirinchan.Api do
     }
   end
 
+  def boards_json(boards) do
+    %{
+      boards:
+        Enum.map(boards, fn board ->
+          %{
+            board: board.uri,
+            title: board.title,
+            ws_board: 1
+          }
+        end)
+    }
+  end
+
   def page_json(page_data) do
     %{
       threads: Enum.map(page_data.threads, &thread_json/1)

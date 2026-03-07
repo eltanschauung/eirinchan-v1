@@ -27,6 +27,7 @@ defmodule EirinchanWeb.Router do
   scope "/api", EirinchanWeb do
     pipe_through :api
 
+    get "/boards.json", ApiController, :boards
     get "/:board/catalog.json", ApiController, :catalog
     get "/:board/threads.json", ApiController, :threads
     get "/:board/res/:thread_id", ApiController, :thread
@@ -37,6 +38,7 @@ defmodule EirinchanWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/:board/catalog.html", BoardController, :catalog
     get "/:board/:page_num_html", BoardController, :show_page
     get "/:board", BoardController, :show
     post "/:board/post", PostController, :create

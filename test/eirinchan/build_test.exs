@@ -59,11 +59,13 @@ defmodule Eirinchan.BuildTest do
     thread_json_path = Path.join([board_dir, config.dir.res, "#{thread.id}.json"])
     page_zero_json_path = Path.join(board_dir, "0.json")
     catalog_json_path = Path.join(board_dir, "catalog.json")
+    catalog_html_path = Path.join(board_dir, config.file_catalog)
     threads_json_path = Path.join(board_dir, "threads.json")
 
     assert File.read!(index_path) =~ "Opening subject"
     assert File.read!(index_path) =~ "Reply body"
     assert File.read!(page_two_path) =~ "Second thread subject"
+    assert File.read!(catalog_html_path) =~ "Second thread subject"
     assert File.read!(thread_path) =~ "Reply body"
     assert Jason.decode!(File.read!(thread_json_path))["posts"] |> length() == 2
 
@@ -81,5 +83,31 @@ defmodule Eirinchan.BuildTest do
 
     assert Jason.decode!(File.read!(catalog_json_path)) |> length() == 2
     assert Jason.decode!(File.read!(threads_json_path)) |> length() == 2
+  end
+
+  test "slugified threads build canonical and legacy html files" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture(%{config_overrides: %{slugify: true}})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "subject" => "Slug file subject",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    canonical_path = Path.join([board_dir, config.dir.res, "#{thread.id}-slug-file-subject.html"])
+    legacy_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(canonical_path) =~ "Opening body"
+    assert File.read!(legacy_path) =~ "Opening body"
   end
 end

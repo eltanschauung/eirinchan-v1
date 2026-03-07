@@ -97,4 +97,35 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert second_page =~ "1 posts"
     assert second_page =~ "Reply two"
   end
+
+  test "catalog page renders thread summaries across board pages", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{threads_per_page: 1}})
+
+    conn
+    |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+    |> post(~p"/#{board.uri}/post", %{
+      "body" => "First body",
+      "subject" => "First thread",
+      "post" => "New Topic"
+    })
+
+    conn
+    |> recycle()
+    |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+    |> post(~p"/#{board.uri}/post", %{
+      "body" => "Second body",
+      "subject" => "Second thread",
+      "post" => "New Topic"
+    })
+
+    catalog_page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/catalog.html")
+      |> html_response(200)
+
+    assert catalog_page =~ "Catalog"
+    assert catalog_page =~ "First thread"
+    assert catalog_page =~ "Second thread"
+  end
 end

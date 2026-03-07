@@ -2,6 +2,7 @@ defmodule EirinchanWeb.PostController do
   use EirinchanWeb, :controller
 
   alias Eirinchan.Posts
+  alias Eirinchan.ThreadPaths
 
   plug EirinchanWeb.Plugs.LoadBoard
 
@@ -26,11 +27,12 @@ defmodule EirinchanWeb.PostController do
 
   defp respond_created(conn, board, post, params, meta) do
     thread_id = post.thread_id || post.id
+    config = conn.assigns.current_board_config
 
     redirect_path =
       if meta.noko do
         suffix = if post.thread_id, do: "#p#{post.id}", else: ""
-        "/#{board.uri}/res/#{thread_id}.html#{suffix}"
+        "#{thread_redirect_path(board, post, thread_id, config)}#{suffix}"
       else
         "/#{board.uri}"
       end
@@ -44,6 +46,17 @@ defmodule EirinchanWeb.PostController do
       })
     else
       redirect(conn, to: redirect_path)
+    end
+  end
+
+  defp thread_redirect_path(board, %{thread_id: nil} = thread, _thread_id, config) do
+    ThreadPaths.thread_path(board, thread, config)
+  end
+
+  defp thread_redirect_path(board, _post, thread_id, config) do
+    case Posts.get_thread(board, thread_id) do
+      {:ok, [thread | _]} -> ThreadPaths.thread_path(board, thread, config)
+      {:error, :not_found} -> "/#{board.uri}/res/#{thread_id}.html"
     end
   end
 

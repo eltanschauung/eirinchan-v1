@@ -9,7 +9,7 @@ error handling model parity (user-facing + internal logging): incomplete
 post submission orchestration pipeline parity (end-to-end): partial
 thread display pipeline parity (OP + replies + omitted counters): partial
 index display pipeline parity (pagination + previews + links): partial
-catalog display pipeline parity: incomplete
+catalog display pipeline parity: partial
 API display pipeline parity (thread/page/catalog JSON): partial
 
 [Posting Pipeline - Validation and Business Rules]
@@ -109,7 +109,7 @@ schema migration tooling from existing MySQL data: incomplete
 [Rendering, Build, and Static Generation]
 buildThread parity (HTML + JSON + +50 variants): partial
 buildIndex parity (pages, cleanup, pagination controls): partial
-thread_find_page behavior parity: incomplete
+thread_find_page behavior parity: partial
 build-on-post regeneration flow parity: partial
 generation strategy framework parity (immediate/defer/build_on_load): incomplete
 queue-backed deferred generation parity: incomplete
@@ -117,8 +117,8 @@ smart build helper route/controller parity: incomplete
 cache-aware rebuild skipping logic parity: incomplete
 boardlist rendering parity across contexts: incomplete
 template variable contract compatibility (board, board_title, post, config): incomplete
-thread slug URL generation and slug check redirects: incomplete
-catalog_link behavior parity: incomplete
+thread slug URL generation and slug check redirects: partial
+catalog_link behavior parity: partial
 fileboard mode rendering parity: incomplete
 
 [Moderation - Authentication and Authorization]
@@ -240,7 +240,7 @@ extra_files compatibility in API responses: incomplete
 country fields in API responses from modifiers: incomplete
 poster ID API field parity: incomplete
 semantic_url API slug field parity: partial
-boards.json API parity: incomplete
+boards.json API parity: partial
 catalog.json and threads.json API parity: partial
 
 [Frontend Behavior and UX]

@@ -10,6 +10,7 @@ defmodule Eirinchan.Posts do
   alias Eirinchan.Posts.Post
   alias Eirinchan.Repo
   alias Eirinchan.Runtime.Config
+  alias Eirinchan.ThreadPaths
 
   @spec create_post(BoardRecord.t(), map(), keyword()) ::
           {:ok, Post.t(), map()}
@@ -55,6 +56,22 @@ defmodule Eirinchan.Posts do
     page = Keyword.get(opts, :page, 1)
     {:ok, page_data} = list_threads_page(board, page, Keyword.put(opts, :config, config))
     Enum.map(page_data.threads, & &1.thread)
+  end
+
+  @spec list_page_data(BoardRecord.t(), keyword()) :: {:ok, [map()]} | {:error, :not_found}
+  def list_page_data(%BoardRecord{} = board, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+
+    with {:ok, first_page} <- list_threads_page(board, 1, config: config, repo: repo) do
+      page_data =
+        Enum.map(1..first_page.total_pages, fn page ->
+          {:ok, data} = list_threads_page(board, page, config: config, repo: repo)
+          data
+        end)
+
+      {:ok, page_data}
+    end
   end
 
   @spec list_threads_page(BoardRecord.t(), pos_integer(), keyword()) ::
@@ -112,26 +129,50 @@ defmodule Eirinchan.Posts do
           {:ok, [Post.t()]} | {:error, :not_found}
   def get_thread(%BoardRecord{} = board, thread_id, opts \\ []) do
     repo = Keyword.get(opts, :repo, Repo)
-    normalized_thread_id = normalize_thread_id(thread_id)
 
-    case repo.one(
-           from post in Post,
-             where:
-               post.id == ^normalized_thread_id and post.board_id == ^board.id and
-                 is_nil(post.thread_id)
-         ) do
-      nil ->
-        {:error, :not_found}
+    with {:ok, normalized_thread_id} <- normalize_thread_id(thread_id),
+         %Post{} = thread <-
+           repo.one(
+             from post in Post,
+               where:
+                 post.id == ^normalized_thread_id and post.board_id == ^board.id and
+                   is_nil(post.thread_id)
+           ) do
+      replies =
+        repo.all(
+          from post in Post,
+            where: post.board_id == ^board.id and post.thread_id == ^thread.id,
+            order_by: [asc: post.inserted_at]
+        )
 
-      thread ->
-        replies =
-          repo.all(
-            from post in Post,
-              where: post.board_id == ^board.id and post.thread_id == ^thread.id,
-              order_by: [asc: post.inserted_at]
-          )
+      {:ok, [thread | replies]}
+    else
+      _ -> {:error, :not_found}
+    end
+  end
 
-        {:ok, [thread | replies]}
+  @spec find_thread_page(BoardRecord.t(), String.t() | integer(), keyword()) ::
+          {:ok, pos_integer()} | {:error, :not_found}
+  def find_thread_page(%BoardRecord{} = board, thread_id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+
+    with {:ok, normalized_thread_id} <- normalize_thread_id(thread_id) do
+      visible_thread_ids =
+        repo.all(
+          from post in Post,
+            where: post.board_id == ^board.id and is_nil(post.thread_id),
+            order_by: [desc: post.sticky, desc_nulls_last: post.bump_at, desc: post.inserted_at],
+            limit: ^(config.threads_per_page * config.max_pages),
+            select: post.id
+        )
+
+      case Enum.find_index(visible_thread_ids, &(&1 == normalized_thread_id)) do
+        nil -> {:error, :not_found}
+        index -> {:ok, div(index, config.threads_per_page) + 1}
+      end
+    else
+      :error -> {:error, :not_found}
     end
   end
 
@@ -279,15 +320,16 @@ defmodule Eirinchan.Posts do
   defp fetch_thread(_board, nil, _repo), do: {:ok, nil}
 
   defp fetch_thread(board, thread_param, repo) do
-    thread_id = normalize_thread_id(thread_param)
-
-    case repo.one(
-           from post in Post,
-             where:
-               post.id == ^thread_id and post.board_id == ^board.id and is_nil(post.thread_id)
-         ) do
-      nil -> {:error, :thread_not_found}
-      thread -> {:ok, thread}
+    with {:ok, thread_id} <- normalize_thread_id(thread_param),
+         %Post{} = thread <-
+           repo.one(
+             from post in Post,
+               where:
+                 post.id == ^thread_id and post.board_id == ^board.id and is_nil(post.thread_id)
+           ) do
+      {:ok, thread}
+    else
+      _ -> {:error, :thread_not_found}
     end
   end
 
@@ -368,14 +410,7 @@ defmodule Eirinchan.Posts do
     :ok
   end
 
-  defp normalize_thread_id(value) when is_integer(value), do: value
-
-  defp normalize_thread_id(value) when is_binary(value) do
-    value
-    |> String.replace_suffix(".html", "")
-    |> String.trim()
-    |> String.to_integer()
-  end
+  defp normalize_thread_id(value), do: ThreadPaths.parse_thread_id(value)
 
   defp thread_summary(board, thread, config, repo) do
     preview_count = config.threads_preview
