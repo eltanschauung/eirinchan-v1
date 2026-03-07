@@ -45,8 +45,7 @@ defmodule Eirinchan.ModerationTest do
         body: "IP tracked body"
       })
 
-    {:ok, _updated_thread} =
-      Repo.update(Ecto.Changeset.change(thread, ip_subnet: "203.0.113.10"))
+    {:ok, _updated_thread} = Repo.update(Ecto.Changeset.change(thread, ip_subnet: "203.0.113.10"))
 
     assert {:ok, note} =
              Moderation.add_ip_note("203.0.113.10", %{
@@ -55,9 +54,31 @@ defmodule Eirinchan.ModerationTest do
                mod_user_id: moderator.id
              })
 
-    assert [%{body: "Known spammer"}] = Moderation.list_ip_notes("203.0.113.10", board_id: board.id)
-    assert [%{id: post_id, ip_subnet: "203.0.113.10"}] = Moderation.list_ip_posts("203.0.113.10", board_ids: [board.id])
+    assert [%{body: "Known spammer"}] =
+             Moderation.list_ip_notes("203.0.113.10", board_id: board.id)
+
+    assert [%{id: post_id, ip_subnet: "203.0.113.10"}] =
+             Moderation.list_ip_posts("203.0.113.10", board_ids: [board.id])
+
     assert post_id == thread.id
     assert note.ip_subnet == "203.0.113.10"
+  end
+
+  test "ip notes can be updated and deleted" do
+    board = board_fixture()
+    moderator = moderator_fixture(%{role: "mod"})
+
+    assert {:ok, note} =
+             Moderation.add_ip_note("203.0.113.12", %{
+               body: "Initial note",
+               board_id: board.id,
+               mod_user_id: moderator.id
+             })
+
+    assert {:ok, updated_note} = Moderation.update_ip_note(note, %{body: "Updated note"})
+    assert updated_note.body == "Updated note"
+
+    assert {:ok, _deleted_note} = Moderation.delete_ip_note(note.id)
+    assert [] = Moderation.list_ip_notes("203.0.113.12", board_id: board.id)
   end
 end

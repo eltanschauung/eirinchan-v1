@@ -15,7 +15,9 @@ defmodule EirinchanWeb.IpManagementControllerTest do
     other_thread = thread_fixture(other_board, %{body: "Other history body"})
 
     {:ok, _thread} = Repo.update(Ecto.Changeset.change(thread, ip_subnet: "198.51.100.4"))
-    {:ok, _other_thread} = Repo.update(Ecto.Changeset.change(other_thread, ip_subnet: "198.51.100.4"))
+
+    {:ok, _other_thread} =
+      Repo.update(Ecto.Changeset.change(other_thread, ip_subnet: "198.51.100.4"))
 
     note_conn =
       conn
@@ -62,5 +64,89 @@ defmodule EirinchanWeb.IpManagementControllerTest do
       |> get("/manage/boards/#{board.uri}/ip/198.51.100.4")
 
     assert %{"error" => "forbidden"} = json_response(conn, 403)
+  end
+
+  test "ip notes can be updated and deleted through board moderation routes", %{conn: conn} do
+    board = board_fixture()
+    moderator = moderator_fixture(%{role: "mod"})
+    grant_board_access_fixture(moderator, board)
+
+    note_conn =
+      conn
+      |> login_moderator(moderator)
+      |> put_secure_manage_token()
+      |> put_req_header("accept", "application/json")
+      |> post("/manage/boards/#{board.uri}/ip/198.51.100.4/notes", %{"body" => "Watch this IP"})
+
+    note_id = json_response(note_conn, 201)["data"]["id"]
+
+    update_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> put_secure_manage_token()
+      |> put_req_header("accept", "application/json")
+      |> patch("/manage/boards/#{board.uri}/ip/198.51.100.4/notes/#{note_id}", %{
+        "body" => "Updated note"
+      })
+
+    assert %{"data" => %{"body" => "Updated note"}} = json_response(update_conn, 200)
+
+    delete_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> put_secure_manage_token()
+      |> delete("/manage/boards/#{board.uri}/ip/198.51.100.4/notes/#{note_id}")
+
+    assert response(delete_conn, 204)
+  end
+
+  test "delete-by-ip removes posts for a board or across accessible boards", %{conn: conn} do
+    board = board_fixture()
+    other_board = board_fixture()
+    moderator = moderator_fixture(%{role: "mod"})
+
+    grant_board_access_fixture(moderator, board)
+    grant_board_access_fixture(moderator, other_board)
+
+    thread = thread_fixture(board, %{body: "Board history body"})
+    reply = reply_fixture(board, thread, %{body: "Board reply body"})
+    other_thread = thread_fixture(other_board, %{body: "Other history body"})
+
+    {:ok, _thread} = Repo.update(Ecto.Changeset.change(thread, ip_subnet: "198.51.100.9"))
+    {:ok, _reply} = Repo.update(Ecto.Changeset.change(reply, ip_subnet: "198.51.100.9"))
+
+    {:ok, _other_thread} =
+      Repo.update(Ecto.Changeset.change(other_thread, ip_subnet: "198.51.100.9"))
+
+    board_delete =
+      conn
+      |> login_moderator(moderator)
+      |> put_secure_manage_token()
+      |> put_req_header("accept", "application/json")
+      |> delete("/manage/boards/#{board.uri}/ip/198.51.100.9/posts")
+
+    assert %{"data" => %{"count" => 2, "board_ids" => [deleted_board_id]}} =
+             json_response(board_delete, 200)
+
+    assert deleted_board_id == board.id
+    assert Repo.get(Eirinchan.Posts.Post, thread.id) == nil
+    assert Repo.get(Eirinchan.Posts.Post, reply.id) == nil
+    assert Repo.get(Eirinchan.Posts.Post, other_thread.id).id == other_thread.id
+
+    global_delete =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> put_secure_manage_token()
+      |> put_req_header("accept", "application/json")
+      |> delete("/manage/ip/198.51.100.9/posts")
+
+    assert %{"data" => %{"count" => 1, "board_ids" => [other_deleted_board_id]}} =
+             json_response(global_delete, 200)
+
+    assert other_deleted_board_id == other_board.id
+    assert Repo.get(Eirinchan.Posts.Post, other_thread.id) == nil
   end
 end

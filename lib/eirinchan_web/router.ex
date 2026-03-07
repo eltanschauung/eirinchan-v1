@@ -99,8 +99,12 @@ defmodule EirinchanWeb.Router do
     patch "/feedback/:id/read", FeedbackManagementController, :mark_read
     post "/feedback/:id/comments", FeedbackManagementController, :create_comment
     delete "/feedback/:id", FeedbackManagementController, :delete
+    delete "/ip/:ip/posts", IpManagementController, :delete_posts
     patch "/boards/:uri/threads/:thread_id", ThreadManagementController, :update
     post "/boards/:uri/ip/:ip/notes", IpManagementController, :create_note
+    patch "/boards/:uri/ip/:ip/notes/:id", IpManagementController, :update_note
+    delete "/boards/:uri/ip/:ip/notes/:id", IpManagementController, :delete_note
+    delete "/boards/:uri/ip/:ip/posts", IpManagementController, :delete_board_posts
     patch "/boards/:uri/posts/:post_id", PostManagementController, :update
     delete "/boards/:uri/posts/:post_id", PostManagementController, :delete
     delete "/boards/:uri/posts/:post_id/file", PostManagementController, :delete_file

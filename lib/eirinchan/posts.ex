@@ -212,6 +212,45 @@ defmodule Eirinchan.Posts do
     end
   end
 
+  @spec moderate_delete_posts_by_ip(BoardRecord.t() | [BoardRecord.t()], String.t(), keyword()) ::
+          {:ok, map()} | {:error, term()}
+  def moderate_delete_posts_by_ip(board_or_boards, ip_subnet, opts \\ [])
+
+  def moderate_delete_posts_by_ip(%BoardRecord{} = board, ip_subnet, opts) do
+    moderate_delete_posts_by_ip([board], ip_subnet, opts)
+  end
+
+  def moderate_delete_posts_by_ip(boards, ip_subnet, opts) when is_list(boards) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config_by_board = Keyword.get(opts, :config_by_board, %{})
+    normalized_ip = normalize_request_ip(ip_subnet)
+    board_ids = Enum.map(boards, & &1.id)
+
+    posts =
+      repo.all(
+        from post in Post,
+          where: post.board_id in ^board_ids and post.ip_subnet == ^normalized_ip,
+          order_by: [desc: post.thread_id, desc: post.id]
+      )
+
+    Enum.each(posts, fn post ->
+      board = Enum.find(boards, &(&1.id == post.board_id))
+
+      config =
+        Map.get(config_by_board, board.id) || Keyword.get(opts, :config) || Config.compose()
+
+      _ = moderate_delete_post(board, post.id, Keyword.merge(opts, config: config, repo: repo))
+    end)
+
+    {:ok,
+     %{
+       deleted_post_ids: Enum.map(posts, & &1.id),
+       deleted_threads: posts |> Enum.filter(&is_nil(&1.thread_id)) |> Enum.map(& &1.id),
+       count: length(posts),
+       board_ids: posts |> Enum.map(& &1.board_id) |> Enum.uniq() |> Enum.sort()
+     }}
+  end
+
   @spec delete_post_files(BoardRecord.t(), String.t() | integer(), keyword()) ::
           {:ok, Post.t()} | {:error, :not_found | Ecto.Changeset.t()}
   def delete_post_files(%BoardRecord{} = board, post_id, opts \\ []) do
