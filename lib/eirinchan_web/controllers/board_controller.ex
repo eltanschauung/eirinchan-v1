@@ -21,11 +21,21 @@ defmodule EirinchanWeb.BoardController do
       page_num_html
       |> String.replace_suffix(".html", "")
       |> case do
-        "index" -> 1
-        value -> String.to_integer(value)
+        "index" ->
+          1
+
+        value ->
+          case Integer.parse(value) do
+            {parsed, ""} -> parsed
+            _ -> nil
+          end
       end
 
-    render_page(conn, page_num)
+    if is_integer(page_num) and page_num > 0 do
+      render_page(conn, page_num)
+    else
+      send_resp(conn, :not_found, "Page not found")
+    end
   end
 
   def catalog(conn, _params) do
