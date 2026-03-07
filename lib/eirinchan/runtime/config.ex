@@ -64,6 +64,7 @@ defmodule Eirinchan.Runtime.Config do
     minimum_copy_resize: false,
     redraw_image: false,
     strip_exif: false,
+    use_exiftool: false,
     auto_orient_images: false,
     upload_by_url_enabled: false,
     upload_by_url_timeout_ms: 5_000,

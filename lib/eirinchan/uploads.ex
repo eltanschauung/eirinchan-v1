@@ -296,6 +296,12 @@ defmodule Eirinchan.Uploads do
       config.redraw_image ->
         redraw_stored_image(path, config)
 
+      config.strip_exif and config.use_exiftool and jpeg?(metadata) ->
+        with :ok <- maybe_auto_orient_without_redraw(path, config),
+             :ok <- strip_exif_with_exiftool(path) do
+          :ok
+        end
+
       true ->
         args = image_normalization_args(config, metadata)
 
@@ -322,6 +328,17 @@ defmodule Eirinchan.Uploads do
 
   defp maybe_append_arg(args, true, arg), do: args ++ [arg]
   defp maybe_append_arg(args, _flag, _arg), do: args
+
+  defp maybe_auto_orient_without_redraw(path, config) do
+    if config.auto_orient_images do
+      case System.cmd("mogrify", ["-auto-orient", path], stderr_to_stdout: true) do
+        {_output, 0} -> :ok
+        _ -> {:error, :upload_failed}
+      end
+    else
+      :ok
+    end
+  end
 
   defp refresh_stored_metadata(path, metadata) do
     with {:ok, binary} <- File.read(path) do
@@ -359,6 +376,13 @@ defmodule Eirinchan.Uploads do
       _ ->
         _ = File.rm(rewritten_path)
         {:error, :upload_failed}
+    end
+  end
+
+  defp strip_exif_with_exiftool(path) do
+    case System.cmd("exiftool", ["-overwrite_original", "-all=", path], stderr_to_stdout: true) do
+      {_output, 0} -> :ok
+      _ -> {:error, :upload_failed}
     end
   end
 
@@ -422,6 +446,10 @@ defmodule Eirinchan.Uploads do
           false
       end
   end
+
+  defp jpeg?(%{file_type: "image/jpeg"}), do: true
+  defp jpeg?(%{ext: ext}) when ext in [".jpg", ".jpeg"], do: true
+  defp jpeg?(_metadata), do: false
 
   defp generate_placeholder_thumbnail(destination, config, metadata) do
     size = "#{config.thumb_width}x#{config.thumb_height}"
