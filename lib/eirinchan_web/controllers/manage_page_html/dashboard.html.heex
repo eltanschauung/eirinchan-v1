@@ -12,6 +12,7 @@
   <a href={~p"/news"}>News</a>
   <a href={~p"/manage/news/browser"}>Manage News</a>
   <a href={~p"/manage/recent-posts/browser"}>Recent Posts</a>
+  <a href={~p"/manage/messages/browser"}>Messages (<%= @unread_messages %>)</a>
   <form action={~p"/manage/logout/browser"} method="post" style="display:inline">
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="hidden" name="_method" value="delete" />

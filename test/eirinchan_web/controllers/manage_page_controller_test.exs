@@ -538,4 +538,56 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
     assert moved_reply.id == movable_reply.id
   end
+
+  test "browser moderator messages page sends and replies to PMs", %{conn: conn} do
+    sender = moderator_fixture(%{role: "admin"})
+    recipient = moderator_fixture(%{role: "mod"})
+
+    send_conn =
+      conn
+      |> login_moderator(sender)
+      |> post("/manage/messages/browser", %{
+        "recipient_id" => Integer.to_string(recipient.id),
+        "subject" => "Heads up",
+        "body" => "Check reports"
+      })
+
+    assert redirected_to(send_conn) == "/manage/messages/browser"
+
+    inbox_page =
+      conn
+      |> recycle()
+      |> login_moderator(recipient)
+      |> get("/manage/messages/browser")
+      |> html_response(200)
+
+    assert inbox_page =~ "Moderator Messages"
+    assert inbox_page =~ "Heads up"
+    assert inbox_page =~ "Check reports"
+    assert inbox_page =~ sender.username
+
+    [message | _] = Eirinchan.Moderation.list_inbox(recipient)
+
+    reply_conn =
+      conn
+      |> recycle()
+      |> login_moderator(recipient)
+      |> post("/manage/messages/browser", %{
+        "recipient_id" => Integer.to_string(sender.id),
+        "reply_to_id" => Integer.to_string(message.id),
+        "body" => "Handled"
+      })
+
+    assert redirected_to(reply_conn) == "/manage/messages/browser"
+
+    sender_page =
+      conn
+      |> recycle()
+      |> login_moderator(sender)
+      |> get("/manage/messages/browser")
+      |> html_response(200)
+
+    assert sender_page =~ "Handled"
+    assert sender_page =~ recipient.username
+  end
 end

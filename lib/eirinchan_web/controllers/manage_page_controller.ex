@@ -49,6 +49,7 @@ defmodule EirinchanWeb.ManagePageController do
       render(conn, :dashboard,
         moderator: moderator,
         boards: Moderation.list_accessible_boards(moderator),
+        unread_messages: Moderation.count_unread_messages(moderator),
         announcement: Announcement.current(),
         custom_pages: CustomPages.list_pages(),
         news_entries: News.list_entries(limit: 10),
@@ -68,6 +69,49 @@ defmodule EirinchanWeb.ManagePageController do
     else
       {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
       {:error, :forbidden} -> render_config_error(conn, "Administrator access required.")
+    end
+  end
+
+  def messages(conn, _params) do
+    with {:ok, moderator} <- ensure_moderator(conn) do
+      _ = Moderation.mark_inbox_read(moderator)
+
+      render(conn, :messages,
+        moderator: moderator,
+        messages: Moderation.list_inbox(moderator),
+        recipients: Moderation.list_recipients(moderator),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
+    end
+  end
+
+  def create_message(conn, params) do
+    with {:ok, moderator} <- ensure_moderator(conn),
+         {:ok, _message} <-
+           Moderation.send_message(moderator, %{
+             recipient_id: params["recipient_id"],
+             subject: params["subject"],
+             body: params["body"],
+             reply_to_id: params["reply_to_id"]
+           }) do
+      conn
+      |> put_flash(:info, "Message sent.")
+      |> redirect(to: ~p"/manage/messages/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> render(:messages,
+          moderator: conn.assigns[:current_moderator],
+          messages: Moderation.list_inbox(conn.assigns.current_moderator),
+          recipients: Moderation.list_recipients(conn.assigns.current_moderator),
+          error: format_changeset(changeset)
+        )
     end
   end
 
@@ -743,6 +787,7 @@ defmodule EirinchanWeb.ManagePageController do
         |> render(:dashboard,
           moderator: conn.assigns[:current_moderator],
           boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
+          unread_messages: Moderation.count_unread_messages(conn.assigns[:current_moderator]),
           announcement: Announcement.current(),
           custom_pages: CustomPages.list_pages(),
           news_entries: News.list_entries(limit: 10),
@@ -756,6 +801,7 @@ defmodule EirinchanWeb.ManagePageController do
         |> render(:dashboard,
           moderator: conn.assigns.current_moderator,
           boards: Moderation.list_accessible_boards(conn.assigns.current_moderator),
+          unread_messages: Moderation.count_unread_messages(conn.assigns.current_moderator),
           announcement: Announcement.current(),
           custom_pages: CustomPages.list_pages(),
           news_entries: News.list_entries(limit: 10),
@@ -865,6 +911,7 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:dashboard,
       moderator: conn.assigns[:current_moderator],
       boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
+      unread_messages: Moderation.count_unread_messages(conn.assigns[:current_moderator]),
       announcement: Announcement.current(),
       custom_pages: CustomPages.list_pages(),
       news_entries: News.list_entries(limit: 10),
