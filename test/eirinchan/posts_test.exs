@@ -285,6 +285,29 @@ defmodule Eirinchan.PostsTest do
     assert exiftool_value(stored_path, "Artist") == ""
   end
 
+  test "create_post copies small png files directly into thumbnails when minimum_copy_resize is enabled" do
+    board = board_fixture(%{config_overrides: %{minimum_copy_resize: true}})
+    upload = upload_fixture("small.png", geometry: "12x8")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    stored_path = Eirinchan.Uploads.filesystem_path(thread.file_path)
+    thumb_path = Eirinchan.Uploads.filesystem_path(thread.thumb_path)
+
+    assert File.read!(stored_path) == File.read!(thumb_path)
+    assert identify_value(thumb_path, "%wx%h") == "12x8"
+  end
+
   test "create_post auto-orients stored jpeg files and refreshes dimensions" do
     board = board_fixture(%{config_overrides: %{auto_orient_images: true}})
 
@@ -307,6 +330,36 @@ defmodule Eirinchan.PostsTest do
     assert {thread.image_width, thread.image_height} == {8, 12}
     assert identify_value(stored_path, "%wx%h") == "8x12"
     assert exiftool_value(stored_path, "Orientation") == "Horizontal (normal)"
+  end
+
+  test "create_post redraws stored images when redraw_image is enabled" do
+    board = board_fixture(%{config_overrides: %{redraw_image: true}})
+
+    upload =
+      upload_fixture("redrawn.jpg",
+        geometry: "12x8",
+        orientation: "Rotate 90 CW",
+        artist: "fixture-artist"
+      )
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    stored_path = Eirinchan.Uploads.filesystem_path(thread.file_path)
+
+    assert {thread.image_width, thread.image_height} == {8, 12}
+    assert identify_value(stored_path, "%wx%h") == "8x12"
+    assert exiftool_value(stored_path, "Artist") == ""
+    assert exiftool_value(stored_path, "Orientation") == ""
   end
 
   test "create_post auto-orients images before stripping EXIF when both are enabled" do

@@ -289,15 +289,24 @@ defmodule Eirinchan.Uploads do
   end
 
   defp normalize_stored_upload(path, config, metadata) do
-    args = image_normalization_args(config, metadata)
+    cond do
+      not image?(metadata) ->
+        :ok
 
-    if args == [] do
-      :ok
-    else
-      case System.cmd("mogrify", args ++ [path], stderr_to_stdout: true) do
-        {_output, 0} -> :ok
-        _ -> {:error, :upload_failed}
-      end
+      config.redraw_image ->
+        redraw_stored_image(path, config)
+
+      true ->
+        args = image_normalization_args(config, metadata)
+
+        if args == [] do
+          :ok
+        else
+          case System.cmd("mogrify", args ++ [path], stderr_to_stdout: true) do
+            {_output, 0} -> :ok
+            _ -> {:error, :upload_failed}
+          end
+        end
     end
   end
 
@@ -332,6 +341,27 @@ defmodule Eirinchan.Uploads do
     end
   end
 
+  defp redraw_stored_image(path, config) do
+    rewritten_path = "#{path}.rewrite"
+
+    args =
+      [path]
+      |> maybe_append_arg(config.redraw_image or config.auto_orient_images, "-auto-orient")
+      |> Kernel.++(["+profile", "*", rewritten_path])
+
+    case System.cmd("convert", args, stderr_to_stdout: true) do
+      {_output, 0} ->
+        case File.rename(rewritten_path, path) do
+          :ok -> :ok
+          {:error, _reason} -> {:error, :upload_failed}
+        end
+
+      _ ->
+        _ = File.rm(rewritten_path)
+        {:error, :upload_failed}
+    end
+  end
+
   defp image_metadata(path) do
     case System.cmd("identify", ["-format", "%w %h", path], stderr_to_stdout: true) do
       {output, 0} ->
@@ -362,16 +392,35 @@ defmodule Eirinchan.Uploads do
   end
 
   defp generate_image_thumbnail(source, destination, config) do
-    geometry = "#{config.thumb_width}x#{config.thumb_height}"
+    if minimum_copy_resize?(source, config) do
+      case File.cp(source, destination) do
+        :ok -> :ok
+        {:error, _reason} -> {:error, :upload_failed}
+      end
+    else
+      geometry = "#{config.thumb_width}x#{config.thumb_height}"
 
-    case System.cmd(
-           "convert",
-           [source, "-auto-orient", "-thumbnail", geometry, destination],
-           stderr_to_stdout: true
-         ) do
-      {_output, 0} -> :ok
-      _ -> {:error, :upload_failed}
+      case System.cmd(
+             "convert",
+             [source, "-auto-orient", "-thumbnail", geometry, destination],
+             stderr_to_stdout: true
+           ) do
+        {_output, 0} -> :ok
+        _ -> {:error, :upload_failed}
+      end
     end
+  end
+
+  defp minimum_copy_resize?(source, config) do
+    config.minimum_copy_resize and
+      Path.extname(source) == ".png" and
+      case image_metadata(source) do
+        {:ok, %{width: width, height: height}} ->
+          width <= config.thumb_width and height <= config.thumb_height
+
+        _ ->
+          false
+      end
   end
 
   defp generate_placeholder_thumbnail(destination, config, metadata) do
