@@ -1,0 +1,47 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Manage</h1>
+  <p>Signed in as <strong><%= @moderator.username %></strong> (<%= @moderator.role %>).</p>
+</section>
+
+<nav>
+  <a href={~p"/"}>Home</a>
+  <form action={~p"/manage/logout/browser"} method="post" style="display:inline">
+    <input type="hidden" name="_method" value="delete" />
+    <button type="submit">Logout</button>
+  </form>
+</nav>
+
+<section>
+  <h2>Boards</h2>
+  <%= if @boards == [] do %>
+    <p>No boards yet.</p>
+  <% else %>
+    <ul>
+      <%= for board <- @boards do %>
+        <li><a href={"/#{board.uri}"}>/ <%= board.uri %> / - <%= board.title %></a></li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>
+
+<section :if={@moderator.role == "admin"}>
+  <h2>Create Board</h2>
+  <p :if={@error}><%= @error %></p>
+
+  <form action={~p"/manage/boards/browser"} method="post">
+    <label>
+      <span>URI</span>
+      <input type="text" name="uri" value={@params["uri"]} />
+    </label>
+    <label>
+      <span>Title</span>
+      <input type="text" name="title" value={@params["title"]} />
+    </label>
+    <label>
+      <span>Subtitle</span>
+      <input type="text" name="subtitle" value={@params["subtitle"]} />
+    </label>
+    <button type="submit">Create Board</button>
+  </form>
+</section>

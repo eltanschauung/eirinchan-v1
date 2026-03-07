@@ -1,0 +1,87 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Eirinchan Setup</h1>
+  <p>Configure PostgreSQL and create the initial administrator.</p>
+</section>
+
+<section :if={Map.has_key?(@errors, "setup")}>
+  <p><%= @errors["setup"] %></p>
+</section>
+
+<form action={~p"/setup"} method="post">
+  <fieldset>
+    <legend>Database</legend>
+    <label>
+      <span>Hostname</span>
+      <input type="text" name="database_hostname" value={@params["database_hostname"]} />
+      <small :if={@errors["database_hostname"]}><%= @errors["database_hostname"] %></small>
+    </label>
+    <label>
+      <span>Port</span>
+      <input type="text" name="database_port" value={@params["database_port"]} />
+      <small :if={@errors["database_port"]}><%= @errors["database_port"] %></small>
+    </label>
+    <label>
+      <span>Database</span>
+      <input type="text" name="database_name" value={@params["database_name"]} />
+      <small :if={@errors["database_name"]}><%= @errors["database_name"] %></small>
+    </label>
+    <label>
+      <span>Username</span>
+      <input type="text" name="database_username" value={@params["database_username"]} />
+      <small :if={@errors["database_username"]}><%= @errors["database_username"] %></small>
+    </label>
+    <label>
+      <span>Password</span>
+      <input type="password" name="database_password" value={@params["database_password"]} />
+    </label>
+    <label>
+      <span>Maintenance Database</span>
+      <input type="text" name="database_maintenance" value={@params["database_maintenance"]} />
+    </label>
+    <label>
+      <span>Maintenance Username</span>
+      <input
+        type="text"
+        name="database_maintenance_username"
+        value={@params["database_maintenance_username"]}
+      />
+    </label>
+    <label>
+      <span>Maintenance Password</span>
+      <input
+        type="password"
+        name="database_maintenance_password"
+        value={@params["database_maintenance_password"]}
+      />
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Administrator</legend>
+    <label>
+      <span>Username</span>
+      <input type="text" name="admin_username" value={@params["admin_username"]} />
+      <small :if={@errors["admin_username"]}><%= @errors["admin_username"] %></small>
+    </label>
+    <label>
+      <span>Password</span>
+      <input type="password" name="admin_password" value={@params["admin_password"]} />
+      <small :if={@errors["admin_password"]}><%= @errors["admin_password"] %></small>
+    </label>
+    <label>
+      <span>Confirm Password</span>
+      <input
+        type="password"
+        name="admin_password_confirmation"
+        value={@params["admin_password_confirmation"]}
+      />
+      <small :if={@errors["admin_password_confirmation"]}>
+        <%= @errors["admin_password_confirmation"] %>
+      </small>
+    </label>
+    <small :if={@errors["admin"]}><%= @errors["admin"] %></small>
+  </fieldset>
+
+  <button type="submit">Install Eirinchan</button>
+</form>

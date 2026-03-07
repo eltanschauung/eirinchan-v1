@@ -7,6 +7,8 @@ defmodule Eirinchan.Application do
 
   @impl true
   def start(_type, _args) do
+    Eirinchan.Installation.apply_persisted_repo_config()
+
     children = [
       EirinchanWeb.Telemetry,
       Eirinchan.Repo,

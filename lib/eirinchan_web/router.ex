@@ -51,6 +51,23 @@ defmodule EirinchanWeb.Router do
   end
 
   scope "/manage", EirinchanWeb do
+    pipe_through :browser
+
+    get "/login", ManagePageController, :login
+    post "/login/browser", ManagePageController, :create_session
+    get "/", ManagePageController, :dashboard
+    post "/boards/browser", ManagePageController, :create_board
+    delete "/logout/browser", ManagePageController, :delete_session
+  end
+
+  scope "/", EirinchanWeb do
+    pipe_through :browser
+
+    get "/setup", SetupController, :show
+    post "/setup", SetupController, :create
+  end
+
+  scope "/manage", EirinchanWeb do
     pipe_through :api
 
     post "/login", ManageSessionController, :create
