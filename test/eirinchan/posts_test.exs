@@ -12,6 +12,16 @@ defmodule Eirinchan.PostsTest do
     %{referer: "http://example.test/#{board_uri}/index.html"}
   end
 
+  defp exiftool_value(path, field) do
+    {output, 0} = System.cmd("exiftool", ["-s3", "-#{field}", path], stderr_to_stdout: true)
+    String.trim(output)
+  end
+
+  defp identify_value(path, format) do
+    {output, 0} = System.cmd("identify", ["-format", format, path], stderr_to_stdout: true)
+    String.trim(output)
+  end
+
   test "create_post creates an OP when no thread is supplied" do
     board = board_fixture()
 
@@ -252,6 +262,81 @@ defmodule Eirinchan.PostsTest do
              )
 
     assert thread.file_name == "a_very_long_.png"
+  end
+
+  test "create_post strips EXIF metadata from stored jpeg files when configured" do
+    board = board_fixture(%{config_overrides: %{strip_exif: true}})
+    upload = upload_fixture("meta.jpg", geometry: "10x10", artist: "fixture-artist")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    stored_path = Eirinchan.Uploads.filesystem_path(thread.file_path)
+
+    assert exiftool_value(stored_path, "Artist") == ""
+  end
+
+  test "create_post auto-orients stored jpeg files and refreshes dimensions" do
+    board = board_fixture(%{config_overrides: %{auto_orient_images: true}})
+
+    upload = upload_fixture("rotated.jpg", geometry: "12x8", orientation: "Rotate 90 CW")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    stored_path = Eirinchan.Uploads.filesystem_path(thread.file_path)
+
+    assert {thread.image_width, thread.image_height} == {8, 12}
+    assert identify_value(stored_path, "%wx%h") == "8x12"
+    assert exiftool_value(stored_path, "Orientation") == "Horizontal (normal)"
+  end
+
+  test "create_post auto-orients images before stripping EXIF when both are enabled" do
+    board = board_fixture(%{config_overrides: %{auto_orient_images: true, strip_exif: true}})
+
+    upload =
+      upload_fixture("rotated.jpg",
+        geometry: "12x8",
+        orientation: "Rotate 90 CW",
+        artist: "fixture-artist"
+      )
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    stored_path = Eirinchan.Uploads.filesystem_path(thread.file_path)
+
+    assert {thread.image_width, thread.image_height} == {8, 12}
+    assert identify_value(stored_path, "%wx%h") == "8x12"
+    assert exiftool_value(stored_path, "Artist") == ""
+    assert exiftool_value(stored_path, "Orientation") == ""
   end
 
   test "create_post rejects replies to missing threads" do
