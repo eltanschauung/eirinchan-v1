@@ -6,6 +6,7 @@
 
 <nav>
   <a href={~p"/"}>Home</a>
+  <a href={~p"/manage/recent-posts/browser"}>Recent Posts</a>
   <form action={~p"/manage/logout/browser"} method="post" style="display:inline">
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="hidden" name="_method" value="delete" />

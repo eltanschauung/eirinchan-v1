@@ -49,6 +49,48 @@ defmodule EirinchanWeb.ManagePageController do
     end
   end
 
+  def recent_posts(conn, params) do
+    with {:ok, moderator} <- ensure_moderator(conn) do
+      boards = Moderation.list_accessible_boards(moderator)
+      board_filter = params["board"]
+
+      board_ids =
+        case board_filter do
+          nil -> Enum.map(boards, & &1.id)
+          "" -> Enum.map(boards, & &1.id)
+          uri -> boards |> Enum.filter(&(&1.uri == uri)) |> Enum.map(& &1.id)
+        end
+
+      limit =
+        case Integer.parse(to_string(params["limit"] || "25")) do
+          {value, _} -> max(value, 1)
+          :error -> 25
+        end
+
+      posts =
+        Eirinchan.Posts.list_recent_posts(
+          limit: limit,
+          board_ids: board_ids,
+          query: params["query"],
+          ip_subnet: params["ip"]
+        )
+
+      render(conn, :recent_posts,
+        moderator: moderator,
+        boards: boards,
+        posts: posts,
+        filters: %{
+          "board" => params["board"],
+          "query" => params["query"],
+          "ip" => params["ip"],
+          "limit" => Integer.to_string(limit)
+        }
+      )
+    else
+      {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
+    end
+  end
+
   def create_board(conn, params) do
     with {:ok, _moderator} <- ensure_admin(conn),
          {:ok, board} <- Boards.create_board(Map.take(params, ["uri", "title", "subtitle"])) do

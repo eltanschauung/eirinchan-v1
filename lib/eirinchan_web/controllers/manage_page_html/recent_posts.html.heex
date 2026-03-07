@@ -1,0 +1,54 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Recent Posts</h1>
+  <p>Signed in as <strong><%= @moderator.username %></strong>.</p>
+</section>
+
+<nav>
+  <a href={~p"/manage"}>Back to Manage</a>
+</nav>
+
+<section>
+  <form action={~p"/manage/recent-posts/browser"} method="get">
+    <label>
+      <span>Board</span>
+      <select name="board">
+        <option value="">All</option>
+        <%= for board <- @boards do %>
+          <option value={board.uri} selected={@filters["board"] == board.uri}>
+            /<%= board.uri %>/ - <%= board.title %>
+          </option>
+        <% end %>
+      </select>
+    </label>
+    <label>
+      <span>Search</span>
+      <input type="text" name="query" value={@filters["query"]} />
+    </label>
+    <label>
+      <span>IP</span>
+      <input type="text" name="ip" value={@filters["ip"]} />
+    </label>
+    <label>
+      <span>Limit</span>
+      <input type="number" min="1" name="limit" value={@filters["limit"]} />
+    </label>
+    <button type="submit">Filter</button>
+  </form>
+</section>
+
+<section>
+  <%= if @posts == [] do %>
+    <p>No posts matched.</p>
+  <% else %>
+    <%= for post <- @posts do %>
+      <article>
+        <h2>#<%= post.id %> on /<%= post.board.uri %>/</h2>
+        <p :if={post.subject}><strong><%= post.subject %></strong></p>
+        <p :if={post.body}><%= post.body %></p>
+        <p>IP: <%= post.ip_subnet || "unknown" %></p>
+        <p>Posted: <%= post.inserted_at %></p>
+      </article>
+    <% end %>
+  <% end %>
+</section>
