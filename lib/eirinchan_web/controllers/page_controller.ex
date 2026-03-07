@@ -11,6 +11,7 @@ defmodule EirinchanWeb.PageController do
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
   alias EirinchanWeb.BoardChrome
+  alias EirinchanWeb.PublicShell
 
   def home(conn, _params) do
     if Installation.setup_required?() do
@@ -20,7 +21,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :home,
         Keyword.merge(
-          public_page_assigns(),
+          public_page_assigns("active-page", "index"),
           layout: false,
           news_entries: News.list_entries(limit: 5)
         )
@@ -36,7 +37,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :news,
         Keyword.merge(
-          public_page_assigns(),
+          public_page_assigns("active-page", "news"),
           layout: false,
           news_entries: News.list_entries()
         )
@@ -52,7 +53,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :catalog,
         Keyword.merge(
-          public_page_assigns("active-catalog"),
+          public_page_assigns("active-catalog", "catalog"),
           layout: false,
           threads: global_catalog_threads()
         )
@@ -68,7 +69,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :ukko,
         Keyword.merge(
-          public_page_assigns(),
+          public_page_assigns("active-page", "ukko"),
           layout: false,
           threads: ukko_threads()
         )
@@ -84,7 +85,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :recent,
         Keyword.merge(
-          public_page_assigns(),
+          public_page_assigns("active-page", "recent"),
           layout: false,
           posts: Posts.list_recent_posts(limit: 50)
         )
@@ -127,7 +128,7 @@ defmodule EirinchanWeb.PageController do
             conn,
             :page,
             Keyword.merge(
-              public_page_assigns(),
+              public_page_assigns("active-page", "page"),
               layout: false,
               page: page
             )
@@ -136,7 +137,7 @@ defmodule EirinchanWeb.PageController do
     end
   end
 
-  defp public_page_assigns(page_kind \\ "active-page") do
+  defp public_page_assigns(page_kind \\ "active-page", active_page \\ "index") do
     boards = Boards.list_boards()
     primary_board = Enum.find(boards, &(&1.uri == "bant")) || %{uri: "bant"}
     chrome = BoardChrome.for_board(primary_board)
@@ -149,6 +150,11 @@ defmodule EirinchanWeb.PageController do
       custom_pages: CustomPages.list_pages(),
       body_class: public_body_class(page_kind),
       body_data_stylesheet: public_data_stylesheet(primary_board),
+      head_html: PublicShell.head_html(active_page),
+      javascript_urls: PublicShell.javascript_urls(),
+      body_end_html: PublicShell.body_end_html(),
+      primary_stylesheet: public_primary_stylesheet(primary_board),
+      primary_stylesheet_id: "stylesheet",
       extra_stylesheets: public_extra_stylesheets(primary_board),
       hide_theme_switcher: true,
       skip_app_stylesheet: true
@@ -163,7 +169,10 @@ defmodule EirinchanWeb.PageController do
   defp public_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
   defp public_data_stylesheet(_board), do: nil
 
-  defp public_extra_stylesheets(%{uri: "bant"}), do: ["/stylesheets/christmas.css"]
+  defp public_primary_stylesheet(%{uri: "bant"}), do: "/stylesheets/christmas.css"
+  defp public_primary_stylesheet(_board), do: nil
+
+  defp public_extra_stylesheets(%{uri: "bant"}), do: []
   defp public_extra_stylesheets(_board), do: []
 
   defp global_catalog_threads do

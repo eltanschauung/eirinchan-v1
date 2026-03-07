@@ -6,6 +6,7 @@ defmodule EirinchanWeb.BoardController do
   alias Eirinchan.Build
   alias Eirinchan.Posts
   alias EirinchanWeb.BoardChrome
+  alias EirinchanWeb.PublicShell
 
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show]
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show_page]
@@ -45,6 +46,11 @@ defmodule EirinchanWeb.BoardController do
           board_chrome: chrome,
           body_class: catalog_body_class(conn),
           body_data_stylesheet: board_data_stylesheet(board),
+          head_html: PublicShell.head_html("catalog", board_name: board.uri),
+          javascript_urls: PublicShell.javascript_urls(),
+          body_end_html: PublicShell.body_end_html(),
+          primary_stylesheet: board_primary_stylesheet(board),
+          primary_stylesheet_id: "stylesheet",
           extra_stylesheets: board_extra_stylesheets(board),
           hide_theme_switcher: true,
           skip_app_stylesheet: true
@@ -76,6 +82,11 @@ defmodule EirinchanWeb.BoardController do
           board_chrome: chrome,
           body_class: board_body_class(conn),
           body_data_stylesheet: board_data_stylesheet(board),
+          head_html: PublicShell.head_html("index", board_name: board.uri),
+          javascript_urls: PublicShell.javascript_urls(),
+          body_end_html: PublicShell.body_end_html(),
+          primary_stylesheet: board_primary_stylesheet(board),
+          primary_stylesheet_id: "stylesheet",
           extra_stylesheets: board_extra_stylesheets(board),
           hide_theme_switcher: true,
           skip_app_stylesheet: true
@@ -103,6 +114,9 @@ defmodule EirinchanWeb.BoardController do
   defp board_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
   defp board_data_stylesheet(_board), do: nil
 
-  defp board_extra_stylesheets(%{uri: "bant"}), do: ["/stylesheets/christmas.css"]
+  defp board_primary_stylesheet(%{uri: "bant"}), do: "/stylesheets/christmas.css"
+  defp board_primary_stylesheet(_board), do: nil
+
+  defp board_extra_stylesheets(%{uri: "bant"}), do: []
   defp board_extra_stylesheets(_board), do: []
 end
