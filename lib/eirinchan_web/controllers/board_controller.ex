@@ -124,8 +124,6 @@ defmodule EirinchanWeb.BoardController do
 
   defp board_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
 
-  defp board_extra_stylesheets(%{uri: "bant"}),
+  defp board_extra_stylesheets(_board),
     do: ["/stylesheets/eirinchan-public.css", "/stylesheets/eirinchan-bant.css"]
-
-  defp board_extra_stylesheets(_board), do: ["/stylesheets/eirinchan-public.css"]
 end

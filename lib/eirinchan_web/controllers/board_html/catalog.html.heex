@@ -1,5 +1,10 @@
 <%= raw(
-  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+  PostView.boardlist_html(
+    EirinchanWeb.BoardChrome.boardlist_groups(
+      @boards,
+      @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)
+    )
+  )
 ) %>
 
 <script type="text/javascript">
@@ -96,7 +101,7 @@
             </div>
           </div>
         </div>
-        <form class="catalog-delete" action={~p"/#{@board.uri}/post"} method="post" hidden>
+        <form class="catalog-delete" action="/post.php" method="post" hidden>
           <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
           <input type="hidden" name="delete_post_id" value={summary.thread.id} />
         </form>
@@ -107,14 +112,15 @@
 
 <hr />
 <a name="bottom"></a>
-<%= if @board.uri != "bant" do %>
-  <%= raw(
-    PostView.boardlist_html(
-      @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards),
-      "boardlist bottom"
-    )
-  ) %>
-<% end %>
+<%= raw(
+  PostView.boardlist_html(
+    EirinchanWeb.BoardChrome.boardlist_groups(
+      @boards,
+      @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)
+    ),
+    "boardlist bottom"
+  )
+) %>
 
 <%= if @board_chrome.footer_html do %>
   <%= raw(@board_chrome.footer_html) %>

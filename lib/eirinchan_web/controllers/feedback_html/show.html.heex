@@ -1,6 +1,9 @@
 <%= raw(
   EirinchanWeb.PostView.boardlist_html(
-    @board_chrome.boardlist_groups || EirinchanWeb.PostView.boardlist_groups(@boards)
+    EirinchanWeb.BoardChrome.boardlist_groups(
+      @boards,
+      @board_chrome.boardlist_groups || EirinchanWeb.PostView.boardlist_groups(@boards)
+    )
   )
 ) %>
 

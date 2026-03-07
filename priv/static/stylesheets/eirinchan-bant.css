@@ -1,80 +1,24 @@
-#blotterContainer.site-blotter-shell {
-  max-width: 640px;
-  margin: 0.75em auto 1.1em auto;
+#blotterContainer {
   text-align: center;
 }
 
-.news-button {
-  display: inline-block;
-  color: #800;
-  cursor: pointer;
-  font-size: 10pt;
+#blotterContainer .subtitle td {
+  text-align: left;
 }
 
-.news-rule {
-  width: 100%;
-  max-width: 500px;
-  margin: 0.55em auto;
+.news-button {
+  font-size: 10pt;
+  cursor: pointer;
 }
 
 .news-blotter {
   display: none;
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.news-blotter h2 {
-  color: #800;
-  font-size: 16pt;
-  letter-spacing: -1px;
-  margin: 0 0 0.35em 0;
-}
-
-.blotter-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.blotter-table td {
-  text-align: left;
-  color: maroon;
-  font-size: 8pt;
-  vertical-align: top;
-  padding: 0.1em 0.15em;
 }
 
 .glow {
-  text-shadow: 0 0 3px rgba(255, 200, 200, 0.8);
+  text-shadow: 0 0 3px rgba(255, 220, 220, 0.9);
 }
 
-body.active-index .thread,
-body.active-thread .thread,
-body.active-catalog .threads {
-  filter: saturate(1.02);
-}
-
-body.active-index form[name="post"] {
-  margin-bottom: 1.2em;
-}
-
-body.active-index .post.reply,
-body.active-thread .post.reply {
-  box-shadow: 1px 1px 0 rgba(128, 0, 0, 0.05);
-}
-
-body.active-catalog #Grid {
-  max-width: 1120px;
-  margin: 0 auto;
-}
-
-body.active-catalog .thread.grid-li {
-  background: rgba(240, 224, 214, 0.72);
-  border: 1px solid #d9bfb7;
-  padding: 0.45em;
-  margin: 0 0.6em 0.8em 0;
-}
-
-body.active-catalog .thread.grid-li .replies {
-  color: #800;
+.styles {
+  max-width: none;
 }
