@@ -22,17 +22,52 @@
 
 <section>
   <h2>Threads</h2>
-  <%= if @threads == [] do %>
+  <%= if @page_data.threads == [] do %>
     <p>No threads yet.</p>
   <% else %>
-    <ul>
-      <%= for thread <- @threads do %>
-        <li>
-          <a href={"/#{@board.uri}/res/#{thread.id}.html"}>
-            <%= thread.subject || "Thread ##{thread.id}" %>
-          </a>
-        </li>
+    <nav>
+      <%= for page <- @page_data.pages do %>
+        <%= if page.num == @page_data.page do %>
+          <strong><%= page.num %></strong>
+        <% else %>
+          <a href={page.link}><%= page.num %></a>
+        <% end %>
       <% end %>
-    </ul>
+    </nav>
+
+    <%= for summary <- @page_data.threads do %>
+      <article id={"p#{summary.thread.id}"}>
+        <h3>
+          <a href={"/#{@board.uri}/res/#{summary.thread.id}.html"}>
+            <%= summary.thread.subject || "Thread ##{summary.thread.id}" %>
+          </a>
+        </h3>
+        <p><%= summary.thread.body %></p>
+        <%= if summary.omitted_posts > 0 do %>
+          <p>
+            <%= summary.omitted_posts %> posts
+            <%= if summary.omitted_images > 0 do %>
+              and <%= summary.omitted_images %> image replies
+            <% end %>
+            omitted. Click Reply to view.
+          </p>
+        <% end %>
+        <%= for reply <- summary.replies do %>
+          <div id={"p#{reply.id}"}>
+            <p><%= reply.body %></p>
+          </div>
+        <% end %>
+      </article>
+    <% end %>
+
+    <nav>
+      <%= for page <- @page_data.pages do %>
+        <%= if page.num == @page_data.page do %>
+          <strong><%= page.num %></strong>
+        <% else %>
+          <a href={page.link}><%= page.num %></a>
+        <% end %>
+      <% end %>
+    </nav>
   <% end %>
 </section>

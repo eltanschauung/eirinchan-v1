@@ -48,4 +48,53 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert response =~ "Wired"
     assert response =~ "No threads yet."
   end
+
+  test "board pages render previews, omitted counts, and pagination", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
+    thread = thread_fixture(board, %{body: "Older body", subject: "Older"})
+
+    conn
+    |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+    |> post(~p"/#{board.uri}/post", %{
+      "thread" => Integer.to_string(thread.id),
+      "body" => "Reply one",
+      "post" => "New Reply"
+    })
+
+    conn
+    |> recycle()
+    |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+    |> post(~p"/#{board.uri}/post", %{
+      "thread" => Integer.to_string(thread.id),
+      "body" => "Reply two",
+      "post" => "New Reply"
+    })
+
+    conn
+    |> recycle()
+    |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+    |> post(~p"/#{board.uri}/post", %{
+      "body" => "Newer body",
+      "subject" => "Newer",
+      "post" => "New Topic"
+    })
+
+    first_page =
+      conn
+      |> recycle()
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    second_page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/2.html")
+      |> html_response(200)
+
+    assert first_page =~ "Newer"
+    assert first_page =~ "/#{board.uri}/2.html"
+    assert second_page =~ "Older"
+    assert second_page =~ "1 posts"
+    assert second_page =~ "Reply two"
+  end
 end

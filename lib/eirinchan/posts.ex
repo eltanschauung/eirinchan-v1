@@ -46,13 +46,61 @@ defmodule Eirinchan.Posts do
 
   @spec list_threads(BoardRecord.t(), keyword()) :: [Post.t()]
   def list_threads(%BoardRecord{} = board, opts \\ []) do
-    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+    page = Keyword.get(opts, :page, 1)
+    {:ok, page_data} = list_threads_page(board, page, Keyword.put(opts, :config, config))
+    Enum.map(page_data.threads, & &1.thread)
+  end
 
-    repo.all(
-      from post in Post,
-        where: post.board_id == ^board.id and is_nil(post.thread_id),
-        order_by: [desc: post.inserted_at]
-    )
+  @spec list_threads_page(BoardRecord.t(), pos_integer(), keyword()) ::
+          {:ok, map()} | {:error, :not_found}
+  def list_threads_page(%BoardRecord{} = board, page, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+    threads_per_page = config.threads_per_page
+    max_pages = config.max_pages
+
+    total_threads =
+      repo.aggregate(
+        from(post in Post, where: post.board_id == ^board.id and is_nil(post.thread_id)),
+        :count,
+        :id
+      )
+
+    total_pages =
+      total_threads
+      |> Kernel./(threads_per_page)
+      |> Float.ceil()
+      |> trunc()
+      |> max(1)
+      |> min(max_pages)
+
+    if page < 1 or page > total_pages do
+      {:error, :not_found}
+    else
+      offset = (page - 1) * threads_per_page
+
+      threads =
+        repo.all(
+          from post in Post,
+            where: post.board_id == ^board.id and is_nil(post.thread_id),
+            order_by: [desc: post.inserted_at],
+            limit: ^threads_per_page,
+            offset: ^offset
+        )
+
+      summaries = Enum.map(threads, &thread_summary(board, &1, config, repo))
+      pages = build_pages(board, total_pages, config)
+
+      {:ok,
+       %{
+         board: board,
+         threads: summaries,
+         page: page,
+         total_pages: total_pages,
+         pages: pages
+       }}
+    end
   end
 
   @spec get_thread(BoardRecord.t(), String.t() | integer(), keyword()) ::
@@ -79,6 +127,25 @@ defmodule Eirinchan.Posts do
           )
 
         {:ok, [thread | replies]}
+    end
+  end
+
+  @spec get_thread_view(BoardRecord.t(), String.t() | integer(), keyword()) ::
+          {:ok, map()} | {:error, :not_found}
+  def get_thread_view(%BoardRecord{} = board, thread_id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    with {:ok, [thread | replies]} <- get_thread(board, thread_id, repo: repo) do
+      {:ok,
+       %{
+         thread: thread,
+         replies: replies,
+         reply_count: length(replies),
+         image_count: 0,
+         omitted_posts: 0,
+         omitted_images: 0,
+         last_modified: List.last([thread | replies]).inserted_at
+       }}
     end
   end
 
@@ -243,5 +310,56 @@ defmodule Eirinchan.Posts do
     |> String.replace_suffix(".html", "")
     |> String.trim()
     |> String.to_integer()
+  end
+
+  defp thread_summary(board, thread, config, repo) do
+    preview_count = config.threads_preview
+
+    replies_desc =
+      repo.all(
+        from post in Post,
+          where: post.board_id == ^board.id and post.thread_id == ^thread.id,
+          order_by: [desc: post.inserted_at],
+          limit: ^preview_count
+      )
+
+    replies = Enum.reverse(replies_desc)
+
+    reply_count =
+      repo.aggregate(
+        from(post in Post, where: post.board_id == ^board.id and post.thread_id == ^thread.id),
+        :count,
+        :id
+      )
+
+    last_modified =
+      case replies_desc do
+        [latest | _] -> latest.inserted_at
+        [] -> thread.inserted_at
+      end
+
+    %{
+      thread: thread,
+      replies: replies,
+      reply_count: reply_count,
+      image_count: 0,
+      omitted_posts: max(reply_count - length(replies), 0),
+      omitted_images: 0,
+      last_modified: last_modified
+    }
+  end
+
+  defp build_pages(board, total_pages, config) do
+    for num <- 1..total_pages do
+      %{
+        num: num,
+        link:
+          if num == 1 do
+            "/#{board.uri}"
+          else
+            "/#{board.uri}/#{String.replace(config.file_page, "%d", Integer.to_string(num))}"
+          end
+      }
+    end
   end
 end
