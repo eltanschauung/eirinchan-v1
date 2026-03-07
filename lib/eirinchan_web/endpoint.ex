@@ -23,6 +23,7 @@ defmodule EirinchanWeb.Endpoint do
     at: "/",
     from: :eirinchan,
     gzip: false,
+    cache_control_for_etags: "public, max-age=31536000, immutable",
     only: EirinchanWeb.static_paths()
 
   # Code reloading can be explicitly enabled under the
