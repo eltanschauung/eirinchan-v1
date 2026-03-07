@@ -688,6 +688,46 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post enforces split multi-file size limits" do
+    board = board_fixture(%{config_overrides: %{max_filesize: 550, multiimage_method: "split"}})
+
+    assert {:error, :file_too_large} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "files" => [
+                   upload_fixture("first.png", content: "first", geometry: "64x64"),
+                   upload_fixture("second.png", content: "second", geometry: "64x64")
+                 ],
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
+  test "create_post allows multi-file posts when max_filesize uses each mode" do
+    board = board_fixture(%{config_overrides: %{max_filesize: 550, multiimage_method: "each"}})
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "files" => [
+                   upload_fixture("first.png", content: "first", geometry: "64x64"),
+                   upload_fixture("second.png", content: "second", geometry: "64x64")
+                 ],
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert length(thread.extra_files) == 1
+  end
+
   test "create_post enforces reply hard limits" do
     board = board_fixture(%{config_overrides: %{reply_hard_limit: 1}})
     thread = thread_fixture(board)

@@ -414,6 +414,25 @@ defmodule EirinchanWeb.PostControllerTest do
              json_response(reply_conn, 422)
   end
 
+  test "posting enforces split multi-file size limits", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{max_filesize: 550, multiimage_method: "split"}})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "files" => [
+          upload_fixture("first.png", content: "first", geometry: "64x64"),
+          upload_fixture("second.png", content: "second", geometry: "64x64")
+        ],
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "File too large."} = json_response(conn, 422)
+  end
+
   test "posting rejects duplicate files when global duplicate mode is enabled", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{duplicate_file_mode: "global"}})
     upload = upload_fixture("first.png", "same-bytes")
