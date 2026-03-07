@@ -8,6 +8,7 @@ defmodule Eirinchan.Build do
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.BuildQueue
   alias Eirinchan.Posts
+  alias Eirinchan.Purge
   alias Eirinchan.Repo
   alias Eirinchan.ThreadPaths
   alias EirinchanWeb.PostView
@@ -163,24 +164,19 @@ defmodule Eirinchan.Build do
     Application.fetch_env!(:eirinchan, :build_output_root)
   end
 
-  defp write_file(path, content) do
+  defp write_file(path, content, config) do
     path
     |> Path.dirname()
     |> File.mkdir_p!()
 
     case File.write(path, content) do
-      :ok -> :ok
-      error -> error
-    end
-  end
+      :ok ->
+        if config, do: Purge.purge_output_path(path, config, board_root: board_root())
+        :ok
 
-  defp write_files(paths, content) do
-    Enum.reduce_while(paths, :ok, fn path, :ok ->
-      case write_file(path, content) do
-        :ok -> {:cont, :ok}
-        error -> {:halt, error}
-      end
-    end)
+      error ->
+        error
+    end
   end
 
   defp maybe_write_files(paths, content, modified_at, config) do
@@ -196,11 +192,12 @@ defmodule Eirinchan.Build do
     if fresh_output?(path, modified_at, config) do
       :ok
     else
-      write_file(path, content)
+      write_file(path, content, config)
     end
   end
 
-  defp maybe_write_file(path, content, _modified_at, _config), do: write_file(path, content)
+  defp maybe_write_file(path, content, _modified_at, config),
+    do: write_file(path, content, config)
 
   defp write_index_pages(board, page_data_list, config) do
     Enum.reduce_while(page_data_list, :ok, fn page_data, :ok ->
@@ -343,9 +340,11 @@ defmodule Eirinchan.Build do
 
         json_filename = Path.join([board_root(), board.uri, "#{page - 1}.json"])
         _ = File.rm(filename)
+        _ = Purge.purge_output_path(filename, config, board_root: board_root())
 
         if get_in(config, [:api, :enabled]) do
           _ = File.rm(json_filename)
+          _ = Purge.purge_output_path(json_filename, config, board_root: board_root())
         end
       end)
     end
@@ -465,10 +464,14 @@ defmodule Eirinchan.Build do
     thread
     |> thread_output_filenames(config)
     |> Enum.each(fn filename ->
-      _ = File.rm(Path.join([board_root(), board.uri, config.dir.res, filename]))
+      path = Path.join([board_root(), board.uri, config.dir.res, filename])
+      _ = File.rm(path)
+      _ = Purge.purge_output_path(path, config, board_root: board_root())
     end)
 
-    _ = File.rm(Path.join([board_root(), board.uri, config.dir.res, "#{thread.id}.json"]))
+    json_path = Path.join([board_root(), board.uri, config.dir.res, "#{thread.id}.json"])
+    _ = File.rm(json_path)
+    _ = Purge.purge_output_path(json_path, config, board_root: board_root())
     :ok
   end
 

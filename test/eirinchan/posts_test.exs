@@ -1712,6 +1712,33 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post rejects dnsbl-listed IPs" do
+    board = board_fixture()
+
+    config =
+      post_config(%{
+        dnsbl: [["rbl.example", 4]],
+        error: %{dnsbl: "Your IP address is listed in %s."}
+      })
+
+    resolver = fn
+      "9.113.0.203.rbl.example" -> "127.0.0.4"
+      _ -> nil
+    end
+
+    assert {:error, :dnsbl} =
+             Posts.create_post(
+               board,
+               %{"body" => "dnsbl blocked", "post" => "New Topic"},
+               config: config,
+               request: %{
+                 referer: "http://example.test/#{board.uri}/index.html",
+                 remote_ip: {203, 0, 113, 9},
+                 dnsbl_resolver: resolver
+               }
+             )
+  end
+
   test "reply bumping reorders threads unless the reply is sage" do
     board = board_fixture()
     config = post_config(board.config_overrides)
