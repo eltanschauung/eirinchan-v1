@@ -692,7 +692,8 @@ defmodule EirinchanWeb.PostControllerTest do
                } = json_response(conn, 422)
       end)
 
-    assert log =~ "post.error reason=invalid_captcha"
+    assert log =~ "post.error"
+    assert log =~ "reason=invalid_captcha"
   end
 
   test "posting validates hosted captcha providers over http", %{conn: conn} do

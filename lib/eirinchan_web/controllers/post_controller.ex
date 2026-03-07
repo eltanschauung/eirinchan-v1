@@ -1,9 +1,8 @@
 defmodule EirinchanWeb.PostController do
   use EirinchanWeb, :controller
 
-  require Logger
-
   alias Eirinchan.Bans
+  alias Eirinchan.LogSystem
   alias Eirinchan.Posts
   alias Eirinchan.Reports
   alias Eirinchan.ThreadPaths
@@ -151,7 +150,13 @@ defmodule EirinchanWeb.PostController do
   end
 
   defp respond_changeset_error(conn, changeset) do
-    Logger.warning("post.changeset_error errors=#{inspect(changeset.errors)}")
+    LogSystem.log(
+      :warning,
+      "post.changeset_error",
+      "post.changeset_error",
+      %{errors: inspect(changeset.errors), board: conn.assigns.current_board.uri},
+      conn.assigns.current_board_config
+    )
 
     respond_error(
       conn,
@@ -332,9 +337,16 @@ defmodule EirinchanWeb.PostController do
         :warning
       end
 
-    Logger.log(
+    LogSystem.log(
       level,
-      "post.error reason=#{reason} status=#{Plug.Conn.Status.code(status)} board=#{conn.assigns.current_board.uri}"
+      "post.error",
+      "post.error",
+      %{
+        reason: reason,
+        status: Plug.Conn.Status.code(status),
+        board: conn.assigns.current_board.uri
+      },
+      conn.assigns.current_board_config
     )
   end
 end
