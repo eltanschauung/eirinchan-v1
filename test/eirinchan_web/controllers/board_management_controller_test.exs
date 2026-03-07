@@ -151,4 +151,42 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert catalog_page =~ "Second thread"
     assert catalog_page =~ ~s(name="delete_post_id")
   end
+
+  test "board page respects field disable flags and single-file selector mode", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          field_disable_name: true,
+          field_disable_email: true,
+          field_disable_subject: true,
+          field_disable_password: true,
+          max_images: 1
+        }
+      })
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    refute page =~ ~s(name="name")
+    refute page =~ ~s(name="email")
+    refute page =~ ~s(name="subject")
+    refute page =~ ~s(name="password" placeholder="Password")
+    assert page =~ ~s(name="file")
+    refute page =~ ~s(name="files[]")
+    refute page =~ "multiple"
+  end
+
+  test "board page exposes multi-file selector when max_images is greater than one", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{max_images: 3}})
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ ~s(name="files[]")
+    assert page =~ "multiple"
+  end
 end

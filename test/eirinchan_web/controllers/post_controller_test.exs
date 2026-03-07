@@ -527,6 +527,33 @@ defmodule EirinchanWeb.PostControllerTest do
     assert %{"error" => "Invalid referer."} = json_response(bad_referer, 403)
   end
 
+  test "posting enforces body length and line limits", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{max_body: 5, maximum_lines: 2}})
+
+    too_long =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "123456",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "The body was too long."} = json_response(too_long, 422)
+
+    too_many_lines =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "a\nb\nc",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "Your post contains too many lines!"} = json_response(too_many_lines, 422)
+  end
+
   test "report branch creates a report and returns thread redirect metadata", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{slugify: true}})
     thread = thread_fixture(board, %{subject: "Reported subject", body: "Thread body"})

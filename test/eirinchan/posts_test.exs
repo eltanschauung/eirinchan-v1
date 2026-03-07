@@ -642,9 +642,8 @@ defmodule Eirinchan.PostsTest do
   end
 
   test "create_post removes stored files when a later file insert fails" do
-    File.rm_rf!(Eirinchan.Build.board_root())
-
     board = board_fixture()
+    File.rm_rf!(Path.join(Eirinchan.Build.board_root(), board.uri))
     Process.put(:fail_post_file_insert_once, true)
 
     assert {:error, %Ecto.Changeset{}} =
@@ -709,6 +708,28 @@ defmodule Eirinchan.PostsTest do
              Posts.create_post(unlocked, %{"body" => "   ", "post" => "New Topic"},
                config: post_config(unlocked.config_overrides),
                request: post_request(board.uri)
+             )
+  end
+
+  test "create_post enforces max body length and line count" do
+    board = board_fixture(%{config_overrides: %{max_body: 5, maximum_lines: 2}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:error, :body_too_long} =
+             Posts.create_post(
+               board,
+               %{"body" => "123456", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    assert {:error, :too_many_lines} =
+             Posts.create_post(
+               board,
+               %{"body" => "a\nb\nc", "post" => "New Topic"},
+               config: config,
+               request: request
              )
   end
 

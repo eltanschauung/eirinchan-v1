@@ -21,7 +21,7 @@ button token intent validation (new thread/reply action values): partial
 referer validation logic parity: partial
 body required/optional rules (force_body/force_body_op): partial
 OP image required rules (force_image_op): partial
-max lines and max body enforcement: incomplete
+max lines and max body enforcement: partial
 name/email/subject/password normalization and defaults: partial
 tripcode generation parity: incomplete
 capcode parsing and permission rules: incomplete
@@ -244,11 +244,11 @@ boards.json API parity: partial
 catalog.json and threads.json API parity: partial
 
 [Frontend Behavior and UX]
-post form field disable toggles parity (name/email/subject/password): incomplete
+post form field disable toggles parity (name/email/subject/password): partial
 quick-reply and cite insertion behavior parity: incomplete
 rememberStuff local/session storage behavior parity: incomplete
 post success draft clearing cookie behavior parity: incomplete
-file selector multi-upload UX parity: incomplete
+file selector multi-upload UX parity: partial
 captcha lazy loading behavior parity: incomplete
 stylesheet/theme chooser behavior parity: incomplete
 board/thread nav links parity (catalog, index, return links): partial
