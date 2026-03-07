@@ -174,6 +174,8 @@ defmodule Eirinchan.Runtime.ConfigTest do
           forceImageOp: true,
           countryFlags: true,
           allowNoCountry: true,
+          geoip2DatabasePath: "/tmp/GeoLite2-Country.mmdb",
+          geoip2LookupBin: "/usr/bin/mmdblookup",
           userFlag: true,
           multipleFlags: true,
           defaultUserFlag: "country, sau",
@@ -196,6 +198,8 @@ defmodule Eirinchan.Runtime.ConfigTest do
     assert config.force_image_op
     assert config.country_flags
     assert config.allow_no_country
+    assert config.geoip2_database_path == "/tmp/GeoLite2-Country.mmdb"
+    assert config.geoip2_lookup_bin == "/usr/bin/mmdblookup"
     assert config.user_flag
     assert config.multiple_flags
     assert config.default_user_flag == "country,sau"
