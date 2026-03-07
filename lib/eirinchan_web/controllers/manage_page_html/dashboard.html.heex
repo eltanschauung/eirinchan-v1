@@ -7,6 +7,7 @@
 <nav>
   <a href={~p"/"}>Home</a>
   <form action={~p"/manage/logout/browser"} method="post" style="display:inline">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="hidden" name="_method" value="delete" />
     <button type="submit">Logout</button>
   </form>
@@ -30,6 +31,7 @@
   <p :if={@error}><%= @error %></p>
 
   <form action={~p"/manage/boards/browser"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <label>
       <span>URI</span>
       <input type="text" name="uri" value={@params["uri"]} />
