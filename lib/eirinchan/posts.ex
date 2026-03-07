@@ -557,7 +557,7 @@ defmodule Eirinchan.Posts do
 
       true ->
         Enum.reduce_while(entries, :ok, fn %{upload: upload, metadata: metadata}, :ok ->
-          case validate_upload_entry(upload, metadata, config) do
+          case validate_upload_entry(upload, metadata, config, op?) do
             :ok -> {:cont, :ok}
             error -> {:halt, error}
           end
@@ -565,23 +565,31 @@ defmodule Eirinchan.Posts do
     end
   end
 
-  defp validate_upload_entry(upload, metadata, config) do
-    with :ok <- validate_upload_type(upload, metadata, config),
+  defp validate_upload_entry(upload, metadata, config, op?) do
+    with :ok <- validate_upload_type(upload, metadata, config, op?),
          :ok <- validate_upload_size(metadata, config) do
       :ok
     end
   end
 
-  defp validate_upload_type(%Plug.Upload{} = upload, nil, config),
+  defp validate_upload_type(%Plug.Upload{} = upload, nil, config, op?),
     do:
       validate_upload_type(
         upload,
         %{ext: upload.filename |> Path.extname() |> String.downcase()},
-        config
+        config,
+        op?
       )
 
-  defp validate_upload_type(_upload, %{ext: ext}, config) do
-    allowed = Enum.map(config.allowed_ext_files || [], &String.downcase/1)
+  defp validate_upload_type(_upload, %{ext: ext}, config, op?) do
+    allowed =
+      if op? and is_list(config.allowed_ext_files_op) do
+        config.allowed_ext_files_op
+      else
+        config.allowed_ext_files
+      end
+      |> Kernel.||([])
+      |> Enum.map(&String.downcase/1)
 
     if ext in allowed do
       :ok

@@ -147,6 +147,43 @@ defmodule Eirinchan.PostsTest do
     assert extra.thumb_path == "/#{board.uri}/thumb/#{thread.id}-1s.png"
   end
 
+  test "create_post supports OP-specific extension allowlists" do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_ext_files: [".png", ".jpg"], allowed_ext_files_op: [".txt"]}
+      })
+
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "file" => raw_upload_fixture("notes.txt", "hello"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert thread.file_type == "text/plain"
+
+    assert {:error, :invalid_file_type} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "file" => raw_upload_fixture("reply.txt", "hello"),
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+  end
+
   test "create_post canonicalizes and truncates stored filenames" do
     board = board_fixture(%{config_overrides: %{max_filename_display_length: 12}})
 

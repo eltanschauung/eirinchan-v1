@@ -182,6 +182,39 @@ defmodule EirinchanWeb.PostControllerTest do
     assert length(op["extra_files"]) == 1
   end
 
+  test "posting applies OP-specific extension allowlists", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_ext_files: [".png", ".jpg"], allowed_ext_files_op: [".txt"]}
+      })
+
+    op_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => raw_upload_fixture("notes.txt", "hello"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => thread_id} = json_response(op_conn, 200)
+
+    reply_conn =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "thread" => Integer.to_string(thread_id),
+        "body" => "reply body",
+        "file" => raw_upload_fixture("reply.txt", "hello"),
+        "json_response" => "1",
+        "post" => "New Reply"
+      })
+
+    assert %{"error" => "File type not allowed."} = json_response(reply_conn, 422)
+  end
+
   test "posting enforces required image uploads and file validation errors", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
 

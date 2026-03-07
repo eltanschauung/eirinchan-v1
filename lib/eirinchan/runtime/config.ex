@@ -61,6 +61,7 @@ defmodule Eirinchan.Runtime.Config do
     thumb_height: 250,
     max_image_width: 0,
     max_image_height: 0,
+    allowed_ext_files_op: nil,
     allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif"],
     api: %{enabled: false},
     cache: %{enabled: false},
