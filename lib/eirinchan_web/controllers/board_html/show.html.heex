@@ -227,6 +227,10 @@
   <div class="blotter"><%= raw(@config.global_message) %></div>
 <% end %>
 
+<%= if @page_data.total_pages > 1 do %>
+  <%= raw(PostView.pages_html(@page_data, @board.uri)) %>
+<% end %>
+
 <hr />
 
 <form style="display:inline;" action={~p"/search"} method="get">

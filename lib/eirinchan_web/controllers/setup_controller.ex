@@ -46,6 +46,7 @@ defmodule EirinchanWeb.SetupController do
     |> assign(:primary_stylesheet_id, "stylesheet")
     |> assign(:body_class, "8chan vichan is-not-moderator setup-page")
     |> assign(:body_data_stylesheet, "yotsuba.css")
+    |> assign(:extra_stylesheets, ["/stylesheets/eirinchan-mod.css"])
     |> assign(:skip_app_stylesheet, true)
     |> assign(:skip_flash_group, true)
     |> assign(:hide_theme_switcher, true)

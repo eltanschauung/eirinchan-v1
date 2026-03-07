@@ -37,18 +37,18 @@
       rel="stylesheet"
       href={versioned_asset(assigns[:theme_stylesheet], assigns[:asset_version])}
     />
-    <script
-      :for={script_url <- assigns[:javascript_urls] || []}
-      type="text/javascript"
-      src={versioned_asset(script_url, assigns[:asset_version])}
-    >
-    </script>
     <link
       :for={stylesheet <- assigns[:extra_stylesheets] || []}
       phx-track-static
       rel="stylesheet"
       href={versioned_asset(stylesheet, assigns[:asset_version])}
     />
+    <script
+      :for={script_url <- assigns[:javascript_urls] || []}
+      type="text/javascript"
+      src={versioned_asset(script_url, assigns[:asset_version])}
+    >
+    </script>
     <script
       :if={!assigns[:public_shell]}
       defer
