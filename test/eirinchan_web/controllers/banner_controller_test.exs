@@ -26,9 +26,11 @@ defmodule EirinchanWeb.BannerControllerTest do
     assert redirected_to(conn, 302) == "/images/logo.svg"
   end
 
-  test "b.php returns not found when no banners are configured", %{conn: conn} do
+  test "b.php falls back to the default static banner when no banners are configured", %{
+    conn: conn
+  } do
     conn = get(conn, "/b.php")
 
-    assert response(conn, 404) == "No banners configured."
+    assert redirected_to(conn, 307) == "/static/banners/defaultbanner.png"
   end
 end

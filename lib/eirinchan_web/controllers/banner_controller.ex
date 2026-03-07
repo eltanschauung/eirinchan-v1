@@ -7,8 +7,8 @@ defmodule EirinchanWeb.BannerController do
     case pick_banner(Settings.current_instance_config()) do
       nil ->
         conn
-        |> put_status(:not_found)
-        |> text("No banners configured.")
+        |> put_status(:temporary_redirect)
+        |> redirect(external: default_banner_url())
 
       banner ->
         redirect(conn, external: normalize_banner_url(banner))
@@ -30,6 +30,30 @@ defmodule EirinchanWeb.BannerController do
     cond do
       String.starts_with?(normalized, ["http://", "https://", "/"]) -> normalized
       true -> "/" <> normalized
+    end
+  end
+
+  defp default_banner_url do
+    case default_banner_name() do
+      nil -> "/static/file.png"
+      name -> "/static/banners/#{name}"
+    end
+  end
+
+  defp default_banner_name do
+    :eirinchan
+    |> :code.priv_dir()
+    |> Path.join("static/static/banners")
+    |> File.ls()
+    |> case do
+      {:ok, files} ->
+        files
+        |> Enum.reject(&String.starts_with?(&1, "."))
+        |> Enum.sort()
+        |> List.first()
+
+      _ ->
+        nil
     end
   end
 end
