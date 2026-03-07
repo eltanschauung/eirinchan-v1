@@ -89,7 +89,7 @@ mime exploit detection rules parity: partial
 OCR pipeline integration (tesseract) parity: incomplete
 ocr text appending into moderation/filter pipeline: incomplete
 move_uploaded_file/rename fallback behavior parity: incomplete
-undoImage rollback on failure parity: incomplete
+undoImage rollback on failure parity: partial
 
 [Persistence and Data Model]
 board metadata table parity: partial
