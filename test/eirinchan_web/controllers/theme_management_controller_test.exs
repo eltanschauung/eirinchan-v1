@@ -57,7 +57,9 @@ defmodule EirinchanWeb.ThemeManagementControllerTest do
       |> get("/search", %{"q" => ""})
       |> html_response(200)
 
-    assert themed_page =~ ~s(<option value="ocean" selected>)
+    assert themed_page =~ ~s(var selectedstyle = "Ocean")
+    assert themed_page =~ ~s("Ocean":{"name":"ocean","uri":"/stylesheets/ocean.css"})
+    assert themed_page =~ ~s(id="stylesheet" href="/stylesheets/ocean.css)
 
     uninstall_conn =
       conn

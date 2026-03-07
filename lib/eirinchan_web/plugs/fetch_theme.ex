@@ -13,11 +13,12 @@ defmodule EirinchanWeb.Plugs.FetchTheme do
       |> normalize_theme()
 
     theme = ThemeRegistry.fetch(theme_name) || ThemeRegistry.fetch(ThemeRegistry.default_theme())
+    public_theme_name = ThemeRegistry.canonical_public_name(theme_name)
 
     conn
-    |> assign(:theme_name, theme_name)
+    |> assign(:theme_name, public_theme_name)
     |> assign(:theme_stylesheet, theme.stylesheet)
-    |> assign(:theme_options, ThemeRegistry.all())
+    |> assign(:theme_options, ThemeRegistry.public_all())
   end
 
   defp normalize_theme(name) do

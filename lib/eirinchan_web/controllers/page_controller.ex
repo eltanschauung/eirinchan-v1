@@ -153,7 +153,11 @@ defmodule EirinchanWeb.PageController do
       base_stylesheet: "/stylesheets/style.css",
       body_class: public_body_class(page_kind),
       body_data_stylesheet: public_data_stylesheet(conn),
-      head_html: PublicShell.head_html(active_page),
+      head_html:
+        PublicShell.head_html(active_page,
+          theme_name: conn.assigns[:theme_name],
+          theme_options: conn.assigns[:theme_options]
+        ),
       javascript_urls: PublicShell.javascript_urls(active_page),
       body_end_html: PublicShell.body_end_html(),
       primary_stylesheet: public_primary_stylesheet(conn),

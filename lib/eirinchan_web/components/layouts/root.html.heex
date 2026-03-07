@@ -75,7 +75,8 @@
     <%= @inner_content %>
     <div
       :if={
-        !assigns[:hide_theme_switcher] && assigns[:theme_options] && assigns[:theme_options] != []
+        !assigns[:public_shell] && !assigns[:hide_theme_switcher] && assigns[:theme_options] &&
+          assigns[:theme_options] != []
       }
       class="boardlist bottom"
     >

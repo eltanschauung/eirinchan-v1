@@ -14,15 +14,15 @@
   function appendStyleChooser() {
     if (document.querySelector('div.styles')) return;
 
-    var styles = window.styles || {
-      Yotsuba: '/stylesheets/yotsuba.css',
-      Contrast: '/stylesheets/contrast.css'
-    };
-    var selected = window.selectedstyle || localStorage.getItem('stylesheet') || 'Yotsuba';
+    var styles = window.styles || {};
+    var styleNames = Object.keys(styles);
+    if (styleNames.length === 0) return;
+
+    var selected = window.selectedstyle || localStorage.getItem('stylesheet') || styleNames[0];
     var container = document.createElement('div');
     container.className = 'styles';
 
-    Object.keys(styles).forEach(function (styleName) {
+    styleNames.forEach(function (styleName) {
       var link = document.createElement('a');
       link.href = 'javascript:void(0);';
       link.textContent = '[' + styleName + ']';
@@ -47,15 +47,15 @@
   window.onReady = window.onReady || onReady;
   window.resourceVersion = window.resourceVersion || '';
   window.selectedstyle = window.selectedstyle || 'Yotsuba';
-  window.styles = window.styles || {
-    Yotsuba: '/stylesheets/yotsuba.css',
-    Contrast: '/stylesheets/contrast.css'
-  };
+  window.styles = window.styles || {};
+  window.styleThemeNames = window.styleThemeNames || {};
 
   window.changeStyle =
     window.changeStyle ||
     function (styleName, link) {
-      var stylePath = window.styles[styleName];
+      var style = window.styles[styleName];
+      var stylePath = style && (style.uri || style);
+      var themeName = (style && style.name) || window.styleThemeNames[styleName];
       if (!stylePath) return;
 
       var node = document.getElementById('stylesheet');
@@ -72,6 +72,11 @@
       try {
         localStorage.setItem('stylesheet', styleName);
       } catch (_error) {
+      }
+
+      if (themeName) {
+        document.cookie =
+          'theme=' + encodeURIComponent(themeName) + '; path=/; max-age=' + 60 * 60 * 24 * 365;
       }
 
       document.querySelectorAll('div.styles a').forEach(function (styleLink) {
