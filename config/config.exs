@@ -11,7 +11,7 @@ config :eirinchan,
   ecto_repos: [Eirinchan.Repo],
   feedback_store_ip: false,
   ip_access_list: %{enabled: false, entries: [], path: Path.expand("../var/access.conf", __DIR__)},
-  ip_privacy: %{cloak_key: "eirinchan-dev-ip"},
+  ip_privacy: %{enabled: true, cloak_key: "eirinchan-dev-ip", immune_ips: [], immune_cidrs: []},
   proxy_request: %{
     trust_headers: false,
     trusted_ips: [],
