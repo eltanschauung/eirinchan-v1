@@ -63,7 +63,7 @@ DNSBL check pipeline parity: incomplete
 ban check pipeline parity: incomplete
 robot9001 unoriginal-content detection: incomplete
 robot mute escalation and mute duration logic: incomplete
-spam filter hooks before and after OCR parity: incomplete
+spam filter hooks before and after OCR parity: skipped
 strip_combining_chars logic parity: incomplete
 
 [Media Upload and Processing]
@@ -86,9 +86,9 @@ EXIF orientation correction behavior parity: partial
 use_exiftool path behavior parity: partial
 strip_exif + orientation interaction parity: partial
 mime exploit detection rules parity: partial
-OCR pipeline integration (tesseract) parity: incomplete
-ocr text appending into moderation/filter pipeline: incomplete
-move_uploaded_file/rename fallback behavior parity: incomplete
+OCR pipeline integration (tesseract) parity: skipped
+ocr text appending into moderation/filter pipeline: skipped
+move_uploaded_file/rename fallback behavior parity: partial
 undoImage rollback on failure parity: partial
 
 [Persistence and Data Model]

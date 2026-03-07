@@ -76,7 +76,7 @@ defmodule Eirinchan.Uploads do
     |> Path.dirname()
     |> File.mkdir_p!()
 
-    case File.cp(upload.path, destination) do
+    case move_to_destination(upload.path, destination) do
       :ok ->
         with :ok <- normalize_stored_upload(destination, config, metadata),
              {:ok, stored_metadata} <- refresh_stored_metadata(destination, metadata),
@@ -178,6 +178,33 @@ defmodule Eirinchan.Uploads do
 
       _ ->
         MIME.from_path(normalized_name)
+    end
+  end
+
+  defp move_to_destination(source, destination) do
+    case rename_upload(source, destination) do
+      :ok ->
+        _ = File.chmod(destination, 0o644)
+        :ok
+
+      {:error, _reason} ->
+        case File.cp(source, destination) do
+          :ok ->
+            _ = File.rm(source)
+            _ = File.chmod(destination, 0o644)
+            :ok
+
+          {:error, _copy_reason} ->
+            {:error, :upload_failed}
+        end
+    end
+  end
+
+  defp rename_upload(source, destination) do
+    if Process.get(:eirinchan_force_rename_failure) do
+      {:error, :forced}
+    else
+      File.rename(source, destination)
     end
   end
 
