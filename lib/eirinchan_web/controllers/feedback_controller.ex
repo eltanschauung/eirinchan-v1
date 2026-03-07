@@ -3,13 +3,14 @@ defmodule EirinchanWeb.FeedbackController do
 
   alias Eirinchan.Boards
   alias Eirinchan.Feedback
+  alias EirinchanWeb.RequestMeta
 
   def show(conn, _params) do
     render(conn, :show, boards: Boards.list_boards())
   end
 
   def create(conn, params) do
-    case Feedback.create_feedback(params, remote_ip: conn.remote_ip) do
+    case Feedback.create_feedback(params, remote_ip: RequestMeta.effective_remote_ip(conn)) do
       {:ok, entry} ->
         if params["json_response"] == "1" do
           json(conn, %{feedback_id: entry.id, status: "ok"})

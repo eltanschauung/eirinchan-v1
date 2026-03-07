@@ -10,6 +10,7 @@ defmodule EirinchanWeb.SearchController do
   alias Eirinchan.Posts.Post
   alias Eirinchan.Repo
   alias Eirinchan.Runtime.Config
+  alias EirinchanWeb.RequestMeta
   import Ecto.Query, only: [from: 2]
 
   def show(conn, params) do
@@ -18,7 +19,7 @@ defmodule EirinchanWeb.SearchController do
     instance_overrides = Application.get_env(:eirinchan, :search_overrides, %{})
     config = search_config(board, instance_overrides)
     boards = searchable_boards(instance_overrides)
-    request = %{remote_ip: conn.remote_ip}
+    request = %{remote_ip: RequestMeta.effective_remote_ip(conn)}
 
     cond do
       not search_enabled?(config) ->
