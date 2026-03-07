@@ -1,0 +1,26 @@
+body {
+  background: #111827;
+  color: #f9fafb;
+}
+
+a {
+  color: #fbbf24;
+}
+
+main article,
+section,
+nav {
+  background: #1f2937;
+  border: 1px solid #fbbf24;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+input,
+select,
+button,
+textarea {
+  background: #111827;
+  color: #f9fafb;
+  border: 1px solid #fbbf24;
+}

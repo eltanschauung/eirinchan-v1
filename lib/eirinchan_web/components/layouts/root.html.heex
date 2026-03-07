@@ -8,10 +8,34 @@
       <%= assigns[:page_title] || "Eirinchan" %>
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <link
+      :if={assigns[:theme_stylesheet]}
+      phx-track-static
+      rel="stylesheet"
+      href={assigns[:theme_stylesheet]}
+    />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
     </script>
   </head>
   <body class="bg-white antialiased">
+    <section
+      :if={assigns[:theme_options] && assigns[:theme_options] != []}
+      class="flex justify-end px-4 pt-3 sm:px-6 lg:px-8"
+    >
+      <form action={~p"/theme"} method="post" class="flex items-center gap-2 text-sm">
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+        <input type="hidden" name="return_to" value={assigns[:conn].request_path} />
+        <label for="theme-select">Theme</label>
+        <select id="theme-select" name="theme">
+          <%= for option <- @theme_options do %>
+            <option value={option.name} selected={@theme_name == option.name}>
+              <%= option.label %>
+            </option>
+          <% end %>
+        </select>
+        <button type="submit">Apply</button>
+      </form>
+    </section>
     <%= @inner_content %>
   </body>
 </html>

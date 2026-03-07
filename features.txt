@@ -250,7 +250,7 @@ rememberStuff local/session storage behavior parity: partial
 post success draft clearing cookie behavior parity: partial
 file selector multi-upload UX parity: partial
 captcha lazy loading behavior parity: partial
-stylesheet/theme chooser behavior parity: incomplete
+stylesheet/theme chooser behavior parity: partial
 board/thread nav links parity (catalog, index, return links): partial
 
 [Infrastructure, Performance, and Operations]
