@@ -88,6 +88,38 @@ defmodule Eirinchan.BuildTest do
     assert Jason.decode!(File.read!(threads_json_path)) |> length() == 2
   end
 
+  test "posting rebuilds media references into static html and json outputs" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture(%{config_overrides: %{api: %{enabled: true}}})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening post body",
+                 "file" => upload_fixture("thread.png", "thread-bytes"),
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+    thread_json_path = Path.join([board_dir, config.dir.res, "#{thread.id}.json"])
+
+    assert File.read!(index_path) =~ thread.file_path
+    assert File.read!(thread_path) =~ thread.file_path
+
+    assert %{"posts" => [op]} = Jason.decode!(File.read!(thread_json_path))
+    assert op["filename"] == "thread"
+    assert op["ext"] == ".png"
+    assert op["fsize"] == byte_size("thread-bytes")
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 

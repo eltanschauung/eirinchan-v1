@@ -20,7 +20,7 @@ moderator bypass and permission checks in posting path: incomplete
 button token intent validation (new thread/reply action values): partial
 referer validation logic parity: partial
 body required/optional rules (force_body/force_body_op): partial
-OP image required rules (force_image_op): incomplete
+OP image required rules (force_image_op): partial
 max lines and max body enforcement: incomplete
 name/email/subject/password normalization and defaults: partial
 tripcode generation parity: incomplete
@@ -69,12 +69,12 @@ strip_combining_chars logic parity: incomplete
 [Media Upload and Processing]
 multi-file upload parsing parity (split/each methods): incomplete
 upload-by-url ingestion and timeout logic: incomplete
-extension allowlist enforcement (board/OP distinctions): incomplete
-file size checks (single/max/combined modes): incomplete
-duplicate file rejection global scope: incomplete
-duplicate file rejection in-thread scope: incomplete
-file hash generation parity (md5 strategy variants): incomplete
-filename truncation and canonicalization: incomplete
+extension allowlist enforcement (board/OP distinctions): partial
+file size checks (single/max/combined modes): partial
+duplicate file rejection global scope: partial
+duplicate file rejection in-thread scope: partial
+file hash generation parity (md5 strategy variants): partial
+filename truncation and canonicalization: partial
 image type validation and dimension checks: incomplete
 non-image file icon/thumbnail fallback behavior: incomplete
 thumbnail generation pipeline (gd/imagick/convert/gm): incomplete
@@ -94,7 +94,7 @@ undoImage rollback on failure parity: incomplete
 [Persistence and Data Model]
 board metadata table parity: partial
 per-board post storage model parity or compatible replacement: partial
-post files JSON payload compatibility layer: incomplete
+post files JSON payload compatibility layer: partial
 cites table behavior parity: incomplete
 reports table behavior parity: partial
 feedback table behavior parity: partial

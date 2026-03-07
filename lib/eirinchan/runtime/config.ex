@@ -36,12 +36,14 @@ defmodule Eirinchan.Runtime.Config do
     board_locked: false,
     force_body: true,
     force_body_op: true,
+    force_image_op: false,
     threads_per_page: 10,
     max_pages: 10,
     threads_preview: 5,
     threads_preview_sticky: 1,
     reply_limit: 250,
     reply_hard_limit: 0,
+    image_hard_limit: 0,
     cycle_limit: 250,
     always_noko: false,
     slugify: false,
@@ -52,7 +54,10 @@ defmodule Eirinchan.Runtime.Config do
     multiple_flags: false,
     default_user_flag: "country",
     user_flags: %{},
-    allowed_ext_files: [],
+    duplicate_file_mode: false,
+    max_filesize: 5_000_000,
+    max_filename_display_length: 64,
+    allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif"],
     api: %{enabled: false},
     cache: %{enabled: false},
     cookies: %{
@@ -81,7 +86,12 @@ defmodule Eirinchan.Runtime.Config do
       reply_hard_limit: "Thread has reached its maximum reply limit.",
       image_hard_limit: "Thread has reached its maximum image limit.",
       board_locked: "Board is locked.",
-      password: "Incorrect password."
+      password: "Incorrect password.",
+      duplicate_file: "Duplicate file.",
+      file_required: "File required.",
+      filetype: "File type not allowed.",
+      file_too_large: "File too large.",
+      upload_failed: "Upload failed."
     }
   }
 

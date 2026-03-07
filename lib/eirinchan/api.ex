@@ -69,6 +69,7 @@ defmodule Eirinchan.Api do
     |> maybe_put(:semantic_url, summary.thread.slug)
     |> maybe_put(:omitted_posts, positive_or_nil(summary.omitted_posts))
     |> maybe_put(:omitted_images, positive_or_nil(summary.omitted_images))
+    |> maybe_put_file(summary.thread)
     |> Map.put(:last_modified, unix(summary.last_modified))
   end
 
@@ -78,6 +79,7 @@ defmodule Eirinchan.Api do
     |> maybe_put(:sub, post.subject)
     |> maybe_put(:com, post.body)
     |> maybe_put(:name, post.name)
+    |> maybe_put_file(post)
     |> Map.put(:time, unix(post.inserted_at))
   end
 
@@ -100,6 +102,20 @@ defmodule Eirinchan.Api do
   defp maybe_put_flag(map, _key, false), do: map
   defp maybe_put_flag(map, _key, nil), do: map
   defp maybe_put_flag(map, key, true), do: Map.put(map, key, 1)
+
+  defp maybe_put_file(map, %{file_path: nil}), do: map
+
+  defp maybe_put_file(map, post) do
+    ext = Path.extname(post.file_name || post.file_path || "")
+    filename = Path.basename(post.file_name || post.file_path || "", ext)
+
+    map
+    |> maybe_put(:filename, filename)
+    |> maybe_put(:ext, ext)
+    |> maybe_put(:fsize, post.file_size)
+    |> maybe_put(:md5, post.file_md5)
+    |> maybe_put(:tim, post.id)
+  end
 
   defp positive_or_nil(value) when is_integer(value) and value > 0, do: value
   defp positive_or_nil(_value), do: nil

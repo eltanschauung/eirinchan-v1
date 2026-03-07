@@ -199,13 +199,14 @@ defmodule Eirinchan.Build do
       Enum.map_join(page_data.threads, "\n", fn summary ->
         title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
         body = html_escape(summary.thread.body || "")
+        media = render_media(summary.thread)
         replies = render_preview_replies(summary.replies)
         omitted = render_omitted(summary)
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p>#{delete_form}#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{delete_form}#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -229,8 +230,10 @@ defmodule Eirinchan.Build do
       Enum.map_join(summary.replies, "\n", fn reply ->
         subject = html_escape(reply.subject || "Reply ##{reply.id}")
         body = html_escape(reply.body || "")
+        media = render_media(reply)
         delete_form = render_delete_form(board, reply.id)
-        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3><p>#{body}</p>#{delete_form}</article>)
+
+        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}<p>#{body}</p>#{delete_form}</article>)
       end)
 
     """
@@ -241,6 +244,7 @@ defmodule Eirinchan.Build do
     <article id="p#{summary.thread.id}">
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</h1>
     #{render_thread_badges(summary.thread)}
+    #{render_media(summary.thread)}
     <p>#{html_escape(summary.thread.body || "")}</p>
     #{render_delete_form(board, summary.thread.id)}
     </article>
@@ -257,11 +261,12 @@ defmodule Eirinchan.Build do
       |> Enum.map_join("\n", fn summary ->
         title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
         body = html_escape(summary.thread.body || "")
+        media = render_media(summary.thread)
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p>#{delete_form}<p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{delete_form}<p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -318,8 +323,18 @@ defmodule Eirinchan.Build do
   defp render_preview_replies(replies) do
     Enum.map_join(replies, "\n", fn reply ->
       body = html_escape(reply.body || "")
-      ~s(<div class="reply-preview" id="p#{reply.id}"><p>#{body}</p></div>)
+      media = render_media(reply)
+      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}<p>#{body}</p></div>)
     end)
+  end
+
+  defp render_media(%{file_path: nil}), do: ""
+
+  defp render_media(post) do
+    src = html_escape(post.file_path)
+    label = html_escape(post.file_name || Path.basename(post.file_path))
+
+    ~s(<figure class="post-file"><a href="#{src}"><img src="#{src}" alt="#{label}" loading="lazy" /></a><figcaption><a href="#{src}">#{label}</a></figcaption></figure>)
   end
 
   defp render_omitted(%{omitted_posts: omitted_posts, omitted_images: omitted_images})
