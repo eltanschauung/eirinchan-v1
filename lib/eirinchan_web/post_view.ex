@@ -3,6 +3,7 @@ defmodule EirinchanWeb.PostView do
 
   import Phoenix.HTML, only: [html_escape: 1, safe_to_string: 1]
 
+  alias Eirinchan.Boardlist
   alias Eirinchan.Posts.PostFile
   alias Eirinchan.Themes
   alias Eirinchan.ThreadPaths
@@ -74,6 +75,10 @@ defmodule EirinchanWeb.PostView do
   end
 
   def boardlist_groups(boards) do
+    Boardlist.configured_groups(boards)
+  end
+
+  def default_boardlist_groups(boards) do
     [
       Enum.map(boards, fn board ->
         %{

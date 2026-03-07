@@ -1,0 +1,22 @@
+<.flash_group flash={@flash} />
+<h1>Boardlist Configuration</h1>
+<p><a href={~p"/manage"}>Back to dashboard</a></p>
+<p :if={@error} class="error"><%= @error %></p>
+
+<p>Configure boardlist groups as JSON arrays. Use board URIs as strings or label-to-URL maps.</p>
+
+<pre>[
+  ["bant", "trp", "cp", "j3", "qa"],
+  {"rizz": "/bant/rizz"},
+  {"faq": "/faq", "format": "/formatting"},
+  {"booru": "https://gyate.net"},
+  {"opia": "https://tf2.gyate.net"},
+  {"Home": "/"}
+]</pre>
+
+<form action={~p"/manage/boardlist/browser"} method="post">
+  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+  <input type="hidden" name="_method" value="patch" />
+  <textarea name="boardlist_json" rows="18" style="width:100%"><%= @boardlist_json %></textarea>
+  <p><input type="submit" value="Update boardlist" /></p>
+</form>

@@ -2,6 +2,7 @@ defmodule EirinchanWeb.ManagePageController do
   use EirinchanWeb, :controller
 
   alias Eirinchan.Announcement
+  alias Eirinchan.Boardlist
   alias Eirinchan.Boards
   alias Eirinchan.Build
   alias Eirinchan.Bans
@@ -75,6 +76,45 @@ defmodule EirinchanWeb.ManagePageController do
     else
       {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
       {:error, :forbidden} -> render_config_error(conn, "Administrator access required.")
+    end
+  end
+
+  def boardlist(conn, _params) do
+    with {:ok, moderator} <- ensure_admin(conn) do
+      render(conn, :boardlist,
+        moderator: moderator,
+        boardlist_json: Boardlist.encode_for_edit(Boards.list_boards()),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_boardlist_error(conn, "Administrator access required.")
+    end
+  end
+
+  def update_boardlist(conn, %{"boardlist_json" => boardlist_json}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         {:ok, _groups} <- Boardlist.update_from_json(boardlist_json, Boards.list_boards()) do
+      conn
+      |> put_flash(:info, "Boardlist updated.")
+      |> redirect(to: ~p"/manage/boardlist/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_boardlist_error(conn, "Administrator access required.")
+
+      {:error, :invalid_json} ->
+        render_boardlist_error(
+          conn,
+          "Boardlist must be valid JSON.",
+          :unprocessable_entity,
+          boardlist_json
+        )
     end
   end
 
@@ -253,7 +293,12 @@ defmodule EirinchanWeb.ManagePageController do
         render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
 
       {:error, :unsupported} ->
-        render_theme_error(conn, name, "This theme is not implemented in Eirinchan.", :unprocessable_entity)
+        render_theme_error(
+          conn,
+          name,
+          "This theme is not implemented in Eirinchan.",
+          :unprocessable_entity
+        )
 
       {:error, :not_found} ->
         render_themes_error(conn, "Theme not found.", :not_found)
@@ -274,7 +319,12 @@ defmodule EirinchanWeb.ManagePageController do
         render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
 
       {:error, :unsupported} ->
-        render_theme_error(conn, name, "This theme is not implemented in Eirinchan.", :unprocessable_entity)
+        render_theme_error(
+          conn,
+          name,
+          "This theme is not implemented in Eirinchan.",
+          :unprocessable_entity
+        )
 
       {:error, :not_found} ->
         render_themes_error(conn, "Theme not found.", :not_found)
@@ -295,7 +345,12 @@ defmodule EirinchanWeb.ManagePageController do
         render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
 
       {:error, :unsupported} ->
-        render_theme_error(conn, name, "This theme does not support rebuilds in Eirinchan.", :unprocessable_entity)
+        render_theme_error(
+          conn,
+          name,
+          "This theme does not support rebuilds in Eirinchan.",
+          :unprocessable_entity
+        )
 
       {:error, :not_found} ->
         render_themes_error(conn, "Theme not found.", :not_found)
@@ -1100,6 +1155,16 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:config,
       moderator: conn.assigns[:current_moderator],
       config_json: config_json,
+      error: message
+    )
+  end
+
+  defp render_boardlist_error(conn, message, status \\ :forbidden, boardlist_json \\ "[]") do
+    conn
+    |> put_status(status)
+    |> render(:boardlist,
+      moderator: conn.assigns[:current_moderator],
+      boardlist_json: boardlist_json,
       error: message
     )
   end

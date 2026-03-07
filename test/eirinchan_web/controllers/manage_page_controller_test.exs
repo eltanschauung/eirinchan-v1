@@ -32,7 +32,59 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert redirected_to(conn) == "/setup"
   end
 
-  test "browser dashboard redirects to login when admin exists but session is missing", %{conn: conn} do
+  test "admin can update boardlist configuration from the dashboard", %{conn: conn} do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-boardlist-#{System.unique_integer([:positive])}.json"
+      )
+
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    moderator = moderator_fixture(%{role: "admin"})
+    _board = board_fixture(%{uri: "bant", title: "International Random"})
+
+    dashboard =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage")
+      |> html_response(200)
+
+    assert dashboard =~ "Boardlist Configuration"
+
+    update_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> patch("/manage/boardlist/browser", %{
+        "boardlist_json" => """
+        [
+          ["bant"],
+          {"Administration": "/manage/login"},
+          {"Home": "/"}
+        ]
+        """
+      })
+
+    assert redirected_to(update_conn) == "/manage/boardlist/browser"
+
+    persisted = File.read!(path)
+    assert persisted =~ "\"label\": \"Administration\""
+    assert persisted =~ "\"href\": \"/manage/login\""
+    assert persisted =~ "\"label\": \"bant\""
+  end
+
+  test "browser dashboard redirects to login when admin exists but session is missing", %{
+    conn: conn
+  } do
     _moderator = moderator_fixture(%{role: "admin"})
 
     conn = get(conn, "/manage")
