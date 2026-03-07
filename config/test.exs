@@ -10,6 +10,8 @@ config :eirinchan, Eirinchan.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: System.schedulers_online() * 2
 
+config :eirinchan, build_output_root: Path.expand("../tmp/test_build", __DIR__)
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :eirinchan, EirinchanWeb.Endpoint,

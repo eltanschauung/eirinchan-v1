@@ -9,6 +9,7 @@ import Config
 
 config :eirinchan,
   ecto_repos: [Eirinchan.Repo],
+  build_output_root: Path.expand("../tmp/build", __DIR__),
   generators: [timestamp_type: :utc_datetime]
 
 # Configures the endpoint

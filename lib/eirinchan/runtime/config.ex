@@ -27,9 +27,17 @@ defmodule Eirinchan.Runtime.Config do
     board_regex: "[a-zA-Z0-9_]+",
     locale: "en",
     timezone: "UTC",
+    anonymous: "Anonymous",
     global_message: false,
     allow_roll: false,
     try_smarter: false,
+    board_locked: false,
+    force_body: true,
+    force_body_op: true,
+    reply_hard_limit: 0,
+    always_noko: false,
+    button_newtopic: "New Topic",
+    button_reply: "New Reply",
     user_flag: false,
     multiple_flags: false,
     default_user_flag: "country",
@@ -54,6 +62,14 @@ defmodule Eirinchan.Runtime.Config do
       name: "tinyboard",
       syslog_stderr: false,
       file_path: "/var/log/vichan.log"
+    },
+    error: %{
+      bot: "Invalid post action.",
+      referer: "Invalid referer.",
+      tooshort_body: "Body too short.",
+      locked: "Thread locked. You may not reply at this time.",
+      reply_hard_limit: "Thread has reached its maximum reply limit.",
+      board_locked: "Board is locked."
     }
   }
 

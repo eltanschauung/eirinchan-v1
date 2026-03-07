@@ -14,25 +14,25 @@ API display pipeline parity (thread/page/catalog JSON): incomplete
 
 [Posting Pipeline - Validation and Business Rules]
 OP vs reply branch handling parity: partial
-thread existence/lock/sage/cycle checks: incomplete
-board locked posting rules: incomplete
+thread existence/lock/sage/cycle checks: partial
+board locked posting rules: partial
 moderator bypass and permission checks in posting path: incomplete
-button token intent validation (new thread/reply action values): incomplete
-referer validation logic parity: incomplete
-body required/optional rules (force_body/force_body_op): incomplete
+button token intent validation (new thread/reply action values): partial
+referer validation logic parity: partial
+body required/optional rules (force_body/force_body_op): partial
 OP image required rules (force_image_op): incomplete
 max lines and max body enforcement: incomplete
 name/email/subject/password normalization and defaults: partial
 tripcode generation parity: incomplete
 capcode parsing and permission rules: incomplete
-noko/nonoko/always_noko behavior: incomplete
+noko/nonoko/always_noko behavior: partial
 wordfilter pipeline integration: incomplete
 markup pre-processing and modifier escaping parity: incomplete
 raw HTML posting mode for authorized moderators: incomplete
 cite tracking extraction and persistence: incomplete
 flood table writes and repeat checks: incomplete
 thread bump logic and bump-limit behavior: incomplete
-reply_hard_limit/image_hard_limit enforcement: incomplete
+reply_hard_limit/image_hard_limit enforcement: partial
 report creation branch inside post endpoint parity: incomplete
 post deletion branch inside post endpoint parity: incomplete
 ban appeal submission branch inside post endpoint parity: incomplete
@@ -107,10 +107,10 @@ antispam/flood table behavior parity: incomplete
 schema migration tooling from existing MySQL data: incomplete
 
 [Rendering, Build, and Static Generation]
-buildThread parity (HTML + JSON + +50 variants): incomplete
-buildIndex parity (pages, cleanup, pagination controls): incomplete
+buildThread parity (HTML + JSON + +50 variants): partial
+buildIndex parity (pages, cleanup, pagination controls): partial
 thread_find_page behavior parity: incomplete
-build-on-post regeneration flow parity: incomplete
+build-on-post regeneration flow parity: partial
 generation strategy framework parity (immediate/defer/build_on_load): incomplete
 queue-backed deferred generation parity: incomplete
 smart build helper route/controller parity: incomplete
