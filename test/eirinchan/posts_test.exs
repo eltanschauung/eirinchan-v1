@@ -390,6 +390,69 @@ defmodule Eirinchan.PostsTest do
     assert exiftool_value(stored_path, "Orientation") == ""
   end
 
+  test "create_post strips jpeg metadata with exiftool without redrawing by default" do
+    board = board_fixture(%{config_overrides: %{strip_exif: true, use_exiftool: true}})
+
+    upload =
+      upload_fixture("exiftool.jpg",
+        geometry: "12x8",
+        orientation: "Rotate 90 CW",
+        artist: "fixture-artist"
+      )
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    stored_path = Eirinchan.Uploads.filesystem_path(thread.file_path)
+
+    assert {thread.image_width, thread.image_height} == {12, 8}
+    assert identify_value(stored_path, "%wx%h") == "12x8"
+    assert exiftool_value(stored_path, "Artist") == ""
+    assert exiftool_value(stored_path, "Orientation") == ""
+  end
+
+  test "create_post can auto-orient before exiftool stripping" do
+    board =
+      board_fixture(%{
+        config_overrides: %{strip_exif: true, use_exiftool: true, auto_orient_images: true}
+      })
+
+    upload =
+      upload_fixture("exiftool-oriented.jpg",
+        geometry: "12x8",
+        orientation: "Rotate 90 CW",
+        artist: "fixture-artist"
+      )
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    stored_path = Eirinchan.Uploads.filesystem_path(thread.file_path)
+
+    assert {thread.image_width, thread.image_height} == {8, 12}
+    assert identify_value(stored_path, "%wx%h") == "8x12"
+    assert exiftool_value(stored_path, "Artist") == ""
+    assert exiftool_value(stored_path, "Orientation") == ""
+  end
+
   test "create_post auto-orients images before stripping EXIF when both are enabled" do
     board = board_fixture(%{config_overrides: %{auto_orient_images: true, strip_exif: true}})
 
