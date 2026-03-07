@@ -1,0 +1,17 @@
+body {
+  background: #fff8ed;
+  color: #3b2f1e;
+}
+
+a {
+  color: #9a3412;
+}
+
+main article,
+section,
+nav {
+  background: rgba(255, 252, 245, 0.92);
+  border: 1px solid #fdba74;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
