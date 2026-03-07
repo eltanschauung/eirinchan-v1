@@ -112,6 +112,34 @@ defmodule Eirinchan.Boardlist do
     end
   end
 
+  defp normalize_item(%{} = item, boards) do
+    label = Map.get(item, "label") || Map.get(item, :label)
+    href = Map.get(item, "href") || Map.get(item, :href)
+    title = Map.get(item, "title") || Map.get(item, :title)
+    kind = Map.get(item, "kind") || Map.get(item, :kind)
+
+    cond do
+      is_binary(label) and is_binary(href) ->
+        normalized_label = String.trim(label)
+        normalized_href = String.trim(href)
+        normalized_title = normalize_optional_title(title, normalized_label, boards)
+
+        if normalized_label == "" or normalized_href == "" do
+          nil
+        else
+          %{
+            label: normalized_label,
+            href: normalized_href,
+            title: normalized_title,
+            kind: normalize_kind(kind, normalized_href, boards)
+          }
+        end
+
+      true ->
+        nil
+    end
+  end
+
   defp normalize_item(_item, _boards), do: nil
 
   defp normalize_pair({label, href}, boards) when is_binary(label) do
@@ -135,4 +163,36 @@ defmodule Eirinchan.Boardlist do
   end
 
   defp normalize_pair(_pair, _boards), do: nil
+
+  defp normalize_optional_title(value, default, boards) when is_binary(value) do
+    trimmed = String.trim(value)
+    if trimmed == "", do: derive_title(default, boards), else: trimmed
+  end
+
+  defp normalize_optional_title(_value, default, boards), do: derive_title(default, boards)
+
+  defp derive_title(label, boards) do
+    case Enum.find(boards, &(&1.uri == label)) do
+      nil -> label
+      board -> board.title
+    end
+  end
+
+  defp normalize_kind(kind, href, boards) do
+    case kind do
+      "board" -> :board
+      :board -> :board
+      "link" -> :link
+      :link -> :link
+      _ -> infer_kind_from_href(href, boards)
+    end
+  end
+
+  defp infer_kind_from_href(href, boards) do
+    if Enum.any?(boards, fn board -> href == "/#{board.uri}/index.html" end) do
+      :board
+    else
+      :link
+    end
+  end
 end
