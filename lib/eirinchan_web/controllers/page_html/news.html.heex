@@ -1,0 +1,18 @@
+<section>
+  <h1>News</h1>
+  <p><a href={~p"/"}>Home</a></p>
+</section>
+
+<section>
+  <%= if @news_entries == [] do %>
+    <p>No news entries yet.</p>
+  <% else %>
+    <%= for entry <- @news_entries do %>
+      <article>
+        <h2><%= entry.title %></h2>
+        <p><%= entry.body %></p>
+        <p :if={entry.mod_user}>Posted by <%= entry.mod_user.username %></p>
+      </article>
+    <% end %>
+  <% end %>
+</section>

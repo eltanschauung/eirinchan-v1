@@ -6,6 +6,8 @@
 
 <nav>
   <a href={~p"/"}>Home</a>
+  <a href={~p"/news"}>News</a>
+  <a href={~p"/manage/news/browser"}>Manage News</a>
   <a href={~p"/manage/recent-posts/browser"}>Recent Posts</a>
   <form action={~p"/manage/logout/browser"} method="post" style="display:inline">
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
@@ -53,6 +55,20 @@
 
         <p><a href={"/manage/boards/#{board.uri}/reports/browser"}>Reports Queue</a></p>
         <p><a href={"/manage/boards/#{board.uri}/ban-appeals/browser"}>Ban Appeals</a></p>
+      </article>
+    <% end %>
+  <% end %>
+</section>
+
+<section>
+  <h2>News</h2>
+  <%= if @news_entries == [] do %>
+    <p>No news yet.</p>
+  <% else %>
+    <%= for entry <- @news_entries do %>
+      <article>
+        <h3><%= entry.title %></h3>
+        <p><%= entry.body %></p>
       </article>
     <% end %>
   <% end %>

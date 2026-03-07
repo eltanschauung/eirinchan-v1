@@ -156,7 +156,7 @@ cycle/uncycle moderation parity: partial
 bumplock/unbumplock moderation parity: partial
 move thread workflow parity: partial
 move reply workflow parity: partial
-noticeboard/news moderation pages parity: incomplete
+noticeboard/news moderation pages parity: partial
 moderator PM inbox/reply flow parity: incomplete
 
 [Feedback System (Custom Bantculture fork Features)]
@@ -203,7 +203,7 @@ board URL and abbreviation formatting parity: partial
 board search box behavior parity: incomplete
 global announcement/blotter behavior parity: incomplete
 custom pages CRUD parity: incomplete
-news pages parity: incomplete
+news pages parity: partial
 
 [Search]
 public search endpoint parity: incomplete
