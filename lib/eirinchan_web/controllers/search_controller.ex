@@ -7,7 +7,10 @@ defmodule EirinchanWeb.SearchController do
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.CustomPages
   alias Eirinchan.Posts
+  alias Eirinchan.Posts.Post
+  alias Eirinchan.Repo
   alias Eirinchan.Runtime.Config
+  import Ecto.Query, only: [from: 2]
 
   def show(conn, params) do
     query = String.trim(params["q"] || "")
@@ -46,7 +49,8 @@ defmodule EirinchanWeb.SearchController do
             board_ids: board_ids,
             query: query
           )
-          |> Eirinchan.Repo.preload(:board)
+          |> Repo.preload(:board)
+          |> build_search_results()
 
         render_search(conn, query, board, boards, results, nil)
     end
@@ -105,4 +109,46 @@ defmodule EirinchanWeb.SearchController do
 
   defp normalize_uri(uri) when is_binary(uri), do: uri |> String.trim() |> String.trim("/")
   defp normalize_uri(uri), do: to_string(uri)
+
+  defp build_search_results(posts) do
+    thread_ids =
+      posts
+      |> Enum.map(&(&1.thread_id || &1.id))
+      |> Enum.uniq()
+
+    threads_by_id =
+      Repo.all(from post in Post, where: post.id in ^thread_ids)
+      |> Repo.preload(:board)
+      |> Map.new(&{&1.id, &1})
+
+    Enum.map(posts, fn post ->
+      thread = Map.get(threads_by_id, post.thread_id || post.id, post)
+
+      %{
+        post: post,
+        thread: thread,
+        board: post.board,
+        op?: is_nil(post.thread_id),
+        object_type: if(is_nil(post.thread_id), do: "Thread", else: "Reply"),
+        result_url: result_url(post),
+        thread_url: "/#{post.board.uri}/res/#{thread.id}.html#p#{thread.id}",
+        excerpt: excerpt(post.body),
+        thread_excerpt: excerpt(thread.body)
+      }
+    end)
+  end
+
+  defp result_url(%{board: board, thread_id: nil, id: id}),
+    do: "/#{board.uri}/res/#{id}.html#p#{id}"
+
+  defp result_url(%{board: board, thread_id: thread_id, id: id}),
+    do: "/#{board.uri}/res/#{thread_id}.html#p#{id}"
+
+  defp excerpt(nil), do: nil
+
+  defp excerpt(body) do
+    body
+    |> String.trim()
+    |> String.slice(0, 200)
+  end
 end
