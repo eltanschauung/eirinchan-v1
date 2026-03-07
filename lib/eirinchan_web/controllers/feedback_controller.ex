@@ -1,10 +1,11 @@
 defmodule EirinchanWeb.FeedbackController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Boards
   alias Eirinchan.Feedback
 
   def show(conn, _params) do
-    render(conn, :show)
+    render(conn, :show, boards: Boards.list_boards())
   end
 
   def create(conn, params) do
@@ -24,7 +25,11 @@ defmodule EirinchanWeb.FeedbackController do
         else
           conn
           |> put_status(:unprocessable_entity)
-          |> render(:show, errors: translate_errors(changeset), params: params)
+          |> render(:show,
+            errors: translate_errors(changeset),
+            params: params,
+            boards: Boards.list_boards()
+          )
         end
     end
   end

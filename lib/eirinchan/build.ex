@@ -4,6 +4,7 @@ defmodule Eirinchan.Build do
   """
 
   alias Eirinchan.Api
+  alias Eirinchan.Boards
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Posts
   alias Eirinchan.ThreadPaths
@@ -195,6 +196,8 @@ defmodule Eirinchan.Build do
   end
 
   defp render_index(board, page_data, config) do
+    boardlist = render_boardlist(Boards.list_boards())
+
     items =
       Enum.map_join(page_data.threads, "\n", fn summary ->
         title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
@@ -217,6 +220,7 @@ defmodule Eirinchan.Build do
     <head><meta charset="utf-8"><title>/#{html_escape(board.uri)}/ - #{html_escape(board.title)}</title></head>
     <body>
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(board.title)}</h1>
+    #{boardlist}
     #{nav}
     #{items}
     #{nav}
@@ -226,6 +230,8 @@ defmodule Eirinchan.Build do
   end
 
   defp render_thread(board, summary, config) do
+    boardlist = render_boardlist(Boards.list_boards())
+
     replies_html =
       Enum.map_join(summary.replies, "\n", fn reply ->
         subject = html_escape(reply.subject || "Reply ##{reply.id}")
@@ -243,6 +249,7 @@ defmodule Eirinchan.Build do
     <body>
     <article id="p#{summary.thread.id}">
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</h1>
+    #{boardlist}
     #{render_thread_badges(summary.thread)}
     #{render_media(summary.thread)}
     <p>#{render_body(summary.thread)}</p>
@@ -258,6 +265,8 @@ defmodule Eirinchan.Build do
   end
 
   defp render_catalog(board, page_data_list, config) do
+    boardlist = render_boardlist(Boards.list_boards())
+
     items =
       page_data_list
       |> Enum.flat_map(& &1.threads)
@@ -279,6 +288,7 @@ defmodule Eirinchan.Build do
     <body>
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(board.title)}</h1>
     <p><a href="/#{html_escape(board.uri)}">Return</a></p>
+    #{boardlist}
     #{items}
     </body>
     </html>
@@ -405,6 +415,15 @@ defmodule Eirinchan.Build do
       end)
 
     ~s(<nav class="pages">#{links}</nav>)
+  end
+
+  defp render_boardlist(boards) do
+    links =
+      Enum.map_join(boards, " ", fn board ->
+        ~s(<a href="/#{html_escape(board.uri)}">/ #{html_escape(board.uri)} /</a>)
+      end)
+
+    ~s(<nav class="boardlist"><strong>Boards</strong> #{links}</nav>)
   end
 
   defp render_body(%{raw_html: true, body: body}) when is_binary(body), do: body

@@ -115,7 +115,7 @@ generation strategy framework parity (immediate/defer/build_on_load): incomplete
 queue-backed deferred generation parity: incomplete
 smart build helper route/controller parity: incomplete
 cache-aware rebuild skipping logic parity: incomplete
-boardlist rendering parity across contexts: incomplete
+boardlist rendering parity across contexts: partial
 template variable contract compatibility (board, board_title, post, config): incomplete
 thread slug URL generation and slug check redirects: partial
 catalog_link behavior parity: partial
@@ -161,8 +161,8 @@ moderator PM inbox/reply flow parity: incomplete
 
 [Feedback System (Custom Bantculture fork Features)]
 public /feedback submission endpoint parity: partial
-feedback theme-generated public UI parity: incomplete
-feedback textarea UI parity with current style: incomplete
+feedback theme-generated public UI parity: partial
+feedback textarea UI parity with current style: partial
 feedback_store_ip boolean behavior (real range vs 0.0.0.0): partial
 IPv4 subnet capture to /16 behavior parity: partial
 IPv6 subnet capture to /48 behavior parity: partial

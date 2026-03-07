@@ -328,6 +328,29 @@ defmodule Eirinchan.BuildTest do
     assert File.read!(thread_path) =~ "Capcode: Admin"
   end
 
+  test "static outputs render the boardlist" do
+    File.rm_rf!(Build.board_root())
+
+    board_fixture(%{uri: "meta", title: "Meta"})
+    board = board_fixture(%{uri: "tech", title: "Technology"})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Opening post body", "post" => config.button_newtopic},
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(index_path) =~ "/ meta /"
+    assert File.read!(thread_path) =~ "/ meta /"
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 

@@ -4,6 +4,13 @@
   <p><a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>Return</a></p>
 </section>
 
+<nav class="boardlist">
+  <strong>Boards</strong>
+  <%= for board <- @boards do %>
+    <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
+  <% end %>
+</nav>
+
 <section>
   <h2>Catalog</h2>
   <%= if @threads == [] do %>

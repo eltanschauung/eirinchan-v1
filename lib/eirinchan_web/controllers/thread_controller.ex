@@ -1,6 +1,7 @@
 defmodule EirinchanWeb.ThreadController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Boards
   alias Eirinchan.Posts
   alias Eirinchan.ThreadPaths
 
@@ -23,7 +24,13 @@ defmodule EirinchanWeb.ThreadController do
               {:error, :not_found} -> 1
             end
 
-          render(conn, :show, board: board, summary: summary, config: config, page_num: page_num)
+          render(conn, :show,
+            board: board,
+            summary: summary,
+            config: config,
+            page_num: page_num,
+            boards: Boards.list_boards()
+          )
         end
 
       {:error, :not_found} ->

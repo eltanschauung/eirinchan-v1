@@ -60,6 +60,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
   end
 
   test "board page loads through the DB-backed board context", %{conn: conn} do
+    board_fixture(%{uri: "meta", title: "Meta"})
     board = board_fixture(%{title: "Technology", subtitle: "Wired"})
 
     response =
@@ -69,6 +70,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert response =~ "/ #{board.uri} / - Technology"
     assert response =~ "Wired"
+    assert response =~ "/ meta /"
     assert response =~ "No threads yet."
   end
 

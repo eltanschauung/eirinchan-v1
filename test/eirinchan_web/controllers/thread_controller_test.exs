@@ -164,4 +164,15 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ "<strong>mod notice</strong>"
     assert page =~ "Capcode: Admin"
   end
+
+  test "thread pages render the boardlist", %{conn: conn} do
+    board_fixture(%{uri: "meta", title: "Meta"})
+    board = board_fixture()
+    thread = thread_fixture(board)
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+
+    assert page =~ "/ meta /"
+    assert page =~ "/ #{board.uri} /"
+  end
 end
