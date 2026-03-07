@@ -2,6 +2,7 @@ defmodule Eirinchan.BuildTest do
   use Eirinchan.DataCase, async: false
 
   alias Eirinchan.Build
+  alias Eirinchan.BuildQueue
   alias Eirinchan.Posts
   alias Eirinchan.Runtime.Config
 
@@ -523,5 +524,52 @@ defmodule Eirinchan.BuildTest do
     assert File.read!(index_path) =~ "docs.txt"
     assert File.read!(index_path) =~ "Fileboard: 1 file"
     assert File.read!(thread_path) =~ "docs.txt"
+  end
+
+  test "deferred generation queues build jobs instead of writing immediately" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture(%{config_overrides: %{generation_strategy: "defer"}})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Opening body", "subject" => "Deferred thread", "post" => "New Topic"},
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    refute File.exists?(Path.join([board_dir, config.dir.res, "#{thread.id}.html"]))
+    refute File.exists?(Path.join(board_dir, config.file_index))
+    assert Enum.map(BuildQueue.list_pending(), & &1.kind) == ["thread", "indexes"]
+  end
+
+  test "cache-aware rebuild skipping preserves fresh output mtimes" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture(%{config_overrides: %{cache: %{enabled: true}}})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Opening body", "subject" => "Cached thread", "post" => "New Topic"},
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+    index_path = Path.join(board_dir, config.file_index)
+    thread_mtime = File.stat!(thread_path, time: :posix).mtime
+    index_mtime = File.stat!(index_path, time: :posix).mtime
+
+    assert :ok = Build.build_thread(board, thread.id, config: config)
+    assert :ok = Build.build_indexes(board, config: config)
+
+    assert File.stat!(thread_path, time: :posix).mtime == thread_mtime
+    assert File.stat!(index_path, time: :posix).mtime == index_mtime
   end
 end

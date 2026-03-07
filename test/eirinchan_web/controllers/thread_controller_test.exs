@@ -244,6 +244,25 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert Floki.find(document, ~s(a[data-quote-to="#{reply.id}"])) != []
   end
 
+  test "thread pages trigger build-on-load thread generation when configured", %{conn: conn} do
+    alias Eirinchan.Build
+
+    board = board_fixture(%{config_overrides: %{generation_strategy: "build_on_load"}})
+    File.rm_rf!(Path.join(Build.board_root(), board.uri))
+    thread = thread_fixture(board, %{body: "Thread body", subject: "Thread subject"})
+
+    thread_path = Path.join([Build.board_root(), board.uri, "res", "#{thread.id}.html"])
+    refute File.exists?(thread_path)
+
+    page =
+      conn
+      |> get("/#{board.uri}/res/#{thread.id}.html")
+      |> html_response(200)
+
+    assert page =~ "Thread body"
+    assert File.exists?(thread_path)
+  end
+
   test "fileboard threads use filenames as page titles when subjects are absent", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{fileboard: true, force_body_op: false}})
 

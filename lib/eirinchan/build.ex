@@ -6,7 +6,9 @@ defmodule Eirinchan.Build do
   alias Eirinchan.Api
   alias Eirinchan.Boards
   alias Eirinchan.Boards.BoardRecord
+  alias Eirinchan.BuildQueue
   alias Eirinchan.Posts
+  alias Eirinchan.Repo
   alias Eirinchan.ThreadPaths
   alias EirinchanWeb.PostView
 
@@ -14,37 +16,22 @@ defmodule Eirinchan.Build do
           :ok | {:error, term()}
   def rebuild_after_post(%BoardRecord{} = board, post, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
-    repo = Keyword.get(opts, :repo)
     thread_id = post.thread_id || post.id
-
-    with :ok <- build_thread(board, thread_id, config: config, repo: repo),
-         :ok <- build_indexes(board, config: config, repo: repo) do
-      :ok
-    end
+    dispatch(board, {:thread_and_indexes, thread_id}, Keyword.put(opts, :config, config))
   end
 
   @spec rebuild_thread_state(BoardRecord.t(), integer(), keyword()) :: :ok | {:error, term()}
   def rebuild_thread_state(%BoardRecord{} = board, thread_id, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
-    repo = Keyword.get(opts, :repo)
-
-    with :ok <- build_thread(board, thread_id, config: config, repo: repo),
-         :ok <- build_indexes(board, config: config, repo: repo) do
-      :ok
-    end
+    dispatch(board, {:thread_and_indexes, thread_id}, Keyword.put(opts, :config, config))
   end
 
   @spec rebuild_after_post_update(BoardRecord.t(), Eirinchan.Posts.Post.t(), keyword()) ::
           :ok | {:error, term()}
   def rebuild_after_post_update(%BoardRecord{} = board, post, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
-    repo = Keyword.get(opts, :repo)
     thread_id = post.thread_id || post.id
-
-    with :ok <- build_thread(board, thread_id, config: config, repo: repo),
-         :ok <- build_indexes(board, config: config, repo: repo) do
-      :ok
-    end
+    dispatch(board, {:thread_and_indexes, thread_id}, Keyword.put(opts, :config, config))
   end
 
   @spec rebuild_after_delete(BoardRecord.t(), tuple(), keyword()) :: :ok | {:error, term()}
@@ -53,23 +40,79 @@ defmodule Eirinchan.Build do
     repo = Keyword.get(opts, :repo)
 
     remove_thread_outputs(board, thread, config)
-    build_indexes(board, config: config, repo: repo)
+    dispatch(board, :indexes, config: config, repo: repo)
   end
 
   def rebuild_after_delete(%BoardRecord{} = board, {:reply, thread_id}, opts) do
     config = Keyword.fetch!(opts, :config)
-    repo = Keyword.get(opts, :repo)
+    dispatch(board, {:thread_and_indexes, thread_id}, Keyword.put(opts, :config, config))
+  end
 
-    with :ok <- build_thread(board, thread_id, config: config, repo: repo),
-         :ok <- build_indexes(board, config: config, repo: repo) do
+  def ensure_indexes(%BoardRecord{} = board, opts \\ []) do
+    config = Keyword.fetch!(opts, :config)
+
+    if config.generation_strategy == "build_on_load" do
+      build_indexes(board, opts)
+    else
       :ok
     end
+  end
+
+  def ensure_thread(%BoardRecord{} = board, thread_id, opts \\ []) do
+    config = Keyword.fetch!(opts, :config)
+
+    if config.generation_strategy == "build_on_load" do
+      with :ok <- build_thread(board, thread_id, opts) do
+        build_indexes(board, opts)
+      end
+    else
+      :ok
+    end
+  end
+
+  def rebuild_board(%BoardRecord{} = board, opts \\ []) do
+    config = Keyword.fetch!(opts, :config)
+    repo = Keyword.get(opts, :repo, Repo)
+
+    {:ok, page_data_list} = Posts.list_page_data(board, config: config, repo: repo)
+
+    Enum.each(page_data_list |> Enum.flat_map(& &1.threads), fn summary ->
+      _ = build_thread(board, summary.thread.id, config: config, repo: repo)
+    end)
+
+    build_indexes(board, config: config, repo: repo)
+  end
+
+  def process_pending(opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    board = Keyword.get(opts, :board)
+    config = Keyword.fetch!(opts, :config)
+    jobs = BuildQueue.list_pending(repo: repo, board_id: board && board.id)
+
+    Enum.reduce(jobs, %{processed: 0}, fn job, acc ->
+      if board && job.board_id != board.id do
+        acc
+      else
+        current_board =
+          board ||
+            (repo || Eirinchan.Repo).get(Eirinchan.Boards.BoardRecord, job.board_id)
+
+        _ =
+          case job.kind do
+            "thread" -> build_thread(current_board, job.thread_id, config: config, repo: repo)
+            "indexes" -> build_indexes(current_board, config: config, repo: repo)
+          end
+
+        _ = BuildQueue.mark_done(job, repo: repo)
+        %{processed: acc.processed + 1}
+      end
+    end)
   end
 
   @spec build_thread(BoardRecord.t(), integer(), keyword()) :: :ok | {:error, term()}
   def build_thread(%BoardRecord{} = board, thread_id, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
-    repo = Keyword.get(opts, :repo)
+    repo = Keyword.get(opts, :repo, Repo)
 
     case Posts.get_thread_view(board, thread_id, repo: repo) do
       {:ok, summary} ->
@@ -80,12 +123,17 @@ defmodule Eirinchan.Build do
           |> thread_output_filenames(config)
           |> Enum.map(&Path.join([board_root(), board.uri, config.dir.res, &1]))
 
-        with :ok <- write_files(output_paths, html) do
+        with :ok <- maybe_write_files(output_paths, html, summary.last_modified, config) do
           if get_in(config, [:api, :enabled]) do
             json_output =
               Path.join([board_root(), board.uri, config.dir.res, "#{summary.thread.id}.json"])
 
-            write_file(json_output, Jason.encode!(Api.thread_json(summary)))
+            maybe_write_file(
+              json_output,
+              Jason.encode!(Api.thread_json(summary)),
+              summary.last_modified,
+              config
+            )
           else
             :ok
           end
@@ -99,7 +147,7 @@ defmodule Eirinchan.Build do
   @spec build_indexes(BoardRecord.t(), keyword()) :: :ok | {:error, term()}
   def build_indexes(%BoardRecord{} = board, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
-    repo = Keyword.get(opts, :repo)
+    repo = Keyword.get(opts, :repo, Repo)
     {:ok, page_data_list} = Posts.list_page_data(board, config: config, repo: repo)
     first_page = hd(page_data_list)
 
@@ -135,6 +183,25 @@ defmodule Eirinchan.Build do
     end)
   end
 
+  defp maybe_write_files(paths, content, modified_at, config) do
+    Enum.reduce_while(paths, :ok, fn path, :ok ->
+      case maybe_write_file(path, content, modified_at, config) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp maybe_write_file(path, content, modified_at, %{cache: %{enabled: true}} = config) do
+    if fresh_output?(path, modified_at, config) do
+      :ok
+    else
+      write_file(path, content)
+    end
+  end
+
+  defp maybe_write_file(path, content, _modified_at, _config), do: write_file(path, content)
+
   defp write_index_pages(board, page_data_list, config) do
     Enum.reduce_while(page_data_list, :ok, fn page_data, :ok ->
       filename =
@@ -146,8 +213,9 @@ defmodule Eirinchan.Build do
 
       html = render_index(board, page_data, config)
       output = Path.join([board_root(), board.uri, filename])
+      modified_at = page_last_modified(page_data)
 
-      case write_file(output, html) do
+      case maybe_write_file(output, html, modified_at, config) do
         :ok -> {:cont, :ok}
         error -> {:halt, error}
       end
@@ -157,18 +225,18 @@ defmodule Eirinchan.Build do
   defp write_catalog_page(board, page_data_list, config) do
     html = render_catalog(board, page_data_list, config)
     output = Path.join([board_root(), board.uri, config.file_catalog])
-    write_file(output, html)
+    maybe_write_file(output, html, pages_last_modified(page_data_list), config)
   end
 
   defp write_api_pages(_board, _page_data_list, %{api: %{enabled: false}}), do: :ok
 
-  defp write_api_pages(board, page_data_list, _config) do
+  defp write_api_pages(board, page_data_list, config) do
     per_page_results =
       Enum.reduce_while(page_data_list, :ok, fn page_data, :ok ->
         json_path = Path.join([board_root(), board.uri, "#{page_data.page - 1}.json"])
         payload = Jason.encode!(Api.page_json(page_data))
 
-        case write_file(json_path, payload) do
+        case maybe_write_file(json_path, payload, page_last_modified(page_data), config) do
           :ok -> {:cont, :ok}
           error -> {:halt, error}
         end
@@ -176,15 +244,89 @@ defmodule Eirinchan.Build do
 
     with :ok <- per_page_results,
          :ok <-
-           write_file(
+           maybe_write_file(
              Path.join([board_root(), board.uri, "catalog.json"]),
-             Jason.encode!(Api.catalog_json(page_data_list))
+             Jason.encode!(Api.catalog_json(page_data_list)),
+             pages_last_modified(page_data_list),
+             config
            ) do
-      write_file(
+      maybe_write_file(
         Path.join([board_root(), board.uri, "threads.json"]),
-        Jason.encode!(Api.catalog_json(page_data_list, threads_page: true))
+        Jason.encode!(Api.catalog_json(page_data_list, threads_page: true)),
+        pages_last_modified(page_data_list),
+        config
       )
     end
+  end
+
+  defp dispatch(board, {:thread_and_indexes, thread_id}, opts) do
+    config = Keyword.fetch!(opts, :config)
+    repo = Keyword.get(opts, :repo)
+
+    case config.generation_strategy do
+      "defer" ->
+        with {:ok, _thread_job} <- BuildQueue.enqueue_thread(board, thread_id, repo: repo),
+             {:ok, _index_job} <- BuildQueue.enqueue_indexes(board, repo: repo) do
+          :ok
+        end
+
+      "build_on_load" ->
+        :ok
+
+      _ ->
+        with :ok <- build_thread(board, thread_id, config: config, repo: repo),
+             :ok <- build_indexes(board, config: config, repo: repo) do
+          :ok
+        end
+    end
+  end
+
+  defp dispatch(board, :indexes, opts) do
+    config = Keyword.fetch!(opts, :config)
+    repo = Keyword.get(opts, :repo)
+
+    case config.generation_strategy do
+      "defer" ->
+        case BuildQueue.enqueue_indexes(board, repo: repo) do
+          {:ok, _job} -> :ok
+          error -> error
+        end
+
+      "build_on_load" ->
+        :ok
+
+      _ ->
+        build_indexes(board, config: config, repo: repo)
+    end
+  end
+
+  defp fresh_output?(path, modified_at, %{cache: %{enabled: true, ttl_seconds: ttl}}) do
+    case File.stat(path, time: :posix) do
+      {:ok, stat} ->
+        file_time = DateTime.from_unix!(stat.mtime)
+        age_ok = ttl <= 0 or DateTime.diff(DateTime.utc_now(), file_time) <= ttl
+        DateTime.compare(file_time, modified_at) != :lt and age_ok
+
+      _ ->
+        false
+    end
+  end
+
+  defp fresh_output?(_path, _modified_at, _config), do: false
+
+  defp page_last_modified(%{threads: []}), do: DateTime.utc_now()
+
+  defp page_last_modified(%{threads: threads}),
+    do: Enum.max_by(threads, & &1.last_modified).last_modified
+
+  defp pages_last_modified([]), do: DateTime.utc_now()
+
+  defp pages_last_modified(pages) do
+    pages
+    |> Enum.map(&page_last_modified/1)
+    |> Enum.reduce(fn current, acc ->
+      if DateTime.compare(current, acc) == :gt, do: current, else: acc
+    end)
   end
 
   defp remove_stale_index_pages(board, total_pages, config) do

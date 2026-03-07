@@ -100,6 +100,7 @@ defmodule EirinchanWeb.Router do
     post "/feedback/:id/comments", FeedbackManagementController, :create_comment
     delete "/feedback/:id", FeedbackManagementController, :delete
     delete "/ip/:ip/posts", IpManagementController, :delete_posts
+    post "/boards/:uri/rebuild", BuildManagementController, :create
     patch "/boards/:uri/threads/:thread_id", ThreadManagementController, :update
     post "/boards/:uri/ip/:ip/notes", IpManagementController, :create_note
     patch "/boards/:uri/ip/:ip/notes/:id", IpManagementController, :update_note

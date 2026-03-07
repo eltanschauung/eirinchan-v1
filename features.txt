@@ -111,10 +111,10 @@ buildThread parity (HTML + JSON + +50 variants): partial
 buildIndex parity (pages, cleanup, pagination controls): partial
 thread_find_page behavior parity: partial
 build-on-post regeneration flow parity: partial
-generation strategy framework parity (immediate/defer/build_on_load): incomplete
-queue-backed deferred generation parity: incomplete
-smart build helper route/controller parity: incomplete
-cache-aware rebuild skipping logic parity: incomplete
+generation strategy framework parity (immediate/defer/build_on_load): partial
+queue-backed deferred generation parity: partial
+smart build helper route/controller parity: partial
+cache-aware rebuild skipping logic parity: partial
 boardlist rendering parity across contexts: partial
 template variable contract compatibility (board, board_title, post, config): partial
 thread slug URL generation and slug check redirects: partial

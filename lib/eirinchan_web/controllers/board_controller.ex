@@ -2,6 +2,7 @@ defmodule EirinchanWeb.BoardController do
   use EirinchanWeb, :controller
 
   alias Eirinchan.Boards
+  alias Eirinchan.Build
   alias Eirinchan.Posts
 
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show]
@@ -24,6 +25,7 @@ defmodule EirinchanWeb.BoardController do
   def catalog(conn, _params) do
     board = conn.assigns.current_board
     config = conn.assigns.current_board_config
+    _ = Build.ensure_indexes(board, config: config)
 
     case Posts.list_page_data(board, config: config) do
       {:ok, pages} ->
@@ -45,6 +47,7 @@ defmodule EirinchanWeb.BoardController do
   defp render_page(conn, page) do
     board = conn.assigns.current_board
     config = conn.assigns.current_board_config
+    _ = Build.ensure_indexes(board, config: config)
 
     case Posts.list_threads_page(board, page, config: config) do
       {:ok, page_data} ->
