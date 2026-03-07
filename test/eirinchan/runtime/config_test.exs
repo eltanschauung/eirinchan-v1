@@ -85,4 +85,21 @@ defmodule Eirinchan.Runtime.ConfigTest do
 
     refute config.multiple_flags
   end
+
+  test "normalizes comma-separated default user flags when multiple_flags is enabled" do
+    config =
+      Config.compose(
+        %{
+          root: "/",
+          user_flag: true,
+          multiple_flags: true,
+          default_user_flag: " Country, SAU ,spc ",
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    assert config.default_user_flag == "country,sau,spc"
+  end
 end

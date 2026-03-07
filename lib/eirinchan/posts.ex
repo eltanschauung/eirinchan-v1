@@ -548,39 +548,82 @@ defmodule Eirinchan.Posts do
         {flag |> to_string() |> String.trim() |> String.downcase(), to_string(text)}
       end)
 
-    default_flag =
-      config.default_user_flag
-      |> trim_to_nil()
-      |> case do
-        nil ->
-          nil
-
-        value ->
-          normalized = value |> String.trim() |> String.downcase()
-          if Map.has_key?(allowed_flags, normalized), do: normalized, else: nil
+    default_flags =
+      with {:ok, parsed_flags} <-
+             parse_user_flags(trim_to_nil(config.default_user_flag), config.multiple_flags),
+           {:ok, validated_flags} <- validate_user_flags(parsed_flags, allowed_flags) do
+        validated_flags
       end
 
-    selected_flag =
+    selected_flags =
       attrs["user_flag"]
       |> trim_to_nil()
       |> case do
-        nil -> default_flag
-        value -> value |> String.trim() |> String.downcase()
+        nil ->
+          default_flags
+
+        raw_flags ->
+          with {:ok, parsed_flags} <- parse_user_flags(raw_flags, config.multiple_flags),
+               {:ok, validated_flags} <- validate_user_flags(parsed_flags, allowed_flags) do
+            validated_flags
+          end
       end
 
-    cond do
-      is_nil(selected_flag) or selected_flag == "" ->
+    case selected_flags do
+      {:error, :invalid_user_flag} ->
+        {:error, :invalid_user_flag}
+
+      [] ->
         {:ok, attrs |> Map.put("flag_codes", []) |> Map.put("flag_alts", [])}
 
-      Map.has_key?(allowed_flags, selected_flag) ->
+      flags when is_list(flags) ->
         {:ok,
          attrs
-         |> Map.put("flag_codes", [selected_flag])
-         |> Map.put("flag_alts", [Map.fetch!(allowed_flags, selected_flag)])}
-
-      true ->
-        {:error, :invalid_user_flag}
+         |> Map.put("flag_codes", flags)
+         |> Map.put("flag_alts", Enum.map(flags, &Map.fetch!(allowed_flags, &1)))}
     end
+  end
+
+  defp parse_user_flags(nil, _multiple_flags), do: {:ok, []}
+
+  defp parse_user_flags(raw_flags, true) do
+    if String.length(raw_flags) > 300 do
+      {:error, :invalid_user_flag}
+    else
+      {:ok,
+       raw_flags
+       |> String.split(",", trim: false)
+       |> normalize_user_flag_tokens()
+       |> unique_flags()}
+    end
+  end
+
+  defp parse_user_flags(raw_flags, false) do
+    {:ok, normalize_user_flag_tokens([raw_flags])}
+  end
+
+  defp validate_user_flags(flags, allowed_flags) when is_list(flags) do
+    if Enum.all?(flags, &Map.has_key?(allowed_flags, &1)) do
+      {:ok, flags}
+    else
+      {:error, :invalid_user_flag}
+    end
+  end
+
+  defp normalize_user_flag_tokens(tokens) do
+    tokens
+    |> Enum.map(&(String.trim(&1) |> String.downcase()))
+    |> Enum.reject(&(&1 == ""))
+  end
+
+  defp unique_flags(flags) do
+    Enum.reduce(flags, [], fn flag, acc ->
+      if flag in acc do
+        acc
+      else
+        acc ++ [flag]
+      end
+    end)
   end
 
   defp noko?(email, config) do

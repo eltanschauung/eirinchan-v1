@@ -75,7 +75,15 @@
       name="password"
       placeholder="Password"
     />
-    <select :if={@config.user_flag} name="user_flag">
+    <input
+      :if={@config.user_flag && @config.multiple_flags}
+      type="text"
+      id="user_flag"
+      name="user_flag"
+      value={@config.default_user_flag}
+      placeholder="Flags"
+    />
+    <select :if={@config.user_flag && !@config.multiple_flags} name="user_flag" id="user_flag">
       <option value="">None</option>
       <%= for {flag, text} <- @config.user_flags do %>
         <option value={flag} selected={@config.default_user_flag == flag}><%= text %></option>

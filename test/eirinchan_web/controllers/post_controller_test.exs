@@ -573,6 +573,37 @@ defmodule EirinchanWeb.PostControllerTest do
     assert %{"error" => "Invalid flag selection."} = json_response(conn, 422)
   end
 
+  test "posting accepts deduplicated multiple user flags", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          multiple_flags: true,
+          user_flags: %{"sau" => "Sauce", "spc" => "Space"}
+        }
+      })
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "user_flag" => "sau, spc, sau",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => thread_id} = json_response(conn, 200)
+
+    thread_page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/res/#{thread_id}.html")
+      |> html_response(200)
+
+    assert thread_page =~ "Flags: Sauce, Space"
+  end
+
   test "report branch creates a report and returns thread redirect metadata", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{slugify: true}})
     thread = thread_fixture(board, %{subject: "Reported subject", body: "Thread body"})

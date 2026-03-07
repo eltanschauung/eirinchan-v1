@@ -43,15 +43,15 @@ redirect response mode for classic posting: partial
 country flag auto-injection from client IP metadata: incomplete
 no_country override handling: incomplete
 user_flag single-select support: partial
-multiple_flags freeform comma parsing support: incomplete
+multiple_flags freeform comma parsing support: partial
 default_user_flag behavior (defaults to country): partial
 user_flag allowlist validation and normalization: partial
 country pseudo-flag fallback behavior in user_flag pipeline: incomplete
-multi-flag alt text serialization parity: incomplete
+multi-flag alt text serialization parity: partial
 allowed_tags injection for OP tags: incomplete
 proxy_save modifier handling for forwarded IP headers: incomplete
 post body modifier encoding compatibility (<tinyboard ...>): incomplete
-countFlags-style multi-flag count validation behavior: incomplete
+countFlags-style multi-flag count validation behavior: partial
 
 [Posting Pipeline - Anti-Abuse and Quality Gates]
 hidden input anti-spam hash validation: incomplete
