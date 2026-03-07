@@ -57,7 +57,7 @@
           <figure>
             <a href={summary.thread.file_path}>
               <img
-                src={summary.thread.file_path}
+                src={summary.thread.thumb_path || summary.thread.file_path}
                 alt={summary.thread.file_name || "upload"}
                 loading="lazy"
               />
@@ -89,7 +89,11 @@
             <%= if reply.file_path do %>
               <figure>
                 <a href={reply.file_path}>
-                  <img src={reply.file_path} alt={reply.file_name || "upload"} loading="lazy" />
+                  <img
+                    src={reply.thumb_path || reply.file_path}
+                    alt={reply.file_name || "upload"}
+                    loading="lazy"
+                  />
                 </a>
                 <figcaption>
                   <a href={reply.file_path}>

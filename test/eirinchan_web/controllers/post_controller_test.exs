@@ -61,13 +61,15 @@ defmodule EirinchanWeb.PostControllerTest do
 
   test "posting stores uploads and serves them back under board src paths", %{conn: conn} do
     board = board_fixture()
+    upload = upload_fixture("served.png", "served-image")
+    upload_bytes = File.read!(upload.path)
 
     create_conn =
       conn
       |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
       |> post(~p"/#{board.uri}/post", %{
         "body" => "first post",
-        "file" => upload_fixture("served.png", "served-image"),
+        "file" => upload,
         "json_response" => "1",
         "post" => "New Topic"
       })
@@ -80,15 +82,23 @@ defmodule EirinchanWeb.PostControllerTest do
       |> get("/#{board.uri}")
       |> html_response(200)
 
-    assert page =~ "/#{board.uri}/src/#{id}.png"
+    assert page =~ "/#{board.uri}/thumb/#{id}s.png"
 
     file_conn =
       conn
       |> recycle()
       |> get("/#{board.uri}/src/#{id}.png")
 
-    assert response(file_conn, 200) == "served-image"
+    assert response(file_conn, 200) == upload_bytes
     assert get_resp_header(file_conn, "content-type") == ["image/png; charset=utf-8"]
+
+    thumb_conn =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/thumb/#{id}s.png")
+
+    assert response(thumb_conn, 200) != ""
+    assert get_resp_header(thumb_conn, "content-type") == ["image/png; charset=utf-8"]
   end
 
   test "posting enforces required image uploads and file validation errors", %{conn: conn} do
@@ -117,6 +127,35 @@ defmodule EirinchanWeb.PostControllerTest do
       })
 
     assert %{"error" => "File type not allowed."} = json_response(bad_type, 422)
+
+    invalid_image =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => raw_upload_fixture("fake.png", "not-an-image"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "Invalid image."} = json_response(invalid_image, 422)
+  end
+
+  test "posting enforces image dimension limits", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{max_image_width: 8, max_image_height: 8}})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => upload_fixture("wide.png", geometry: "12x9"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "Image dimensions too large."} = json_response(conn, 422)
   end
 
   test "posting enforces image hard limits for file replies", %{conn: conn} do

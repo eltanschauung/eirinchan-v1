@@ -30,7 +30,7 @@
             <figure>
               <a href={summary.thread.file_path}>
                 <img
-                  src={summary.thread.file_path}
+                  src={summary.thread.thumb_path || summary.thread.file_path}
                   alt={summary.thread.file_name || "upload"}
                   loading="lazy"
                 />

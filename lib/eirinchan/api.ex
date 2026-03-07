@@ -114,6 +114,8 @@ defmodule Eirinchan.Api do
     |> maybe_put(:ext, ext)
     |> maybe_put(:fsize, post.file_size)
     |> maybe_put(:md5, post.file_md5)
+    |> maybe_put(:w, post.image_width)
+    |> maybe_put(:h, post.image_height)
     |> maybe_put(:tim, post.id)
   end
 

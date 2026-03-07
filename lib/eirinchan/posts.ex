@@ -24,6 +24,8 @@ defmodule Eirinchan.Posts do
              | :body_required
              | :reply_hard_limit
              | :image_hard_limit
+             | :invalid_image
+             | :image_too_large
              | :duplicate_file
              | :file_required
              | :invalid_file_type
@@ -51,6 +53,7 @@ defmodule Eirinchan.Posts do
            :ok <- validate_thread_lock(thread),
            :ok <- validate_body(op?, attrs, config),
            :ok <- validate_upload(op?, attrs, config),
+           :ok <- validate_image_dimensions(attrs, config),
            :ok <- validate_reply_limit(board, thread, config, repo),
            :ok <- validate_image_limit(board, thread, attrs, config, repo),
            :ok <- validate_duplicate_upload(board, thread, attrs, config, repo),
@@ -292,6 +295,7 @@ defmodule Eirinchan.Posts do
 
           {:error, %Ecto.Changeset{} = changeset} ->
             Uploads.remove(metadata.file_path)
+            Uploads.remove(metadata.thumb_path)
             {:error, changeset}
         end
 
@@ -510,6 +514,29 @@ defmodule Eirinchan.Posts do
     end
   end
 
+  defp validate_image_dimensions(attrs, _config)
+       when not is_map_key(attrs, "__upload_metadata__"),
+       do: :ok
+
+  defp validate_image_dimensions(attrs, config) do
+    width = get_in(attrs, ["__upload_metadata__", :image_width]) || 0
+    height = get_in(attrs, ["__upload_metadata__", :image_height]) || 0
+
+    cond do
+      width < 1 or height < 1 ->
+        {:error, :invalid_image}
+
+      config.max_image_width not in [0, nil] and width > config.max_image_width ->
+        {:error, :image_too_large}
+
+      config.max_image_height not in [0, nil] and height > config.max_image_height ->
+        {:error, :image_too_large}
+
+      true ->
+        :ok
+    end
+  end
+
   defp validate_delete_password(%Post{password: stored_password}, provided_password) do
     if trim_to_nil(stored_password) == provided_password and not is_nil(provided_password) do
       :ok
@@ -702,15 +729,19 @@ defmodule Eirinchan.Posts do
       repo.all(
         from post in Post,
           where: post.thread_id == ^thread_id and not is_nil(post.file_path),
-          select: post.file_path
+          select: {post.file_path, post.thumb_path}
       )
 
-    [thread.file_path | reply_paths]
+    [
+      thread.file_path,
+      thread.thumb_path
+      | Enum.flat_map(reply_paths, fn {file_path, thumb_path} -> [file_path, thumb_path] end)
+    ]
     |> Enum.reject(&is_nil/1)
   end
 
   defp post_delete_file_paths(%Post{} = post, _repo) do
-    Enum.reject([post.file_path], &is_nil/1)
+    Enum.reject([post.file_path, post.thumb_path], &is_nil/1)
   end
 
   defp image_count(post), do: if(image_post?(post), do: 1, else: 0)

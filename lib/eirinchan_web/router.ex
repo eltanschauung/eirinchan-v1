@@ -100,6 +100,7 @@ defmodule EirinchanWeb.Router do
     get "/", PageController, :home
     get "/feedback", FeedbackController, :show
     post "/feedback", FeedbackController, :create
+    get "/:board/thumb/:filename", UploadedFileController, :show_thumb
     get "/:board/src/:filename", UploadedFileController, :show
     get "/:board/catalog.html", BoardController, :catalog
     get "/:board/:page_num_html", BoardController, :show_page
