@@ -140,6 +140,52 @@ defmodule Eirinchan.UploadsFixtures do
     }
   end
 
+  def serve_json_response(body, opts \\ []) do
+    {:ok, listen_socket} =
+      :gen_tcp.listen(0, [
+        :binary,
+        packet: :raw,
+        active: false,
+        reuseaddr: true,
+        ip: {127, 0, 0, 1}
+      ])
+
+    {:ok, {_address, port}} = :inet.sockname(listen_socket)
+    status_line = Keyword.get(opts, :status_line, "HTTP/1.1 200 OK")
+
+    {:ok, task} =
+      Task.start_link(fn ->
+        {:ok, socket} = :gen_tcp.accept(listen_socket)
+        _ = :gen_tcp.recv(socket, 0)
+
+        response = [
+          status_line,
+          "\r\n",
+          "Content-Length: #{byte_size(body)}\r\n",
+          "Content-Type: application/json\r\n",
+          "Connection: close\r\n\r\n",
+          body
+        ]
+
+        :ok = :gen_tcp.send(socket, response)
+        :gen_tcp.close(socket)
+        :gen_tcp.close(listen_socket)
+      end)
+
+    %{
+      url: "http://127.0.0.1:#{port}/verify",
+      stop: fn ->
+        _ = :gen_tcp.close(listen_socket)
+
+        if Process.alive?(task) do
+          Process.exit(task, :kill)
+        end
+
+        :ok
+      end
+    }
+  end
+
   defp normalize_opts(opts) when is_list(opts) do
     %{
       content: to_string(Keyword.get(opts, :content, "fixture")),

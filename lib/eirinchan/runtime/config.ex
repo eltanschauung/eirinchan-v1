@@ -111,6 +111,9 @@ defmodule Eirinchan.Runtime.Config do
       enabled: false,
       provider: "native",
       expected_response: nil,
+      verify_url: nil,
+      secret: nil,
+      http_timeout_ms: 5_000,
       mode: "always",
       refresh_on_error: true,
       challenge: nil
@@ -261,6 +264,9 @@ defmodule Eirinchan.Runtime.Config do
       |> Map.put_new(:enabled, false)
       |> Map.put_new(:provider, "native")
       |> Map.put_new(:expected_response, nil)
+      |> Map.put_new(:verify_url, nil)
+      |> Map.put_new(:secret, nil)
+      |> Map.put_new(:http_timeout_ms, 5_000)
       |> Map.put_new(:mode, "always")
       |> Map.put_new(:refresh_on_error, true)
       |> Map.put_new(:challenge, nil)

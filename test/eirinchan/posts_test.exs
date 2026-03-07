@@ -1216,6 +1216,38 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post supports hosted captcha verification endpoints" do
+    server = serve_json_response(~s({"success":true}))
+
+    on_exit(fn ->
+      server.stop.()
+    end)
+
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          captcha: %{
+            enabled: true,
+            provider: "recaptcha",
+            verify_url: server.url,
+            secret: "topsecret"
+          }
+        }
+      })
+
+    assert {:ok, _thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "g-recaptcha-response" => "remote-ok",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
   test "create_post applies captcha mode only to the configured post type" do
     board =
       board_fixture(%{

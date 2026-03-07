@@ -10,6 +10,7 @@ defmodule Eirinchan.Posts do
   alias Eirinchan.Bans
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
+  alias Eirinchan.Captcha
   alias Eirinchan.Moderation
   alias Eirinchan.Moderation.ModUser
   alias Eirinchan.Posts.Cite
@@ -1590,23 +1591,9 @@ defmodule Eirinchan.Posts do
     if moderator_board_access?(request, board) or not captcha_required?(config, op?) do
       :ok
     else
-      provider = get_in(config, [:captcha, :provider]) || "native"
-      expected = get_in(config, [:captcha, :expected_response])
-      field = captcha_field(provider)
-      response = attrs[field] |> to_string() |> String.trim()
-
-      if expected && response != "" && response == expected do
-        :ok
-      else
-        {:error, :invalid_captcha}
-      end
+      Captcha.verify(config, attrs, request)
     end
   end
-
-  defp captcha_field("native"), do: "captcha"
-  defp captcha_field("recaptcha"), do: "g-recaptcha-response"
-  defp captcha_field("hcaptcha"), do: "h-captcha-response"
-  defp captcha_field(_provider), do: "captcha"
 
   defp validate_ban(request, board) do
     if moderator_board_access?(request, board) do
