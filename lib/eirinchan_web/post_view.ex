@@ -113,12 +113,31 @@ defmodule EirinchanWeb.PostView do
 
   def formatted_timestamp(_post), do: ""
 
+  def iso_timestamp(%{inserted_at: %DateTime{} = inserted_at}),
+    do: DateTime.to_iso8601(inserted_at)
+
+  def iso_timestamp(%{inserted_at: %NaiveDateTime{} = inserted_at}),
+    do: NaiveDateTime.to_iso8601(inserted_at)
+
+  def iso_timestamp(_post), do: nil
+
   def unix_timestamp(%DateTime{} = value), do: DateTime.to_unix(value)
 
   def unix_timestamp(%NaiveDateTime{} = value),
     do: value |> DateTime.from_naive!("Etc/UTC") |> DateTime.to_unix()
 
   def unix_timestamp(_value), do: 0
+
+  def file_size_text(file), do: human_file_size(Map.get(file, :file_size))
+  def file_dimensions(file), do: dimensions(file)
+
+  def catalog_label(post, config) do
+    cond do
+      present?(post.subject) -> post.subject
+      config.fileboard && present?(post.file_name) -> post.file_name
+      true -> nil
+    end
+  end
 
   def all_files(post) do
     primary =

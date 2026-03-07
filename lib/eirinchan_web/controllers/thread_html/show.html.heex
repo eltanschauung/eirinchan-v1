@@ -242,7 +242,11 @@
             File:
             <a href={file.file_path} target="_blank"><%= PostView.stored_file_name(file) %></a>
             <span>
-              (<%= PostView.file_info_details(file, @config) %>)
+              (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
+                do: raw(", " <> PostView.file_dimensions(file)) %>, <span
+                class="postfilename"
+                title={PostView.original_file_name(file)}
+              ><%= PostView.original_file_name(file) %></span>)
             </span>
           </p>
           <a href={file.file_path} target="_blank">
@@ -279,8 +283,11 @@
           <%= for flag <- PostView.post_flags(post, @config) do %>
             <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
           <% end %>
-          <time><%= PostView.formatted_timestamp(post) %></time>
+          <time datetime={PostView.iso_timestamp(post)}>
+            <%= PostView.formatted_timestamp(post) %>
+          </time>
         </label>
+        &nbsp;
         <a
           class="post_no"
           id={"post_no_#{post.id}"}
@@ -357,8 +364,11 @@
             <%= for flag <- PostView.post_flags(reply, @config) do %>
               <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
             <% end %>
-            <time><%= PostView.formatted_timestamp(reply) %></time>
+            <time datetime={PostView.iso_timestamp(reply)}>
+              <%= PostView.formatted_timestamp(reply) %>
+            </time>
           </label>
+          &nbsp;
           <a
             class="post_no"
             id={"post_no_#{reply.id}"}
@@ -389,7 +399,11 @@
                   <%= PostView.stored_file_name(file) %>
                 </a>
                 <span>
-                  (<%= PostView.file_info_details(file, @config) %>)
+                  (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
+                    do: raw(", " <> PostView.file_dimensions(file)) %>, <span
+                    class="postfilename"
+                    title={PostView.original_file_name(file)}
+                  ><%= PostView.original_file_name(file) %></span>)
                 </span>
               </p>
               <a href={file.file_path} target="_blank">
