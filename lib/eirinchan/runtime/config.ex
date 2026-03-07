@@ -33,6 +33,7 @@ defmodule Eirinchan.Runtime.Config do
     timezone: "UTC",
     anonymous: "Anonymous",
     global_message: false,
+    banners: [],
     allow_roll: false,
     try_smarter: false,
     board_locked: false,
