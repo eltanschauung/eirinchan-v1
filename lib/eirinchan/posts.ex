@@ -53,7 +53,7 @@ defmodule Eirinchan.Posts do
            :ok <- validate_board_lock(config),
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
            :ok <- validate_thread_lock(thread),
-           {:ok, attrs} <- normalize_post_metadata(attrs, config),
+           {:ok, attrs} <- normalize_post_metadata(attrs, config, request),
            :ok <- validate_body(op?, attrs, config),
            :ok <- validate_body_limits(attrs, config),
            :ok <- validate_upload(op?, attrs, config),
@@ -499,13 +499,16 @@ defmodule Eirinchan.Posts do
     |> Map.update("email", nil, &normalize_email/1)
   end
 
-  defp normalize_post_metadata(attrs, config) do
+  defp normalize_post_metadata(attrs, config, request) do
     attrs =
       attrs
       |> normalize_post_identity(config)
       |> normalize_noko_email()
 
-    normalize_user_flag(attrs, config)
+    with {:ok, attrs} <- normalize_country_flag(attrs, config, request),
+         {:ok, attrs} <- normalize_user_flag(attrs, config, request) do
+      {:ok, attrs}
+    end
   end
 
   defp default_name(nil, config), do: config.anonymous
@@ -539,9 +542,29 @@ defmodule Eirinchan.Posts do
     end
   end
 
-  defp normalize_user_flag(attrs, %{user_flag: false}), do: {:ok, attrs}
+  defp normalize_country_flag(attrs, %{country_flags: false}, _request) do
+    {:ok, attrs |> Map.put_new("flag_codes", []) |> Map.put_new("flag_alts", [])}
+  end
 
-  defp normalize_user_flag(attrs, config) do
+  defp normalize_country_flag(attrs, config, request) do
+    if config.allow_no_country and truthy?(Map.get(attrs, "no_country")) do
+      {:ok, attrs |> Map.put("flag_codes", []) |> Map.put("flag_alts", [])}
+    else
+      case resolve_country_flag(config, request, false) do
+        nil ->
+          {:ok, attrs |> Map.put("flag_codes", []) |> Map.put("flag_alts", [])}
+
+        {code, alt} ->
+          {:ok, attrs |> Map.put("flag_codes", [code]) |> Map.put("flag_alts", [alt])}
+      end
+    end
+  end
+
+  defp normalize_user_flag(attrs, %{user_flag: false}, _request) do
+    {:ok, attrs |> Map.put_new("flag_codes", []) |> Map.put_new("flag_alts", [])}
+  end
+
+  defp normalize_user_flag(attrs, config, request) do
     allowed_flags =
       config.user_flags
       |> Enum.into(%{}, fn {flag, text} ->
@@ -574,14 +597,32 @@ defmodule Eirinchan.Posts do
         {:error, :invalid_user_flag}
 
       [] ->
-        {:ok, attrs |> Map.put("flag_codes", []) |> Map.put("flag_alts", [])}
+        {:ok, attrs |> Map.put_new("flag_codes", []) |> Map.put_new("flag_alts", [])}
 
       flags when is_list(flags) ->
+        existing_pairs =
+          Enum.zip(Map.get(attrs, "flag_codes", []), Map.get(attrs, "flag_alts", []))
+
+        resolved_pairs =
+          Enum.map(flags, fn flag ->
+            resolve_user_flag(flag, allowed_flags, config, request)
+          end)
+
+        pairs = unique_flag_pairs(existing_pairs ++ resolved_pairs)
+
         {:ok,
          attrs
-         |> Map.put("flag_codes", flags)
-         |> Map.put("flag_alts", Enum.map(flags, &Map.fetch!(allowed_flags, &1)))}
+         |> Map.put("flag_codes", Enum.map(pairs, &elem(&1, 0)))
+         |> Map.put("flag_alts", Enum.map(pairs, &elem(&1, 1)))}
     end
+  end
+
+  defp resolve_user_flag("country", _allowed_flags, config, request) do
+    resolve_country_flag(config, request, true)
+  end
+
+  defp resolve_user_flag(flag, allowed_flags, _config, _request) do
+    {flag, Map.fetch!(allowed_flags, flag)}
   end
 
   defp parse_user_flags(nil, _multiple_flags), do: {:ok, []}
@@ -625,6 +666,112 @@ defmodule Eirinchan.Posts do
       end
     end)
   end
+
+  defp unique_flag_pairs(flag_pairs) do
+    Enum.reduce(flag_pairs, [], fn {code, alt}, acc ->
+      if Enum.any?(acc, fn {existing_code, _existing_alt} -> existing_code == code end) do
+        acc
+      else
+        acc ++ [{code, alt}]
+      end
+    end)
+  end
+
+  defp resolve_country_flag(config, request, allow_fallback?) do
+    case country_metadata(request, config) do
+      {code, alt} ->
+        {code, alt}
+
+      nil when allow_fallback? ->
+        normalize_country_metadata(config.country_flag_fallback)
+
+      nil ->
+        nil
+    end
+  end
+
+  defp country_metadata(request, config) do
+    request
+    |> request_country_metadata()
+    |> case do
+      nil ->
+        request
+        |> request_remote_ip()
+        |> lookup_country_metadata(config.country_flag_data)
+
+      metadata ->
+        metadata
+    end
+    |> normalize_country_metadata()
+    |> reject_excluded_country(config.country_flag_exclusions)
+  end
+
+  defp request_country_metadata(request) do
+    Map.get(request, :country) || Map.get(request, "country") ||
+      case {Map.get(request, :country_code) || Map.get(request, "country_code"),
+            Map.get(request, :country_name) || Map.get(request, "country_name")} do
+        {nil, nil} -> nil
+        {code, name} -> %{code: code, name: name}
+      end
+  end
+
+  defp request_remote_ip(request) do
+    case Map.get(request, :remote_ip) || Map.get(request, "remote_ip") do
+      nil -> nil
+      ip -> normalize_ip(ip)
+    end
+  end
+
+  defp lookup_country_metadata(nil, _country_flag_data), do: nil
+
+  defp lookup_country_metadata(remote_ip, country_flag_data) when is_map(country_flag_data) do
+    Map.get(country_flag_data, remote_ip) || Map.get(country_flag_data, to_string(remote_ip))
+  end
+
+  defp normalize_country_metadata(nil), do: nil
+
+  defp normalize_country_metadata(%{code: code, name: name}),
+    do: normalize_country_metadata({code, name})
+
+  defp normalize_country_metadata(%{"code" => code, "name" => name}),
+    do: normalize_country_metadata({code, name})
+
+  defp normalize_country_metadata([code, name]), do: normalize_country_metadata({code, name})
+
+  defp normalize_country_metadata({code, name}) do
+    normalized_code =
+      code
+      |> to_string()
+      |> String.trim()
+      |> String.downcase()
+
+    normalized_name =
+      name
+      |> to_string()
+      |> String.trim()
+
+    if normalized_code == "" or normalized_name == "" do
+      nil
+    else
+      {normalized_code, normalized_name}
+    end
+  end
+
+  defp reject_excluded_country(nil, _excluded_codes), do: nil
+
+  defp reject_excluded_country({code, alt}, excluded_codes) do
+    if code in excluded_codes, do: nil, else: {code, alt}
+  end
+
+  defp normalize_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
+
+  defp normalize_ip({a, b, c, d, e, f, g, h}) do
+    [a, b, c, d, e, f, g, h]
+    |> Enum.map(&Integer.to_string(&1, 16))
+    |> Enum.join(":")
+  end
+
+  defp normalize_ip(ip) when is_binary(ip), do: String.trim(ip)
 
   defp noko?(email, config) do
     case String.downcase(email || "") do

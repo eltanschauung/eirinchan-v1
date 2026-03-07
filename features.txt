@@ -40,13 +40,13 @@ JSON response mode for ajax posting: partial
 redirect response mode for classic posting: partial
 
 [Posting Pipeline - Custom/Extended Flags and Metadata]
-country flag auto-injection from client IP metadata: incomplete
-no_country override handling: incomplete
+country flag auto-injection from client IP metadata: partial
+no_country override handling: partial
 user_flag single-select support: partial
 multiple_flags freeform comma parsing support: partial
 default_user_flag behavior (defaults to country): partial
 user_flag allowlist validation and normalization: partial
-country pseudo-flag fallback behavior in user_flag pipeline: incomplete
+country pseudo-flag fallback behavior in user_flag pipeline: partial
 multi-flag alt text serialization parity: partial
 allowed_tags injection for OP tags: incomplete
 proxy_save modifier handling for forwarded IP headers: incomplete

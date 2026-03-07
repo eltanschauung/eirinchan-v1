@@ -19,6 +19,9 @@
       name="password"
       placeholder="Password"
     />
+    <label :if={@config.country_flags && @config.allow_no_country}>
+      <input type="checkbox" name="no_country" value="1" /> No country
+    </label>
     <input
       :if={@config.user_flag && @config.multiple_flags}
       type="text"
