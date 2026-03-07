@@ -21,6 +21,17 @@ defmodule Eirinchan.Build do
     end
   end
 
+  @spec rebuild_thread_state(BoardRecord.t(), integer(), keyword()) :: :ok | {:error, term()}
+  def rebuild_thread_state(%BoardRecord{} = board, thread_id, opts \\ []) do
+    config = Keyword.fetch!(opts, :config)
+    repo = Keyword.get(opts, :repo)
+
+    with :ok <- build_thread(board, thread_id, config: config, repo: repo),
+         :ok <- build_indexes(board, config: config, repo: repo) do
+      :ok
+    end
+  end
+
   @spec build_thread(BoardRecord.t(), integer(), keyword()) :: :ok | {:error, term()}
   def build_thread(%BoardRecord{} = board, thread_id, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
@@ -172,8 +183,9 @@ defmodule Eirinchan.Build do
         replies = render_preview_replies(summary.replies)
         omitted = render_omitted(summary)
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
+        badges = render_thread_badges(summary.thread)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2><p>#{body}</p>#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p>#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -207,6 +219,7 @@ defmodule Eirinchan.Build do
     <body>
     <article id="p#{summary.thread.id}">
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</h1>
+    #{render_thread_badges(summary.thread)}
     <p>#{html_escape(summary.thread.body || "")}</p>
     </article>
     #{replies_html}
@@ -223,8 +236,9 @@ defmodule Eirinchan.Build do
         title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
         body = html_escape(summary.thread.body || "")
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
+        badges = render_thread_badges(summary.thread)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2><p>#{body}</p><p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p><p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -245,6 +259,23 @@ defmodule Eirinchan.Build do
     legacy = ThreadPaths.legacy_thread_filename(thread, config)
     Enum.uniq([canonical, legacy])
   end
+
+  defp render_thread_badges(thread) do
+    labels =
+      []
+      |> maybe_add_badge(thread.sticky, "Sticky")
+      |> maybe_add_badge(thread.locked, "Locked")
+      |> maybe_add_badge(thread.cycle, "Cyclical")
+      |> maybe_add_badge(thread.sage, "Bumplocked")
+
+    case labels do
+      [] -> ""
+      _ -> ~s(<p class="thread-flags">#{Enum.join(labels, " ")}</p>)
+    end
+  end
+
+  defp maybe_add_badge(labels, true, label), do: labels ++ ["[#{label}]"]
+  defp maybe_add_badge(labels, _enabled, _label), do: labels
 
   defp render_preview_replies(replies) do
     Enum.map_join(replies, "\n", fn reply ->

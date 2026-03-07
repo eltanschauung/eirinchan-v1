@@ -50,6 +50,25 @@ defmodule Eirinchan.Posts do
     end
   end
 
+  @spec update_thread_state(BoardRecord.t(), String.t() | integer(), map(), keyword()) ::
+          {:ok, Post.t()} | {:error, :not_found | Ecto.Changeset.t()}
+  def update_thread_state(%BoardRecord{} = board, thread_id, attrs, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+
+    with {:ok, [thread | _]} <- get_thread(board, thread_id, repo: repo),
+         {:ok, updated_thread} <-
+           thread
+           |> Post.thread_state_changeset(attrs)
+           |> repo.update() do
+      _ = Build.rebuild_thread_state(board, updated_thread.id, config: config, repo: repo)
+      {:ok, updated_thread}
+    else
+      {:error, :not_found} -> {:error, :not_found}
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+    end
+  end
+
   @spec list_threads(BoardRecord.t(), keyword()) :: [Post.t()]
   def list_threads(%BoardRecord{} = board, opts \\ []) do
     config = Keyword.get(opts, :config, Config.compose())
@@ -142,7 +161,7 @@ defmodule Eirinchan.Posts do
         repo.all(
           from post in Post,
             where: post.board_id == ^board.id and post.thread_id == ^thread.id,
-            order_by: [asc: post.inserted_at]
+            order_by: [asc: post.inserted_at, asc: post.id]
         )
 
       {:ok, [thread | replies]}
@@ -397,7 +416,7 @@ defmodule Eirinchan.Posts do
         repo.all(
           from post in Post,
             where: post.thread_id == ^thread.id,
-            order_by: [desc: post.inserted_at],
+            order_by: [desc: post.inserted_at, desc: post.id],
             offset: ^config.cycle_limit,
             select: post.id
         )
@@ -419,7 +438,7 @@ defmodule Eirinchan.Posts do
       repo.all(
         from post in Post,
           where: post.board_id == ^board.id and post.thread_id == ^thread.id,
-          order_by: [desc: post.inserted_at],
+          order_by: [desc: post.inserted_at, desc: post.id],
           limit: ^preview_count
       )
 

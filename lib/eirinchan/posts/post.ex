@@ -48,6 +48,11 @@ defmodule Eirinchan.Posts.Post do
     |> foreign_key_constraint(:thread_id)
   end
 
+  def thread_state_changeset(post, attrs) do
+    post
+    |> cast(attrs, [:sticky, :locked, :cycle, :sage])
+  end
+
   defp normalize_string(nil), do: nil
 
   defp normalize_string(value) do
