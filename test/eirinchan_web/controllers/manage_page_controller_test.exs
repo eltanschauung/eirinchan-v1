@@ -80,6 +80,9 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert persisted =~ "\"label\": \"Administration\""
     assert persisted =~ "\"href\": \"/manage/login\""
     assert persisted =~ "\"label\": \"bant\""
+
+    assert Eirinchan.Boardlist.encode_for_edit(Eirinchan.Boards.list_boards()) =~
+             "\"Administration\""
   end
 
   test "admin can update dnsbl configuration from the dashboard", %{conn: conn} do
