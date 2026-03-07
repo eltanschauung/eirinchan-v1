@@ -1,6 +1,7 @@
 defmodule EirinchanWeb.PageController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Announcement
   alias Eirinchan.Boards
   alias Eirinchan.Installation
   alias Eirinchan.News
@@ -12,6 +13,7 @@ defmodule EirinchanWeb.PageController do
       render(conn, :home,
         layout: false,
         boards: Boards.list_boards(),
+        announcement: Announcement.current(),
         news_entries: News.list_entries(limit: 5)
       )
     end
@@ -24,6 +26,7 @@ defmodule EirinchanWeb.PageController do
       render(conn, :news,
         layout: false,
         boards: Boards.list_boards(),
+        announcement: Announcement.current(),
         news_entries: News.list_entries()
       )
     end

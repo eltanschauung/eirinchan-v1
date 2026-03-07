@@ -6,6 +6,7 @@
 
 <nav>
   <a href={~p"/"}>Home</a>
+  <a href={~p"/manage/announcement/browser"}>Announcement</a>
   <a href={~p"/news"}>News</a>
   <a href={~p"/manage/news/browser"}>Manage News</a>
   <a href={~p"/manage/recent-posts/browser"}>Recent Posts</a>
@@ -57,6 +58,18 @@
         <p><a href={"/manage/boards/#{board.uri}/ban-appeals/browser"}>Ban Appeals</a></p>
       </article>
     <% end %>
+  <% end %>
+</section>
+
+<section>
+  <h2>Announcement</h2>
+  <%= if @announcement do %>
+    <article>
+      <h3><%= @announcement.title %></h3>
+      <p><%= @announcement.body %></p>
+    </article>
+  <% else %>
+    <p>No announcement is active.</p>
   <% end %>
 </section>
 

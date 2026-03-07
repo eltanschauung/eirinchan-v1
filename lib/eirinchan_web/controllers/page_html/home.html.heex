@@ -14,6 +14,14 @@
   <a href={~p"/feedback"}>Feedback</a>
 </nav>
 
+<section :if={@announcement}>
+  <h2>Announcement</h2>
+  <article>
+    <h3><%= @announcement.title %></h3>
+    <p><%= @announcement.body %></p>
+  </article>
+</section>
+
 <section>
   <h2>News</h2>
   <%= if @news_entries == [] do %>

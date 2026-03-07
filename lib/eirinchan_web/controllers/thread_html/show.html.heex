@@ -28,6 +28,13 @@
       <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
     <% end %>
   </nav>
+  <section :if={@announcement}>
+    <h2>Announcement</h2>
+    <article>
+      <h3><%= @announcement.title %></h3>
+      <p><%= @announcement.body %></p>
+    </article>
+  </section>
   <%= if @summary.thread.file_path do %>
     <figure>
       <a href={@summary.thread.file_path}>

@@ -56,6 +56,9 @@ defmodule EirinchanWeb.Router do
     get "/login", ManagePageController, :login
     post "/login/browser", ManagePageController, :create_session
     get "/", ManagePageController, :dashboard
+    get "/announcement/browser", ManagePageController, :announcement
+    post "/announcement/browser", ManagePageController, :upsert_announcement
+    delete "/announcement/browser", ManagePageController, :delete_announcement
     get "/news/browser", ManagePageController, :news
     post "/news/browser", ManagePageController, :create_news
     patch "/news/browser/:id", ManagePageController, :update_news

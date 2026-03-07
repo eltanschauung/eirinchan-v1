@@ -62,6 +62,14 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
   test "board page loads through the DB-backed board context", %{conn: conn} do
     board_fixture(%{uri: "meta", title: "Meta"})
     board = board_fixture(%{title: "Technology", subtitle: "Wired"})
+    moderator = moderator_fixture(%{username: "siteadmin"})
+
+    {:ok, _announcement} =
+      Eirinchan.Announcement.upsert(%{
+        title: "Board notice",
+        body: "Visible on boards",
+        mod_user_id: moderator.id
+      })
 
     response =
       conn
@@ -71,6 +79,8 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert response =~ "/ #{board.uri} / - Technology"
     assert response =~ "Wired"
     assert response =~ "/ meta /"
+    assert response =~ "Board notice"
+    assert response =~ "Visible on boards"
     assert response =~ "No threads yet."
   end
 
