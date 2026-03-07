@@ -3,6 +3,10 @@
   <h1>
     / <%= @board.uri %> / - <%= @summary.thread.subject || "Thread ##{@summary.thread.id}" %>
   </h1>
+  <p>
+    <a href={Eirinchan.ThreadPaths.board_page_path(@board, @page_num, @config)}>Return</a>
+  </p>
+  <p><a href={"/#{@board.uri}/catalog.html"}>Catalog</a></p>
   <p><%= @summary.thread.body %></p>
 </section>
 

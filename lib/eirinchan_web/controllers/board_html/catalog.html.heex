@@ -1,0 +1,26 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>/ <%= @board.uri %> / - <%= @board.title %></h1>
+  <p><a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>Return</a></p>
+</section>
+
+<section>
+  <h2>Catalog</h2>
+  <%= if @threads == [] do %>
+    <p>No threads yet.</p>
+  <% else %>
+    <div id="catalog">
+      <%= for summary <- @threads do %>
+        <article id={"catalog-#{summary.thread.id}"}>
+          <h3>
+            <a href={Eirinchan.ThreadPaths.thread_path(@board, summary.thread, @config)}>
+              <%= summary.thread.subject || "Thread ##{summary.thread.id}" %>
+            </a>
+          </h3>
+          <p><%= summary.thread.body %></p>
+          <p><%= summary.reply_count %> replies</p>
+        </article>
+      <% end %>
+    </div>
+  <% end %>
+</section>

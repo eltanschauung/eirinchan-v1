@@ -6,6 +6,7 @@ defmodule Eirinchan.Build do
   alias Eirinchan.Api
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Posts
+  alias Eirinchan.ThreadPaths
 
   @spec rebuild_after_post(BoardRecord.t(), Eirinchan.Posts.Post.t(), keyword()) ::
           :ok | {:error, term()}
@@ -28,9 +29,13 @@ defmodule Eirinchan.Build do
     case Posts.get_thread_view(board, thread_id, repo: repo) do
       {:ok, summary} ->
         html = render_thread(board, summary)
-        output = Path.join([board_root(), board.uri, config.dir.res, "#{summary.thread.id}.html"])
 
-        with :ok <- write_file(output, html) do
+        output_paths =
+          summary.thread
+          |> thread_output_filenames(config)
+          |> Enum.map(&Path.join([board_root(), board.uri, config.dir.res, &1]))
+
+        with :ok <- write_files(output_paths, html) do
           if get_in(config, [:api, :enabled]) do
             json_output =
               Path.join([board_root(), board.uri, config.dir.res, "#{summary.thread.id}.json"])
@@ -50,15 +55,11 @@ defmodule Eirinchan.Build do
   def build_indexes(%BoardRecord{} = board, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
     repo = Keyword.get(opts, :repo)
-    {:ok, first_page} = Posts.list_threads_page(board, 1, config: config, repo: repo)
-
-    page_data_list =
-      Enum.map(1..first_page.total_pages, fn page ->
-        {:ok, page_data} = Posts.list_threads_page(board, page, config: config, repo: repo)
-        page_data
-      end)
+    {:ok, page_data_list} = Posts.list_page_data(board, config: config, repo: repo)
+    first_page = hd(page_data_list)
 
     with :ok <- write_index_pages(board, page_data_list, config),
+         :ok <- write_catalog_page(board, page_data_list, config),
          :ok <- write_api_pages(board, page_data_list, config) do
       remove_stale_index_pages(board, first_page.total_pages, config)
     end
@@ -80,6 +81,15 @@ defmodule Eirinchan.Build do
     end
   end
 
+  defp write_files(paths, content) do
+    Enum.reduce_while(paths, :ok, fn path, :ok ->
+      case write_file(path, content) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
   defp write_index_pages(board, page_data_list, config) do
     Enum.reduce_while(page_data_list, :ok, fn page_data, :ok ->
       filename =
@@ -89,7 +99,7 @@ defmodule Eirinchan.Build do
           String.replace(config.file_page, "%d", Integer.to_string(page_data.page))
         end
 
-      html = render_index(board, page_data)
+      html = render_index(board, page_data, config)
       output = Path.join([board_root(), board.uri, filename])
 
       case write_file(output, html) do
@@ -97,6 +107,12 @@ defmodule Eirinchan.Build do
         error -> {:halt, error}
       end
     end)
+  end
+
+  defp write_catalog_page(board, page_data_list, config) do
+    html = render_catalog(board, page_data_list, config)
+    output = Path.join([board_root(), board.uri, config.file_catalog])
+    write_file(output, html)
   end
 
   defp write_api_pages(_board, _page_data_list, %{api: %{enabled: false}}), do: :ok
@@ -148,15 +164,16 @@ defmodule Eirinchan.Build do
     :ok
   end
 
-  defp render_index(board, page_data) do
+  defp render_index(board, page_data, config) do
     items =
       Enum.map_join(page_data.threads, "\n", fn summary ->
         title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
         body = html_escape(summary.thread.body || "")
         replies = render_preview_replies(summary.replies)
         omitted = render_omitted(summary)
+        thread_path = ThreadPaths.thread_path(board, summary.thread, config)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="/#{board.uri}/res/#{summary.thread.id}.html">#{title}</a></h2><p>#{body}</p>#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2><p>#{body}</p>#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -196,6 +213,37 @@ defmodule Eirinchan.Build do
     </body>
     </html>
     """
+  end
+
+  defp render_catalog(board, page_data_list, config) do
+    items =
+      page_data_list
+      |> Enum.flat_map(& &1.threads)
+      |> Enum.map_join("\n", fn summary ->
+        title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
+        body = html_escape(summary.thread.body || "")
+        thread_path = ThreadPaths.thread_path(board, summary.thread, config)
+
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2><p>#{body}</p><p>#{summary.reply_count} replies</p></article>)
+      end)
+
+    """
+    <!doctype html>
+    <html>
+    <head><meta charset="utf-8"><title>/#{html_escape(board.uri)}/ - #{html_escape(board.title)} catalog</title></head>
+    <body>
+    <h1>/#{html_escape(board.uri)}/ - #{html_escape(board.title)}</h1>
+    <p><a href="/#{html_escape(board.uri)}">Return</a></p>
+    #{items}
+    </body>
+    </html>
+    """
+  end
+
+  defp thread_output_filenames(thread, config) do
+    canonical = ThreadPaths.thread_filename(thread, config)
+    legacy = ThreadPaths.legacy_thread_filename(thread, config)
+    Enum.uniq([canonical, legacy])
   end
 
   defp render_preview_replies(replies) do

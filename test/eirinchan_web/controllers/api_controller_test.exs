@@ -50,11 +50,23 @@ defmodule EirinchanWeb.ApiControllerTest do
       |> get("/api/#{board.uri}/res/#{thread.id}")
       |> json_response(200)
 
+    boards_json =
+      conn
+      |> recycle()
+      |> put_req_header("accept", "application/json")
+      |> get("/api/boards.json")
+      |> json_response(200)
+
     assert length(page_json["threads"]) == 1
     assert length(catalog_json) == 2
     assert Enum.all?(threads_json, &Map.has_key?(&1, "threads"))
     assert [op | replies] = thread_json["posts"]
     assert op["resto"] == 0
     assert length(replies) == 1
+
+    assert Enum.any?(
+             boards_json["boards"],
+             &(&1["board"] == board.uri and &1["title"] == board.title)
+           )
   end
 end

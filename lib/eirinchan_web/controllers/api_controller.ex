@@ -2,9 +2,14 @@ defmodule EirinchanWeb.ApiController do
   use EirinchanWeb, :controller
 
   alias Eirinchan.Api
+  alias Eirinchan.Boards
   alias Eirinchan.Posts
 
-  plug EirinchanWeb.Plugs.LoadBoard
+  plug EirinchanWeb.Plugs.LoadBoard when action in [:page, :catalog, :threads, :thread]
+
+  def boards(conn, _params) do
+    json(conn, Api.boards_json(Boards.list_boards()))
+  end
 
   def page(conn, %{"page_num" => page_num}) do
     board = conn.assigns.current_board
@@ -21,28 +26,14 @@ defmodule EirinchanWeb.ApiController do
   def catalog(conn, _params) do
     board = conn.assigns.current_board
     config = conn.assigns.current_board_config
-    {:ok, first_page} = Posts.list_threads_page(board, 1, config: config)
-
-    pages =
-      Enum.map(1..first_page.total_pages, fn page ->
-        {:ok, page_data} = Posts.list_threads_page(board, page, config: config)
-        page_data
-      end)
-
+    {:ok, pages} = Posts.list_page_data(board, config: config)
     json(conn, Api.catalog_json(pages))
   end
 
   def threads(conn, _params) do
     board = conn.assigns.current_board
     config = conn.assigns.current_board_config
-    {:ok, first_page} = Posts.list_threads_page(board, 1, config: config)
-
-    pages =
-      Enum.map(1..first_page.total_pages, fn page ->
-        {:ok, page_data} = Posts.list_threads_page(board, page, config: config)
-        page_data
-      end)
-
+    {:ok, pages} = Posts.list_page_data(board, config: config)
     json(conn, Api.catalog_json(pages, threads_page: true))
   end
 

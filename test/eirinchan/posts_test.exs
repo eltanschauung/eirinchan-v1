@@ -203,6 +203,50 @@ defmodule Eirinchan.PostsTest do
     assert hd(page_after_sage.threads).thread.id == older_thread.id
   end
 
+  test "find_thread_page tracks bump ordering and slug thread ids" do
+    board = board_fixture(%{config_overrides: %{threads_per_page: 1, slugify: true}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, older_thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Older body", "subject" => "Older subject", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    assert {:ok, newer_thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Newer body", "subject" => "Newer subject", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(older_thread.id),
+                 "body" => "Bumping reply",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, 1} = Posts.find_thread_page(board, older_thread.id, config: config)
+
+    assert {:ok, 2} =
+             Posts.find_thread_page(board, "#{newer_thread.id}-newer-subject.html", config: config)
+
+    assert {:ok, [thread | _]} =
+             Posts.get_thread(board, "#{older_thread.id}-older-subject.html", config: config)
+
+    assert thread.id == older_thread.id
+  end
+
   test "list_threads_page returns previews, omitted counts, and page metadata" do
     board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
     config = post_config(board.config_overrides)
