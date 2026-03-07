@@ -8,6 +8,11 @@ defmodule Eirinchan.Posts.Post do
     field :subject, :string
     field :password, :string
     field :body, :string
+    field :file_name, :string
+    field :file_path, :string
+    field :file_size, :integer
+    field :file_type, :string
+    field :file_md5, :string
     field :bump_at, :utc_datetime_usec
     field :sticky, :boolean, default: false
     field :locked, :boolean, default: false
@@ -31,6 +36,11 @@ defmodule Eirinchan.Posts.Post do
       :subject,
       :password,
       :body,
+      :file_name,
+      :file_path,
+      :file_size,
+      :file_type,
+      :file_md5,
       :bump_at,
       :sticky,
       :locked,
@@ -43,7 +53,7 @@ defmodule Eirinchan.Posts.Post do
     |> update_change(:subject, &normalize_string/1)
     |> update_change(:password, &normalize_string/1)
     |> update_change(:body, &normalize_body/1)
-    |> validate_required([:board_id, :body])
+    |> validate_required([:board_id])
     |> foreign_key_constraint(:board_id)
     |> foreign_key_constraint(:thread_id)
   end

@@ -161,7 +161,13 @@ defmodule EirinchanWeb.PostController do
   defp error_status(:invalid_post_mode), do: :forbidden
   defp error_status(:board_locked), do: :forbidden
   defp error_status(:reply_hard_limit), do: :unprocessable_entity
+  defp error_status(:image_hard_limit), do: :unprocessable_entity
+  defp error_status(:duplicate_file), do: :unprocessable_entity
   defp error_status(:body_required), do: :unprocessable_entity
+  defp error_status(:file_required), do: :unprocessable_entity
+  defp error_status(:invalid_file_type), do: :unprocessable_entity
+  defp error_status(:file_too_large), do: :unprocessable_entity
+  defp error_status(:upload_failed), do: :internal_server_error
 
   defp error_message(:thread_not_found, _config), do: "Thread not found"
   defp error_message(:post_not_found, _config), do: "Post not found"
@@ -171,7 +177,13 @@ defmodule EirinchanWeb.PostController do
   defp error_message(:invalid_post_mode, config), do: config.error.bot
   defp error_message(:board_locked, config), do: config.error.board_locked
   defp error_message(:reply_hard_limit, config), do: config.error.reply_hard_limit
+  defp error_message(:image_hard_limit, config), do: config.error.image_hard_limit
+  defp error_message(:duplicate_file, config), do: config.error.duplicate_file
   defp error_message(:body_required, config), do: config.error.tooshort_body
+  defp error_message(:file_required, config), do: config.error.file_required
+  defp error_message(:invalid_file_type, config), do: config.error.filetype
+  defp error_message(:file_too_large, config), do: config.error.file_too_large
+  defp error_message(:upload_failed, config), do: config.error.upload_failed
 
   defp error_message(changeset) do
     Enum.map_join(changeset.errors, ", ", fn {field, {message, _opts}} ->

@@ -53,6 +53,55 @@ defmodule Eirinchan.PostsTest do
     assert reply.thread_id == thread.id
   end
 
+  test "create_post stores upload metadata for image posts" do
+    board = board_fixture()
+    upload = upload_fixture("first.png", "png-bytes")
+
+    assert {:ok, thread, %{noko: false}} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.file_name == "first.png"
+    assert thread.file_path == "/#{board.uri}/src/#{thread.id}.png"
+    assert thread.file_size == byte_size("png-bytes")
+    assert thread.file_type == "image/png"
+    assert is_binary(thread.file_md5)
+
+    assert File.exists?(
+             Path.join(Eirinchan.Build.board_root(), "#{board.uri}/src/#{thread.id}.png")
+           )
+  end
+
+  test "create_post canonicalizes and truncates stored filenames" do
+    board = board_fixture(%{config_overrides: %{max_filename_display_length: 12}})
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" =>
+                   upload_fixture(
+                     "  a very long*&^% display filename with spaces.PNG  ",
+                     "png-bytes"
+                   ),
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.file_name == "a_very_long_.png"
+  end
+
   test "create_post rejects replies to missing threads" do
     board = board_fixture()
 
@@ -97,6 +146,43 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post enforces required OP files and upload validation" do
+    board = board_fixture(%{config_overrides: %{force_image_op: true}})
+    config = post_config(board.config_overrides)
+
+    assert {:error, :file_required} =
+             Posts.create_post(board, %{"body" => "first post", "post" => "New Topic"},
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert {:error, :invalid_file_type} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload_fixture("bad.txt", "bad"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    oversized_board = board_fixture(%{config_overrides: %{max_filesize: 4}})
+
+    assert {:error, :file_too_large} =
+             Posts.create_post(
+               oversized_board,
+               %{
+                 "body" => "first post",
+                 "file" => upload_fixture("big.png", "12345"),
+                 "post" => "New Topic"
+               },
+               config: post_config(oversized_board.config_overrides),
+               request: post_request(oversized_board.uri)
+             )
+  end
+
   test "create_post enforces reply hard limits" do
     board = board_fixture(%{config_overrides: %{reply_hard_limit: 1}})
     thread = thread_fixture(board)
@@ -123,6 +209,124 @@ defmodule Eirinchan.PostsTest do
                },
                config: post_config(board.config_overrides),
                request: post_request(board.uri)
+             )
+  end
+
+  test "create_post enforces image hard limits for file replies" do
+    board = board_fixture(%{config_overrides: %{image_hard_limit: 1}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "file" => upload_fixture("thread.png", "thread"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:error, :image_hard_limit} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "file" => upload_fixture("reply.png", "reply"),
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Text-only reply",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+  end
+
+  test "create_post rejects duplicate files globally when configured" do
+    board = board_fixture(%{config_overrides: %{duplicate_file_mode: "global"}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, _thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "file" => upload_fixture("first.png", "same-bytes"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:error, :duplicate_file} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Second body",
+                 "file" => upload_fixture("second.png", "same-bytes"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+  end
+
+  test "create_post rejects duplicate files within a thread when configured" do
+    board = board_fixture(%{config_overrides: %{duplicate_file_mode: "thread"}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "file" => upload_fixture("first.png", "thread-bytes"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:error, :duplicate_file} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "file" => upload_fixture("reply.png", "thread-bytes"),
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    other_board = board_fixture(%{config_overrides: %{duplicate_file_mode: "thread"}})
+
+    assert {:ok, _other_thread, _meta} =
+             Posts.create_post(
+               other_board,
+               %{
+                 "body" => "Other body",
+                 "file" => upload_fixture("other.png", "thread-bytes"),
+                 "post" => "New Topic"
+               },
+               config: post_config(other_board.config_overrides),
+               request: post_request(other_board.uri)
              )
   end
 
@@ -443,5 +647,105 @@ defmodule Eirinchan.PostsTest do
     assert summary.reply_count == 2
     assert summary.omitted_posts == 1
     assert Enum.map(summary.replies, & &1.body) == ["Reply two"]
+  end
+
+  test "thread views count image replies and omitted images" do
+    board = board_fixture(%{config_overrides: %{threads_preview: 1}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "file" => upload_fixture("op.png", "op"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply_one, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply one",
+                 "file" => upload_fixture("reply1.png", "reply-one"),
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply_two, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply two",
+                 "file" => upload_fixture("reply2.png", "reply-two"),
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, page_data} = Posts.list_threads_page(board, 1, config: config)
+    summary = hd(page_data.threads)
+
+    assert summary.image_count == 3
+    assert summary.omitted_posts == 1
+    assert summary.omitted_images == 1
+
+    assert {:ok, thread_view} = Posts.get_thread_view(board, thread.id, config: config)
+    assert thread_view.image_count == 3
+  end
+
+  test "delete_post removes uploaded files for replies and threads" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "password" => "threadpw",
+                 "file" => upload_fixture("thread.png", "thread"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "password" => "replypw",
+                 "file" => upload_fixture("reply.png", "reply"),
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(reply.file_path))
+
+    assert {:ok, %{thread_deleted: false}} =
+             Posts.delete_post(board, reply.id, "replypw", config: config)
+
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(reply.file_path))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+
+    assert {:ok, %{thread_deleted: true}} =
+             Posts.delete_post(board, thread.id, "threadpw", config: config)
+
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
   end
 end

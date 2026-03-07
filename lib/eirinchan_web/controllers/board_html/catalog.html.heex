@@ -26,6 +26,22 @@
             <%= if summary.thread.cycle, do: " [Cyclical]" %>
             <%= if summary.thread.sage, do: " [Bumplocked]" %>
           </p>
+          <%= if summary.thread.file_path do %>
+            <figure>
+              <a href={summary.thread.file_path}>
+                <img
+                  src={summary.thread.file_path}
+                  alt={summary.thread.file_name || "upload"}
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                <a href={summary.thread.file_path}>
+                  <%= summary.thread.file_name || Path.basename(summary.thread.file_path) %>
+                </a>
+              </figcaption>
+            </figure>
+          <% end %>
           <p><%= summary.thread.body %></p>
           <form action={~p"/#{@board.uri}/post"} method="post">
             <input type="hidden" name="delete_post_id" value={summary.thread.id} />

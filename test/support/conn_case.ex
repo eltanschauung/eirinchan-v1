@@ -31,6 +31,7 @@ defmodule EirinchanWeb.ConnCase do
       import Eirinchan.BoardsFixtures
       import Eirinchan.ModerationFixtures
       import Eirinchan.PostsFixtures
+      import Eirinchan.UploadsFixtures
     end
   end
 

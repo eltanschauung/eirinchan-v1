@@ -59,6 +59,126 @@ defmodule EirinchanWeb.PostControllerTest do
     assert redirect == "/#{board.uri}/res/#{thread.id}.html#p#{id}"
   end
 
+  test "posting stores uploads and serves them back under board src paths", %{conn: conn} do
+    board = board_fixture()
+
+    create_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => upload_fixture("served.png", "served-image"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => id} = json_response(create_conn, 200)
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ "/#{board.uri}/src/#{id}.png"
+
+    file_conn =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/src/#{id}.png")
+
+    assert response(file_conn, 200) == "served-image"
+    assert get_resp_header(file_conn, "content-type") == ["image/png; charset=utf-8"]
+  end
+
+  test "posting enforces required image uploads and file validation errors", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{force_image_op: true}})
+
+    missing_file =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "File required."} = json_response(missing_file, 422)
+
+    bad_type =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => upload_fixture("bad.txt", "bad"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "File type not allowed."} = json_response(bad_type, 422)
+  end
+
+  test "posting enforces image hard limits for file replies", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{image_hard_limit: 1}})
+
+    thread_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => upload_fixture("thread.png", "thread"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => thread_id} = json_response(thread_conn, 200)
+
+    reply_conn =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "thread" => Integer.to_string(thread_id),
+        "body" => "reply body",
+        "file" => upload_fixture("reply.png", "reply"),
+        "json_response" => "1",
+        "post" => "New Reply"
+      })
+
+    assert %{"error" => "Thread has reached its maximum image limit."} =
+             json_response(reply_conn, 422)
+  end
+
+  test "posting rejects duplicate files when global duplicate mode is enabled", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{duplicate_file_mode: "global"}})
+
+    first_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => upload_fixture("first.png", "same-bytes"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => _id} = json_response(first_conn, 200)
+
+    duplicate_conn =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "second post",
+        "file" => upload_fixture("second.png", "same-bytes"),
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "Duplicate file."} = json_response(duplicate_conn, 422)
+  end
+
   test "noko redirects use canonical slug thread paths when slugify is enabled", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{slugify: true}})
 

@@ -16,6 +16,22 @@
     <%= if @summary.thread.cycle, do: " [Cyclical]" %>
     <%= if @summary.thread.sage, do: " [Bumplocked]" %>
   </p>
+  <%= if @summary.thread.file_path do %>
+    <figure>
+      <a href={@summary.thread.file_path}>
+        <img
+          src={@summary.thread.file_path}
+          alt={@summary.thread.file_name || "upload"}
+          loading="lazy"
+        />
+      </a>
+      <figcaption>
+        <a href={@summary.thread.file_path}>
+          <%= @summary.thread.file_name || Path.basename(@summary.thread.file_path) %>
+        </a>
+      </figcaption>
+    </figure>
+  <% end %>
   <p><%= @summary.thread.body %></p>
   <form action={~p"/#{@board.uri}/post"} method="post">
     <input type="hidden" name="delete_post_id" value={@summary.thread.id} />
@@ -26,10 +42,11 @@
 
 <section>
   <h2>Reply</h2>
-  <form action={~p"/#{@board.uri}/post"} method="post">
+  <form action={~p"/#{@board.uri}/post"} method="post" enctype="multipart/form-data">
     <input type="hidden" name="thread" value={@summary.thread.id} />
     <input type="text" name="name" placeholder="Name" />
     <input type="text" name="email" placeholder="Email" />
+    <input type="file" name="file" />
     <textarea name="body" placeholder="Reply"></textarea>
     <button type="submit" name="post" value={@config.button_reply}>
       <%= @config.button_reply %>
@@ -45,6 +62,18 @@
     <%= for reply <- @summary.replies do %>
       <article id={"p#{reply.id}"}>
         <h3><%= reply.subject || "Reply ##{reply.id}" %></h3>
+        <%= if reply.file_path do %>
+          <figure>
+            <a href={reply.file_path}>
+              <img src={reply.file_path} alt={reply.file_name || "upload"} loading="lazy" />
+            </a>
+            <figcaption>
+              <a href={reply.file_path}>
+                <%= reply.file_name || Path.basename(reply.file_path) %>
+              </a>
+            </figcaption>
+          </figure>
+        <% end %>
         <p><%= reply.body %></p>
         <form action={~p"/#{@board.uri}/post"} method="post">
           <input type="hidden" name="delete_post_id" value={reply.id} />

@@ -3,7 +3,13 @@ defmodule EirinchanWeb.ApiControllerTest do
 
   test "board api endpoints expose page, catalog, threads, and thread json", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
-    thread = thread_fixture(board, %{body: "Thread body", subject: "Thread subject"})
+
+    thread =
+      thread_fixture(board, %{
+        body: "Thread body",
+        subject: "Thread subject",
+        file: upload_fixture("thread.png", "thread")
+      })
 
     conn
     |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
@@ -62,6 +68,10 @@ defmodule EirinchanWeb.ApiControllerTest do
     assert Enum.all?(threads_json, &Map.has_key?(&1, "threads"))
     assert [op | replies] = thread_json["posts"]
     assert op["resto"] == 0
+    assert op["filename"] == "thread"
+    assert op["ext"] == ".png"
+    assert op["fsize"] == byte_size("thread")
+    assert is_binary(op["md5"])
     assert length(replies) == 1
 
     assert Enum.any?(
