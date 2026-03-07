@@ -1,36 +1,76 @@
-<.flash_group flash={@flash} />
-<section class="feedback-theme">
-  <h1>Feedback</h1>
-  <p>Send feedback to the site administrators.</p>
-</section>
+<%= raw(
+  EirinchanWeb.PostView.boardlist_html(
+    @board_chrome.boardlist_groups || EirinchanWeb.PostView.boardlist_groups(@boards)
+  )
+) %>
 
-<nav class="boardlist">
-  <strong>Boards</strong>
+<script type="text/javascript">
+  if (typeof do_boardlist !== 'undefined') do_boardlist();
+</script>
+
+<header>
+  <h1>Feedback</h1>
+  <div class="subtitle">Send feedback to the site administrators.</div>
+</header>
+
+<%= if @announcement do %>
+  <div class="blotter">
+    <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
+  </div>
+<% end %>
+
+<div class="pages top">
+  [<a href={~p"/"}>Home</a>]
+  [<a href={~p"/news"}>News</a>]
+  [<a href={~p"/catalog"}>Catalog</a>]
+  <%= for page <- @custom_pages do %>
+    [<a href={"/pages/#{page.slug}"}><%= page.title %></a>]
+  <% end %>
+</div>
+
+<nav class="boardlist compact-boardlist feedback-boardlist">
   <%= for board <- @boards do %>
-    <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
+    <span class="sub">[<a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>]</span>
   <% end %>
 </nav>
 
 <%= if assigns[:errors] do %>
-  <section class="feedback-errors">
+  <section class="public-panel feedback-errors">
     <%= for {field, messages} <- @errors do %>
       <p><%= field %>: <%= Enum.join(messages, ", ") %></p>
     <% end %>
   </section>
 <% end %>
 
-<section class="feedback-panel">
+<section class="public-panel feedback-panel">
   <form action={~p"/feedback"} method="post" class="feedback-form">
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-    <input type="text" name="name" placeholder="Name" value={get_in(assigns, [:params, "name"])} />
-    <input
-      type="text"
-      name="email"
-      placeholder="Email"
-      value={get_in(assigns, [:params, "email"])}
-    />
-    <textarea name="body" rows="10" class="feedback-textarea" placeholder="Feedback"><%= get_in(assigns, [:params, "body"]) %></textarea>
-    <p>Keep it concise and include steps to reproduce when reporting bugs.</p>
-    <button type="submit">Send Feedback</button>
+    <table class="mod-form-table">
+      <tr>
+        <th>Name</th>
+        <td><input type="text" name="name" value={get_in(assigns, [:params, "name"])} /></td>
+      </tr>
+      <tr>
+        <th>Email</th>
+        <td><input type="text" name="email" value={get_in(assigns, [:params, "email"])} /></td>
+      </tr>
+      <tr>
+        <th>Feedback</th>
+        <td>
+          <textarea name="body" rows="10" class="feedback-textarea"><%= get_in(assigns, [:params, "body"]) %></textarea>
+          <span class="unimportant">
+            Keep it concise and include steps to reproduce when reporting bugs.
+          </span>
+        </td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><input type="submit" value="Send Feedback" /></td>
+      </tr>
+    </table>
   </form>
 </section>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>
