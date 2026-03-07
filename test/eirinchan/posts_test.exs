@@ -1984,4 +1984,100 @@ defmodule Eirinchan.PostsTest do
     refute File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
     refute File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
   end
+
+  test "update_post edits text and raw_html and refreshes citations" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+    thread = thread_fixture(board)
+    reply = reply_fixture(board, thread, %{body: "Before"})
+
+    assert {:ok, updated_reply} =
+             Posts.update_post(
+               board,
+               reply.id,
+               %{"body" => "After >>#{thread.id}", "raw_html" => "1"},
+               config: config
+             )
+
+    assert updated_reply.body == "After >>#{thread.id}"
+    assert updated_reply.raw_html
+
+    assert Enum.map(Posts.list_cites_for_post(updated_reply, repo: Repo), & &1.target_post_id) ==
+             [thread.id]
+  end
+
+  test "moderate_delete_post removes posts without a password" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+    thread = thread_fixture(board)
+    reply = reply_fixture(board, thread, %{password: "userpw"})
+
+    assert {:ok, %{deleted_post_id: deleted_post_id, thread_deleted: false}} =
+             Posts.moderate_delete_post(board, reply.id, config: config)
+
+    assert deleted_post_id == reply.id
+    assert {:ok, [reloaded_thread]} = Posts.get_thread(board, thread.id, config: config)
+    assert reloaded_thread.id == thread.id
+  end
+
+  test "delete_post_files removes primary and extra files but leaves the post" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "files" => [
+                   upload_fixture("first.png", "first"),
+                   upload_fixture("second.gif", "second")
+                 ],
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    [extra] = thread.extra_files
+
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(extra.file_path))
+
+    assert {:ok, updated_thread} = Posts.delete_post_files(board, thread.id, config: config)
+
+    assert updated_thread.file_path == nil
+    assert updated_thread.thumb_path == nil
+    assert updated_thread.extra_files == []
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(extra.file_path))
+  end
+
+  test "spoilerize_post_files marks files as spoilers and rewrites thumbs" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "files" => [
+                   upload_fixture("first.png", "first"),
+                   upload_fixture("second.gif", "second")
+                 ],
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    thumb_before = File.read!(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
+
+    assert {:ok, spoilered_thread} = Posts.spoilerize_post_files(board, thread.id, config: config)
+
+    assert spoilered_thread.spoiler
+    assert Enum.all?(spoilered_thread.extra_files, & &1.spoiler)
+    refute File.read!(Eirinchan.Uploads.filesystem_path(thread.thumb_path)) == thumb_before
+  end
 end

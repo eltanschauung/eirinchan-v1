@@ -124,6 +124,15 @@ defmodule Eirinchan.Uploads do
     Path.join([board_root() | sanitized])
   end
 
+  @spec write_spoiler_thumbnail(String.t() | nil, map()) :: :ok | {:error, atom()}
+  def write_spoiler_thumbnail(nil, _config), do: :ok
+
+  def write_spoiler_thumbnail(file_path, config) when is_binary(file_path) do
+    destination = filesystem_path(file_path)
+    Path.dirname(destination) |> File.mkdir_p!()
+    generate_spoiler_thumbnail(destination, config)
+  end
+
   @spec board_root() :: String.t()
   def board_root do
     Application.fetch_env!(:eirinchan, :build_output_root)
