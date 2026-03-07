@@ -27,11 +27,11 @@
       link.href = 'javascript:void(0);';
       link.textContent = '[' + styleName + ']';
       if (styleName === selected) link.className = 'selected';
-      link.addEventListener('click', function () {
+      link.onclick = function () {
         if (typeof window.changeStyle === 'function') {
           window.changeStyle(styleName, link);
         }
-      });
+      };
       container.appendChild(link);
     });
 
@@ -88,6 +88,47 @@
       return args[index];
     });
   };
+  window.datelocale = window.datelocale || {
+    days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    shortDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    months: [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ],
+    shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    AM: 'AM',
+    PM: 'PM',
+    am: 'am',
+    pm: 'pm'
+  };
+  window.post_date = window.post_date || '%m/%d/%y (%a) %H:%M:%S';
+  window.tb_settings = window.tb_settings || {};
+  window.script_settings =
+    window.script_settings ||
+    function (scriptName) {
+      this.script_name = scriptName;
+      this.get = function (varName, defaultValue) {
+        if (
+          typeof window.tb_settings === 'undefined' ||
+          typeof window.tb_settings[this.script_name] === 'undefined' ||
+          typeof window.tb_settings[this.script_name][varName] === 'undefined'
+        ) {
+          return defaultValue;
+        }
+
+        return window.tb_settings[this.script_name][varName];
+      };
+    };
   window.onReady = window.onReady || onReady;
   window.resourceVersion = window.resourceVersion || '';
   window.selectedstyle = window.selectedstyle || 'Yotsuba';
