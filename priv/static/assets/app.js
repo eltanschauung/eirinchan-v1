@@ -183,6 +183,24 @@
     return null;
   }
 
+  function focusQuoteTarget(id) {
+    const target =
+      document.getElementById("reply_" + id) ||
+      document.getElementById("op_" + id) ||
+      document.getElementById("thread_" + id) ||
+      document.getElementById(String(id));
+
+    if (!target) return false;
+
+    target.classList.add("highlighted");
+    window.setTimeout(function () {
+      target.classList.remove("highlighted");
+    }, 1500);
+
+    target.scrollIntoView({ block: "nearest" });
+    return false;
+  }
+
   Array.prototype.forEach.call(
     document.querySelectorAll("form[data-remember-stuff]"),
     function (form) {
@@ -211,4 +229,28 @@
     event.preventDefault();
     appendQuote(textarea, link.dataset.quoteTo);
   });
+
+  window.dopost = window.dopost || function () {
+    return true;
+  };
+
+  window.doPost = window.doPost || window.dopost;
+  window.ready = window.ready || function () {};
+  window.rememberStuff = window.rememberStuff || function () {};
+  window.init_file_selector = window.init_file_selector || function () {};
+
+  window.highlightReply =
+    window.highlightReply ||
+    function (id) {
+      return focusQuoteTarget(id);
+    };
+
+  window.citeReply =
+    window.citeReply ||
+    function (id) {
+      const textarea = targetTextarea({ dataset: { quoteTo: String(id) } });
+      if (!textarea) return false;
+      appendQuote(textarea, String(id));
+      return false;
+    };
 })();

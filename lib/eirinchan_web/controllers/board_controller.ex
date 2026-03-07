@@ -58,14 +58,33 @@ defmodule EirinchanWeb.BoardController do
           layout: false,
           board: board,
           board_title: board.title,
+          page_title: "/#{board.uri}/ - #{board.title}",
           announcement: Announcement.current(),
           page_data: page_data,
           config: config,
-          boards: Boards.list_boards()
+          boards: Boards.list_boards(),
+          body_class: board_body_class(conn),
+          body_data_stylesheet: board_data_stylesheet(board),
+          extra_stylesheets: board_extra_stylesheets(board),
+          hide_theme_switcher: true,
+          skip_app_stylesheet: true
         )
 
       {:error, :not_found} ->
         send_resp(conn, :not_found, "Page not found")
     end
   end
+
+  defp board_body_class(conn) do
+    moderator_class =
+      if conn.assigns[:current_moderator], do: "is-moderator", else: "is-not-moderator"
+
+    "8chan vichan #{moderator_class} active-index"
+  end
+
+  defp board_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
+  defp board_data_stylesheet(_board), do: nil
+
+  defp board_extra_stylesheets(%{uri: "bant"}), do: ["/stylesheets/christmas.css"]
+  defp board_extra_stylesheets(_board), do: []
 end
