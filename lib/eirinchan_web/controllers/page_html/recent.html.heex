@@ -6,6 +6,16 @@
 </header>
 
 <div class="box-wrap">
+  <div
+    :if={(@recent_settings["body_title"] || "") != "" or (@recent_settings["body"] || "") != ""}
+    class="box middle"
+  >
+    <h2><i><%= @recent_settings["body_title"] %></i></h2>
+    <div class="content">
+      <%= @recent_settings["body"] %>
+    </div>
+  </div>
+
   <div class="box left">
     <h2>Recent Images</h2>
     <ul>

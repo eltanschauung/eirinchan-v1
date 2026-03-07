@@ -151,6 +151,34 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ ~s(href="/recent.css)
   end
 
+  test "GET / renders recent theme body box from installed settings", %{conn: conn} do
+    moderator_fixture()
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
+    _thread = thread_fixture(board, %{subject: "Recent thread", body: "Opening"})
+
+    {:ok, _theme} =
+      Eirinchan.Themes.install_theme("recent", %{
+        "title" => "Recent Posts",
+        "exclude" => "",
+        "limit_images" => "3",
+        "limit_posts" => "30",
+        "html" => "recent.html",
+        "css" => "recent.css",
+        "basecss" => "recent.css",
+        "body_title" => "What is bnat?",
+        "body" => "This is an international imageboard popula..."
+      })
+
+    page =
+      conn
+      |> get("/")
+      |> html_response(200)
+
+    assert page =~ ~s(class="box middle")
+    assert page =~ "What is bnat?"
+    assert page =~ "This is an international imageboard popula..."
+  end
+
   test "GET /sitemap.xml renders board and thread urls", %{conn: conn} do
     :ok = Eirinchan.Themes.enable_page_theme("catalog")
     moderator_fixture()

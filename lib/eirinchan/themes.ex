@@ -114,7 +114,9 @@ defmodule Eirinchan.Themes do
         %{name: "limit_posts", title: "# of recent posts", type: "text", default: "30"},
         %{name: "html", title: "HTML file", type: "text", default: "recent.html"},
         %{name: "css", title: "CSS file", type: "text", default: "recent.css"},
-        %{name: "basecss", title: "CSS stylesheet name", type: "text", default: "recent.css"}
+        %{name: "basecss", title: "CSS stylesheet name", type: "text", default: "recent.css"},
+        %{name: "body_title", title: "Body Title", type: "text", default: ""},
+        %{name: "body", title: "Body", type: "textarea", default: ""}
       ]
     },
     %{
