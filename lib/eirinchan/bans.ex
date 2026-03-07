@@ -76,10 +76,40 @@ defmodule Eirinchan.Bans do
   @spec list_appeals(keyword()) :: [Appeal.t()]
   def list_appeals(opts \\ []) do
     repo = Keyword.get(opts, :repo, Repo)
+    board_id = Keyword.get(opts, :board_id)
+    status = Keyword.get(opts, :status)
 
-    repo.all(
+    query =
       from appeal in Appeal,
+        join: ban in Ban,
+        on: ban.id == appeal.ban_id,
         order_by: [asc: appeal.inserted_at],
+        preload: [ban: [:board]]
+
+    query =
+      if board_id do
+        from [appeal, ban] in query, where: ban.board_id == ^board_id
+      else
+        query
+      end
+
+    query =
+      if status do
+        from appeal in query, where: appeal.status == ^status
+      else
+        query
+      end
+
+    repo.all(query)
+  end
+
+  @spec get_appeal(String.t() | integer(), keyword()) :: Appeal.t() | nil
+  def get_appeal(id, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    repo.one(
+      from appeal in Appeal,
+        where: appeal.id == ^normalize_id(id),
         preload: [ban: [:board]]
     )
   end

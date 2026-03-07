@@ -65,6 +65,8 @@ defmodule EirinchanWeb.Router do
     get "/dashboard", ModDashboardController, :show
     get "/recent-posts", ModDashboardController, :recent
     get "/boards/:uri/threads/:thread_id", ThreadManagementController, :show
+    get "/boards/:uri/bans", BanManagementController, :index
+    get "/boards/:uri/ban-appeals", BanAppealManagementController, :index
     get "/boards/:uri/reports", ReportManagementController, :index
     get "/feedback", FeedbackManagementController, :index
     get "/boards", BoardManagementController, :index
@@ -78,6 +80,9 @@ defmodule EirinchanWeb.Router do
     post "/feedback/:id/comments", FeedbackManagementController, :create_comment
     delete "/feedback/:id", FeedbackManagementController, :delete
     patch "/boards/:uri/threads/:thread_id", ThreadManagementController, :update
+    post "/boards/:uri/bans", BanManagementController, :create
+    patch "/boards/:uri/bans/:id", BanManagementController, :update
+    patch "/boards/:uri/ban-appeals/:id", BanAppealManagementController, :update
     delete "/boards/:uri/reports/post/:post_id", ReportManagementController, :delete_post
     delete "/boards/:uri/reports/:id", ReportManagementController, :delete
   end

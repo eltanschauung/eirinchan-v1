@@ -654,6 +654,30 @@ defmodule EirinchanWeb.PostControllerTest do
     assert %{"error" => "Captcha validation failed."} = json_response(conn, 422)
   end
 
+  test "posting rejects active banned ips", %{conn: conn} do
+    board = board_fixture()
+
+    {:ok, _ban} =
+      Eirinchan.Bans.create_ban(%{
+        board_id: board.id,
+        ip_subnet: "203.0.113.0/24",
+        reason: "Spam wave",
+        expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+      })
+
+    conn =
+      conn
+      |> Map.put(:remote_ip, {203, 0, 113, 9})
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "You are banned."} = json_response(conn, 403)
+  end
+
   test "post endpoint accepts ban appeals", %{conn: conn} do
     board = board_fixture()
 

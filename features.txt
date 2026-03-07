@@ -60,7 +60,7 @@ captcha provider abstraction parity (native/recaptcha/hcaptcha): partial
 dynamic captcha mode logic parity: incomplete
 captcha error and refresh behavior parity: incomplete
 DNSBL check pipeline parity: incomplete
-ban check pipeline parity: incomplete
+ban check pipeline parity: partial
 robot9001 unoriginal-content detection: incomplete
 robot mute escalation and mute duration logic: incomplete
 spam filter hooks before and after OCR parity: skipped
@@ -141,8 +141,8 @@ feedback queue parity in mod panel: partial
 feedback delete action parity: partial
 feedback mark-as-read action parity: partial
 feedback add note/comment action parity: partial
-ban creation/edit/list pipeline parity: incomplete
-ban appeals moderation workflow parity: incomplete
+ban creation/edit/list pipeline parity: partial
+ban appeals moderation workflow parity: partial
 IP notes and IP history moderation view parity: incomplete
 view by IP (cross-board aggregation) parity: incomplete
 post edit workflow parity (raw/non-raw): incomplete

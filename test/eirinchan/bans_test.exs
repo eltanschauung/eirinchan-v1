@@ -28,4 +28,28 @@ defmodule Eirinchan.BansTest do
     assert [%{id: appeal_id, body: "Please review", status: "open"}] = Bans.list_appeals()
     assert appeal_id == appeal.id
   end
+
+  test "finds active board bans for matching request ips and resolves appeals" do
+    board = board_fixture()
+    moderator = moderator_fixture()
+
+    assert {:ok, ban} =
+             Bans.create_ban(%{
+               board_id: board.id,
+               mod_user_id: moderator.id,
+               ip_subnet: "203.0.113.0/24",
+               reason: "Raid",
+               expires_at: DateTime.add(DateTime.utc_now(), 3600, :second)
+             })
+
+    assert %{} = Bans.active_ban_for_request(board, {203, 0, 113, 44})
+
+    assert {:ok, appeal} = Bans.create_appeal(ban.id, %{body: "Unban me"})
+
+    assert {:ok, resolved} =
+             Bans.resolve_appeal(appeal.id, %{status: "resolved", resolution_note: "Reviewed"})
+
+    assert resolved.status == "resolved"
+    assert resolved.resolution_note == "Reviewed"
+  end
 end
