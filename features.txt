@@ -78,7 +78,7 @@ filename truncation and canonicalization: partial
 image type validation and dimension checks: partial
 non-image file icon/thumbnail fallback behavior: partial
 thumbnail generation pipeline (gd/imagick/convert/gm): partial
-spoiler image handling parity: incomplete
+spoiler image handling parity: partial
 minimum_copy_resize optimization parity: incomplete
 image redraw mode behavior parity: incomplete
 EXIF stripping behavior parity: incomplete

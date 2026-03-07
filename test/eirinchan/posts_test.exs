@@ -147,6 +147,32 @@ defmodule Eirinchan.PostsTest do
     assert extra.thumb_path == "/#{board.uri}/thumb/#{thread.id}-1s.png"
   end
 
+  test "create_post marks spoiler uploads on primary and extra files" do
+    board = board_fixture()
+
+    assert {:ok, thread, %{noko: false}} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "files" => [
+                   upload_fixture("first.png", "first"),
+                   upload_fixture("second.gif", "second")
+                 ],
+                 "spoiler" => "1",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.spoiler == true
+    assert [extra] = thread.extra_files
+    assert extra.spoiler == true
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(extra.thumb_path))
+  end
+
   test "create_post supports OP-specific extension allowlists" do
     board =
       board_fixture(%{

@@ -406,7 +406,7 @@ defmodule Eirinchan.Posts do
          attrs
          |> Map.put("file", primary.upload)
          |> Map.put("__upload_metadata__", primary.metadata)
-         |> Map.put("__upload_entries__", entries)}
+         |> Map.put("__upload_entries__", maybe_apply_spoiler(attrs, entries))}
 
       {:error, reason} ->
         {:error, reason}
@@ -432,6 +432,17 @@ defmodule Eirinchan.Posts do
         []
     end)
   end
+
+  defp maybe_apply_spoiler(attrs, entries) do
+    spoiler? = truthy?(Map.get(attrs, "spoiler"))
+
+    Enum.map(entries, fn entry ->
+      %{entry | metadata: Map.put(entry.metadata, :spoiler, spoiler?)}
+    end)
+  end
+
+  defp truthy?(value) when value in [true, "true", "1", 1, "on"], do: true
+  defp truthy?(_value), do: false
 
   defp blank_to_nil(nil), do: nil
 

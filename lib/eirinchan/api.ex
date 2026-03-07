@@ -119,6 +119,7 @@ defmodule Eirinchan.Api do
     |> maybe_put(:w, post.image_width)
     |> maybe_put(:h, post.image_height)
     |> maybe_put(:tim, post.id)
+    |> maybe_put_flag(:spoiler, post.spoiler)
   end
 
   defp maybe_put_extra_files(map, %{extra_files: %Ecto.Association.NotLoaded{}}), do: map
@@ -140,6 +141,7 @@ defmodule Eirinchan.Api do
     |> maybe_put(:w, file.image_width)
     |> maybe_put(:h, file.image_height)
     |> maybe_put(:tim, file.id)
+    |> maybe_put_flag(:spoiler, file.spoiler)
   end
 
   defp positive_or_nil(value) when is_integer(value) and value > 0, do: value
