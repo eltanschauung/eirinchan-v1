@@ -489,4 +489,39 @@ defmodule Eirinchan.BuildTest do
     refute File.exists?(thread_path)
     refute File.exists?(canonical_thread_path)
   end
+
+  test "fileboard static outputs use filenames as titles when subjects are absent" do
+    File.rm_rf!(Build.board_root())
+
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          fileboard: true,
+          force_body_op: false,
+          allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif", ".txt"]
+        }
+      })
+
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => ".",
+                 "file" => raw_upload_fixture("docs.txt", "hello"),
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(index_path) =~ "docs.txt"
+    assert File.read!(index_path) =~ "Fileboard: 1 file"
+    assert File.read!(thread_path) =~ "docs.txt"
+  end
 end

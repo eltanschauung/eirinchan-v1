@@ -24,6 +24,7 @@ defmodule Eirinchan.Runtime.Config do
     file_catalog: "catalog.html",
     file_mod: "mod.php",
     file_script: "main.js",
+    fileboard: false,
     board_path: "%s/",
     board_abbreviation: "%s/",
     board_regex: "[a-zA-Z0-9_]+",

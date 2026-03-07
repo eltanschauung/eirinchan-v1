@@ -324,4 +324,32 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ "2 + 2 = ?"
     assert Floki.find(Floki.parse_document!(page), ~s(input[name="captcha"])) != []
   end
+
+  test "fileboard pages use filenames as thread titles when subjects are absent", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{fileboard: true, force_body_op: false}})
+
+    conn
+    |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+    |> post(~p"/#{board.uri}/post", %{
+      "body" => ".",
+      "file" => upload_fixture("notes.png", "hello"),
+      "post" => "New Topic"
+    })
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}")
+      |> html_response(200)
+
+    catalog_page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/catalog.html")
+      |> html_response(200)
+
+    assert page =~ "notes.png"
+    assert page =~ "Fileboard: 1 file"
+    assert catalog_page =~ "notes.png"
+  end
 end

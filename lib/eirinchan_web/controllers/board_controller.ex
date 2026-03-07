@@ -31,6 +31,7 @@ defmodule EirinchanWeb.BoardController do
 
         render(conn, :catalog,
           board: board,
+          board_title: board.title,
           threads: threads,
           config: config,
           boards: Boards.list_boards()
@@ -49,6 +50,7 @@ defmodule EirinchanWeb.BoardController do
       {:ok, page_data} ->
         render(conn, :show,
           board: board,
+          board_title: board.title,
           page_data: page_data,
           config: config,
           boards: Boards.list_boards()

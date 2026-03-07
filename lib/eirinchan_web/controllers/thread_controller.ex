@@ -26,6 +26,7 @@ defmodule EirinchanWeb.ThreadController do
 
           render(conn, :show,
             board: board,
+            board_title: board.title,
             summary: summary,
             config: config,
             page_num: page_num,

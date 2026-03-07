@@ -18,13 +18,16 @@ defmodule EirinchanWeb.FeedbackManagementControllerTest do
 
     assert %{
              "data" => [%{"id" => ^feedback_id, "body" => "Needs review", "read_at" => nil}],
-             "unread_count" => 1
+             "unread_count" => 1,
+             "actions" => actions
            } =
              queue_conn
              |> get("/manage/feedback")
              |> json_response(200)
 
-    assert %{"data" => %{"id" => ^feedback_id, "read_at" => read_at}} =
+    assert Enum.map(actions, & &1["label"]) == ["Mark as Read", "Add Note", "Delete"]
+
+    assert %{"data" => %{"id" => ^feedback_id, "read_at" => read_at}, "actions" => _actions} =
              queue_conn
              |> recycle()
              |> login_moderator(moderator)
@@ -35,7 +38,7 @@ defmodule EirinchanWeb.FeedbackManagementControllerTest do
 
     assert read_at
 
-    assert %{"data" => %{"comments" => [%{"body" => "Admin note"}]}} =
+    assert %{"data" => %{"comments" => [%{"body" => "Admin note"}]}, "actions" => _actions} =
              queue_conn
              |> recycle()
              |> login_moderator(moderator)

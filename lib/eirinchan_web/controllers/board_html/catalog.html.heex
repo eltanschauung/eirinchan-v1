@@ -1,6 +1,6 @@
 <.flash_group flash={@flash} />
 <section>
-  <h1>/ <%= @board.uri %> / - <%= @board.title %></h1>
+  <h1>/ <%= @board.uri %> / - <%= @board_title %></h1>
   <p><a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>Return</a></p>
 </section>
 
@@ -18,10 +18,14 @@
   <% else %>
     <div id="catalog">
       <%= for summary <- @threads do %>
+        <% post = summary.thread %>
+        <% template = PostView.template_assigns(@board, post, @config) %>
         <article id={"catalog-#{summary.thread.id}"}>
           <h3>
-            <a href={Eirinchan.ThreadPaths.thread_path(@board, summary.thread, @config)}>
-              <%= summary.thread.subject || "Thread ##{summary.thread.id}" %>
+            <a href={
+              Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)
+            }>
+              <%= PostView.post_title(template.board, template.post, template.config) %>
             </a>
           </h3>
           <p :if={
@@ -65,7 +69,10 @@
               </figcaption>
             </figure>
           <% end %>
-          <p><%= summary.thread.body %></p>
+          <p :if={@config.fileboard && PostView.show_fileboard_summary?(post)}>
+            Fileboard: <%= PostView.fileboard_summary(post) %>
+          </p>
+          <p :if={PostView.show_body?(summary.thread, @config)}><%= summary.thread.body %></p>
           <form action={~p"/#{@board.uri}/post"} method="post">
             <input type="hidden" name="delete_post_id" value={summary.thread.id} />
             <input type="password" name="password" placeholder="Password" />
