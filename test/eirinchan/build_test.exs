@@ -8,7 +8,13 @@ defmodule Eirinchan.BuildTest do
 
   setup do
     original_path = Application.get_env(:eirinchan, :instance_config_path)
-    path = Path.join(System.tmp_dir!(), "eirinchan-build-themes-#{System.unique_integer([:positive])}.json")
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-build-themes-#{System.unique_integer([:positive])}.json"
+      )
+
     File.rm(path)
     Application.put_env(:eirinchan, :instance_config_path, path)
 
@@ -363,8 +369,8 @@ defmodule Eirinchan.BuildTest do
     index_path = Path.join(board_dir, config.file_index)
     thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
 
-    assert File.read!(index_path) =~ "/ meta /"
-    assert File.read!(thread_path) =~ "/ meta /"
+    assert File.read!(index_path) =~ ~s(href="/meta/index.html")
+    assert File.read!(thread_path) =~ ~s(href="/meta/index.html")
   end
 
   test "static outputs render poster tripcodes" do

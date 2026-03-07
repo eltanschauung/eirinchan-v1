@@ -623,12 +623,9 @@ defmodule Eirinchan.Build do
   end
 
   defp render_boardlist(boards) do
-    links =
-      Enum.map_join(boards, " ", fn board ->
-        ~s(<a href="/#{html_escape(board.uri)}">/ #{html_escape(board.uri)} /</a>)
-      end)
-
-    ~s(<nav class="boardlist"><strong>Boards</strong> #{links}</nav>)
+    boards
+    |> PostView.boardlist_groups()
+    |> PostView.boardlist_html()
   end
 
   defp render_body(%{raw_html: true, body: body}) when is_binary(body), do: body
