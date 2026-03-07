@@ -1,18 +1,6 @@
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) -
-                                                                               1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
@@ -267,13 +255,16 @@
     <div class="thread" id={"thread_#{thread.id}"} data-board={@board.uri}>
       <div class="files">
         <%= for file <- PostView.all_files(thread) do %>
-          <div class={[
-            "file",
-            if(length(PostView.all_files(thread)) > 1, do: "multifile", else: nil)
-          ]}>
+          <div
+            class={PostView.file_class(thread)}
+            style={
+              PostView.multifile_style(file, @config,
+                multifile: length(PostView.all_files(thread)) > 1
+              )
+            }
+          >
             <p class="fileinfo">
-              File:
-              <a href={file.file_path} target="_blank"><%= PostView.stored_file_name(file) %></a>
+              File: <a href={file.file_path}><%= PostView.stored_file_name(file) %></a>
               <span>
                 (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
                   do: raw(", " <> PostView.file_dimensions(file)) %>, <span
@@ -294,11 +285,7 @@
         <% end %>
       </div>
 
-      <div
-        class="post op"
-        id={"op_#{thread.id}"}
-        style={if length(PostView.all_files(thread)) > 1, do: "clear:both", else: nil}
-      >
+      <div class="post op" id={"op_#{thread.id}"} style={PostView.post_container_style(thread)}>
         <p class="intro">
           <input
             type="checkbox"
@@ -398,13 +385,17 @@
           </p>
           <div class="files">
             <%= for file <- PostView.all_files(reply) do %>
-              <div class={[
-                "file",
-                if(length(PostView.all_files(reply)) > 1, do: "multifile", else: nil)
-              ]}>
+              <div
+                class={PostView.file_class(reply)}
+                style={
+                  PostView.multifile_style(file, @config,
+                    multifile: length(PostView.all_files(reply)) > 1
+                  )
+                }
+              >
                 <p class="fileinfo">
                   File:
-                  <a href={file.file_path} target="_blank">
+                  <a href={file.file_path}>
                     <%= PostView.stored_file_name(file) %>
                   </a>
                   <span>
@@ -426,10 +417,7 @@
               </div>
             <% end %>
           </div>
-          <div
-            class="body"
-            style={if length(PostView.all_files(reply)) > 1, do: "clear:both", else: nil}
-          >
+          <div class="body" style={PostView.reply_body_style(reply)}>
             <%= raw(PostView.body_html(reply, @board, thread, @config)) %>
           </div>
         </div>
@@ -457,44 +445,15 @@
   </div>
 </form>
 
-<div class="pages">
-  <%= if @page_data.page > 1 do %>
-    <a href={Enum.at(@page_data.pages, @page_data.page - 2).link}>Previous</a>
-  <% else %>
-    Previous
-  <% end %>
-
-  <%= for page <- @page_data.pages do %>
-    [<a
-      href={if page.num == @page_data.page, do: nil, else: page.link}
-      class={if page.num == @page_data.page, do: "selected", else: nil}
-    ><%= page.num %></a>]
-  <% end %>
-
-  <%= if @page_data.page < @page_data.total_pages do %>
-    <form action={Enum.at(@page_data.pages, @page_data.page).link} method="get">
-      <input type="submit" value="Next" />
-    </form>
-  <% end %>
-  | <a href={"/#{@board.uri}/catalog.html"}>Orin</a>
-</div>
+<%= raw(PostView.pages_html(@page_data, @board.uri)) %>
 
 <a name="bottom"></a>
-<div class="boardlist bottom">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) -
-                                                                               1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(
+    @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards),
+    "boardlist bottom"
+  )
+) %>
 
 <%= if @board_chrome.footer_html do %>
   <%= raw(@board_chrome.footer_html) %>

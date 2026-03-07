@@ -86,6 +86,55 @@ defmodule EirinchanWeb.PostView do
     |> Enum.reject(&(&1 == []))
   end
 
+  def boardlist_html(groups, class_name \\ "boardlist") do
+    spans =
+      Enum.map_join(groups, "  ", fn group ->
+        links = group[:links] || group
+
+        description_attr =
+          if group[:description], do: ~s( data-description="#{group[:description]}"), else: ""
+
+        links_html =
+          Enum.map_join(links, " / ", fn link ->
+            ~s(<a href="#{html_escape_to_string(link.href)}" title="#{html_escape_to_string(link.title)}">#{html_escape_to_string(link.label)}</a>)
+          end)
+
+        ~s(<span class="sub"#{description_attr}>[ #{links_html} ]</span>)
+      end)
+
+    ~s(<div class="#{class_name}">#{spans}</div>)
+  end
+
+  def pages_html(page_data, board_uri) do
+    previous_html =
+      if page_data.page > 1 do
+        previous = Enum.at(page_data.pages, page_data.page - 2)
+        ~s(<a href="#{html_escape_to_string(previous.link)}">Previous</a>)
+      else
+        "Previous"
+      end
+
+    page_links =
+      Enum.map_join(page_data.pages, " ", fn page ->
+        if page.num == page_data.page do
+          ~s([<a class="selected">#{page.num}</a>])
+        else
+          ~s([<a href="#{html_escape_to_string(page.link)}">#{page.num}</a>])
+        end
+      end)
+
+    next_html =
+      if page_data.page < page_data.total_pages do
+        next = Enum.at(page_data.pages, page_data.page)
+
+        ~s(<form action="#{html_escape_to_string(next.link)}" method="get"><input type="submit" value="Next" /></form>)
+      else
+        ""
+      end
+
+    ~s(<div class="pages">#{previous_html}  #{page_links}#{if next_html != "", do: "  " <> next_html, else: ""} | <a href="/#{board_uri}/catalog.html">Orin</a></div>)
+  end
+
   def post_flags(post, config) do
     Enum.zip(post.flag_codes || [], post.flag_alts || [])
     |> Enum.map(fn {code, alt} ->
@@ -132,6 +181,9 @@ defmodule EirinchanWeb.PostView do
 
   def file_size_text(file), do: human_file_size(Map.get(file, :file_size))
   def file_dimensions(file), do: dimensions(file)
+  def file_class(post), do: if(length(all_files(post)) > 1, do: "file multifile", else: "file")
+  def post_container_style(post), do: if(length(all_files(post)) > 1, do: "clear:both", else: nil)
+  def reply_body_style(reply), do: if(length(all_files(reply)) > 1, do: "clear:both", else: nil)
 
   def catalog_label(post, config) do
     cond do
@@ -221,6 +273,22 @@ defmodule EirinchanWeb.PostView do
     end
   end
 
+  def multifile_style(file, config, opts \\ []) do
+    if Keyword.get(opts, :multifile, false) do
+      case fit_dimensions(
+             Map.get(file, :image_width),
+             Map.get(file, :image_height),
+             config.thumb_width,
+             config.thumb_height
+           ) do
+        {width, _height} -> "width:#{width + 40}px"
+        nil -> nil
+      end
+    else
+      nil
+    end
+  end
+
   def body_html(post, board, thread, config) do
     if post.raw_html do
       post.body || ""
@@ -293,6 +361,13 @@ defmodule EirinchanWeb.PostView do
       href = ThreadPaths.thread_path(board, thread, config) <> "##{id}"
       "<a onclick=\"highlightReply('#{id}', event);\" href=\"#{href}\">&gt;&gt;#{id}</a>"
     end)
+  end
+
+  defp html_escape_to_string(value) do
+    value
+    |> to_string()
+    |> html_escape()
+    |> safe_to_string()
   end
 
   defp human_file_size(size) when is_integer(size) and size >= 1_048_576 do

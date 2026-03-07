@@ -1,18 +1,6 @@
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) -
-                                                                               1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
@@ -120,21 +108,12 @@
 <hr />
 <a name="bottom"></a>
 <%= if @board.uri != "bant" do %>
-  <div class="boardlist bottom">
-    <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-      <% links = group[:links] || group %>
-      <span class="sub" data-description={group[:description]}>
-        [
-        <%= for {link, index} <- Enum.with_index(links) do %>
-          <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                               length(links) -
-                                                                                 1,
-                                                                             do: raw(" / ") %>
-        <% end %>
-        ]
-      </span>
-    <% end %>
-  </div>
+  <%= raw(
+    PostView.boardlist_html(
+      @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards),
+      "boardlist bottom"
+    )
+  ) %>
 <% end %>
 
 <%= if @board_chrome.footer_html do %>
