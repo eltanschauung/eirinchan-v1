@@ -104,7 +104,7 @@ mod users/modlogs/pms table behavior parity: partial
 search_queries rate-limiting table behavior parity: partial
 nntp_references table behavior parity: partial
 antispam/flood table behavior parity: partial
-schema migration tooling from existing MySQL data: incomplete
+schema migration tooling from existing MySQL data: partial
 
 [Rendering, Build, and Static Generation]
 buildThread parity (HTML + JSON + +50 variants): partial
@@ -267,8 +267,8 @@ installer parity for initial setup: partial
 config editor parity in mod panel: partial
 instance config/secrets management parity: partial
 board-level config editor parity: partial
-data import/export tools for migration: incomplete
-safe rollback and idempotent migration tooling: incomplete
+data import/export tools for migration: partial
+safe rollback and idempotent migration tooling: partial
 
 [Low Priority / Nice-to-Have]
 banner randomizer endpoint parity (b.php): partial
