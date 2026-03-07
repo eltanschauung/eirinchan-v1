@@ -1064,6 +1064,61 @@ defmodule Eirinchan.PostsTest do
     refute Posts.compat_body(thread) =~ "\n<tinyboard flag>evil</tinyboard>"
   end
 
+  test "create_post lets authorized moderators bypass board and thread locks" do
+    board = board_fixture(%{config_overrides: %{board_locked: true}})
+    moderator = moderator_fixture(%{role: "mod"}) |> grant_board_access_fixture(board)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "mod thread", "post" => "New Topic"},
+               config: post_config(board.config_overrides),
+               request: %{moderator: moderator}
+             )
+
+    {:ok, _locked_thread} =
+      Posts.update_thread_state(board, thread.id, %{"locked" => true},
+        config: post_config(board.config_overrides)
+      )
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "mod reply",
+                 "post" => "New Reply"
+               },
+               config: post_config(board.config_overrides),
+               request: %{moderator: moderator}
+             )
+
+    assert reply.thread_id == thread.id
+  end
+
+  test "create_post stores moderator capcode and raw html content" do
+    board = board_fixture()
+    moderator = moderator_fixture(%{role: "admin"}) |> grant_board_access_fixture(board)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "<strong>mod notice</strong>",
+                 "capcode" => "admin",
+                 "raw" => "1",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri) |> Map.put(:moderator, moderator)
+             )
+
+    assert thread.capcode == "Admin"
+    assert thread.raw_html
+    assert Posts.compat_body(thread) =~ "<tinyboard capcode>Admin</tinyboard>"
+    assert Posts.compat_body(thread) =~ "<tinyboard raw html>1</tinyboard>"
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)

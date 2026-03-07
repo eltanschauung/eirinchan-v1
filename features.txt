@@ -16,7 +16,7 @@ API display pipeline parity (thread/page/catalog JSON): partial
 OP vs reply branch handling parity: partial
 thread existence/lock/sage/cycle checks: partial
 board locked posting rules: partial
-moderator bypass and permission checks in posting path: incomplete
+moderator bypass and permission checks in posting path: partial
 button token intent validation (new thread/reply action values): partial
 referer validation logic parity: partial
 body required/optional rules (force_body/force_body_op): partial
@@ -24,11 +24,11 @@ OP image required rules (force_image_op): partial
 max lines and max body enforcement: partial
 name/email/subject/password normalization and defaults: partial
 tripcode generation parity: incomplete
-capcode parsing and permission rules: incomplete
+capcode parsing and permission rules: partial
 noko/nonoko/always_noko behavior: partial
 wordfilter pipeline integration: partial
 markup pre-processing and modifier escaping parity: partial
-raw HTML posting mode for authorized moderators: incomplete
+raw HTML posting mode for authorized moderators: partial
 cite tracking extraction and persistence: incomplete
 flood table writes and repeat checks: incomplete
 thread bump logic and bump-limit behavior: partial

@@ -67,8 +67,7 @@ defmodule EirinchanWeb.ThreadManagementControllerTest do
     assert %{"data" => %{"locked" => true}} = json_response(conn, 200)
 
     locked_reply =
-      conn
-      |> recycle()
+      Phoenix.ConnTest.build_conn()
       |> put_req_header("accept", "text/html")
       |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
       |> post("/#{board.uri}/post", %{

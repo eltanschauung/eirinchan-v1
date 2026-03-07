@@ -295,6 +295,39 @@ defmodule Eirinchan.BuildTest do
     assert File.read!(thread_path) =~ "Tag: Anime"
   end
 
+  test "static outputs render moderator raw html and capcodes" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture()
+    moderator = moderator_fixture(%{role: "admin"}) |> grant_board_access_fixture(board)
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "<strong>mod notice</strong>",
+                 "capcode" => "admin",
+                 "raw" => "1",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{
+                 referer: "http://example.test/#{board.uri}/index.html",
+                 moderator: moderator
+               }
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(index_path) =~ "<strong>mod notice</strong>"
+    assert File.read!(index_path) =~ "Capcode: Admin"
+    assert File.read!(thread_path) =~ "<strong>mod notice</strong>"
+    assert File.read!(thread_path) =~ "Capcode: Admin"
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 

@@ -262,4 +262,20 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ "Anime"
     assert page =~ "Music"
   end
+
+  test "board page exposes moderator posting controls for logged-in moderators", %{conn: conn} do
+    board = board_fixture()
+    moderator = moderator_fixture()
+
+    page =
+      conn
+      |> login_moderator(moderator)
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(input[name="capcode"])) != []
+    assert Floki.find(document, ~s(input[name="raw"][type="checkbox"])) != []
+  end
 end

@@ -7,6 +7,8 @@ defmodule Eirinchan.Posts do
 
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
+  alias Eirinchan.Moderation
+  alias Eirinchan.Moderation.ModUser
   alias Eirinchan.Posts.Post
   alias Eirinchan.Posts.PostFile
   alias Eirinchan.Repo
@@ -49,10 +51,10 @@ defmodule Eirinchan.Posts do
       now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
       with :ok <- validate_post_button(op?, attrs, config),
-           :ok <- validate_referer(request, config),
-           :ok <- validate_board_lock(config),
+           :ok <- validate_referer(request, config, board),
+           :ok <- validate_board_lock(config, request, board),
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
-           :ok <- validate_thread_lock(thread),
+           :ok <- validate_thread_lock(thread, request, board),
            {:ok, attrs} <- normalize_post_metadata(attrs, config, request, op?),
            :ok <- validate_body(op?, attrs, config),
            :ok <- validate_body_limits(attrs, config),
@@ -524,7 +526,8 @@ defmodule Eirinchan.Posts do
     with {:ok, attrs} <- normalize_country_flag(attrs, config, request),
          {:ok, attrs} <- normalize_user_flag(attrs, config, request),
          {:ok, attrs} <- normalize_post_tag(attrs, config, op?),
-         {:ok, attrs} <- normalize_proxy(attrs, config, request) do
+         {:ok, attrs} <- normalize_proxy(attrs, config, request),
+         {:ok, attrs} <- normalize_moderator_metadata(attrs, request) do
       {:ok, attrs}
     end
   end
@@ -897,6 +900,38 @@ defmodule Eirinchan.Posts do
 
   defp normalize_proxy(attrs, _config, _request), do: {:ok, Map.put(attrs, "proxy", nil)}
 
+  defp normalize_moderator_metadata(attrs, request) do
+    case request_moderator(request) do
+      %ModUser{} = moderator ->
+        {:ok,
+         attrs
+         |> Map.put("raw_html", truthy?(Map.get(attrs, "raw")))
+         |> Map.put("capcode", normalize_capcode(Map.get(attrs, "capcode"), moderator))}
+
+      _ ->
+        {:ok, attrs |> Map.put("raw_html", false) |> Map.put("capcode", nil)}
+    end
+  end
+
+  defp normalize_capcode(nil, _moderator), do: nil
+  defp normalize_capcode("", _moderator), do: nil
+
+  defp normalize_capcode(capcode, %ModUser{role: role}) do
+    requested = capcode |> to_string() |> String.trim() |> String.downcase()
+
+    allowed =
+      case role do
+        "admin" -> %{"admin" => "Admin", "mod" => "Mod", "janitor" => "Janitor"}
+        "mod" -> %{"mod" => "Mod", "janitor" => "Janitor"}
+        "janitor" -> %{"janitor" => "Janitor"}
+        _ -> %{}
+      end
+
+    Map.get(allowed, requested)
+  end
+
+  defp request_moderator(request), do: request[:moderator] || request["moderator"]
+
   defp maybe_append_modifier(modifiers, _name, nil), do: modifiers
   defp maybe_append_modifier(modifiers, _name, ""), do: modifiers
 
@@ -935,25 +970,44 @@ defmodule Eirinchan.Posts do
     if attrs["post"] == config.button_reply, do: :ok, else: {:error, :invalid_post_mode}
   end
 
-  defp validate_referer(_request, %{referer_match: false}), do: :ok
+  defp validate_referer(_request, %{referer_match: false}, _board), do: :ok
 
-  defp validate_referer(request, config) do
-    referer = request[:referer] || request["referer"]
-
-    if is_binary(referer) and Regex.match?(config.referer_match, URI.decode(referer)) do
+  defp validate_referer(request, config, board) do
+    if moderator_board_access?(request, board) do
       :ok
     else
-      {:error, :invalid_referer}
+      referer = request[:referer] || request["referer"]
+
+      if is_binary(referer) and Regex.match?(config.referer_match, URI.decode(referer)) do
+        :ok
+      else
+        {:error, :invalid_referer}
+      end
     end
   end
 
-  defp validate_board_lock(config) do
-    if config.board_locked, do: {:error, :board_locked}, else: :ok
+  defp validate_board_lock(config, request, board) do
+    if config.board_locked and not moderator_board_access?(request, board) do
+      {:error, :board_locked}
+    else
+      :ok
+    end
   end
 
-  defp validate_thread_lock(nil), do: :ok
-  defp validate_thread_lock(%Post{locked: true}), do: {:error, :thread_locked}
-  defp validate_thread_lock(%Post{}), do: :ok
+  defp validate_thread_lock(nil, _request, _board), do: :ok
+
+  defp validate_thread_lock(%Post{locked: true}, request, board) do
+    if moderator_board_access?(request, board), do: :ok, else: {:error, :thread_locked}
+  end
+
+  defp validate_thread_lock(%Post{}, _request, _board), do: :ok
+
+  defp moderator_board_access?(request, board) do
+    case request_moderator(request) do
+      %ModUser{} = moderator -> Moderation.board_access?(moderator, board)
+      _ -> false
+    end
+  end
 
   defp fetch_thread(_board, nil, _repo), do: {:ok, nil}
 
