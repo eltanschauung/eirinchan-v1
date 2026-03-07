@@ -4,7 +4,8 @@ defmodule EirinchanWeb.ThemeRegistry do
   alias Eirinchan.Settings
 
   @themes %{
-    "default" => %{label: "Yotsuba", stylesheet: "/stylesheets/style.css"},
+    "default" => %{label: "Yotsuba", stylesheet: "/stylesheets/yotsuba.css"},
+    "yotsuba" => %{label: "Yotsuba", stylesheet: "/stylesheets/yotsuba.css"},
     "vichan" => %{label: "Vichan", stylesheet: "/stylesheets/style.css"},
     "contrast" => %{label: "Contrast", stylesheet: "/stylesheets/contrast.css"},
     "feedback" => %{label: "Feedback", stylesheet: "/stylesheets/feedback.css"},
