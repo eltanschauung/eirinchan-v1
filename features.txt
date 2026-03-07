@@ -274,6 +274,6 @@ safe rollback and idempotent migration tooling: incomplete
 banner randomizer endpoint parity (b.php): partial
 analytics hooks parity (if configured): partial
 custom javascript injection/parsing parity: partial
-country flag condensed CSS support parity: incomplete
-legacy compatibility shims for old post formats: incomplete
-deprecated feature switches compatibility layer: incomplete
+country flag condensed CSS support parity: skipped
+legacy compatibility shims for old post formats: partial
+deprecated feature switches compatibility layer: partial

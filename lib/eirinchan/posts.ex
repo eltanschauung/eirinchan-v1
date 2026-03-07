@@ -851,6 +851,48 @@ defmodule Eirinchan.Posts do
       {key, value} when is_atom(key) -> {Atom.to_string(key), value}
       pair -> pair
     end)
+    |> normalize_legacy_post_params()
+  end
+
+  defp normalize_legacy_post_params(attrs) do
+    attrs
+    |> put_alias("thread", Map.get(attrs, "resto") || Map.get(attrs, "thread_id"))
+    |> put_alias("body", Map.get(attrs, "com") || Map.get(attrs, "message"))
+    |> put_alias("subject", Map.get(attrs, "sub") || Map.get(attrs, "topic"))
+    |> put_alias("password", Map.get(attrs, "pwd"))
+    |> put_alias("g-recaptcha-response", Map.get(attrs, "recaptcha_response_field"))
+    |> put_alias("h-captcha-response", Map.get(attrs, "hcaptcha_response"))
+    |> maybe_infer_legacy_post_button()
+  end
+
+  defp maybe_infer_legacy_post_button(%{"post" => post} = attrs)
+       when is_binary(post) and post != "",
+       do: attrs
+
+  defp maybe_infer_legacy_post_button(%{"mode" => mode} = attrs) do
+    case String.downcase(String.trim(to_string(mode))) do
+      "regist" ->
+        if blank_to_nil(Map.get(attrs, "thread")) do
+          Map.put(attrs, "post", "New Reply")
+        else
+          Map.put(attrs, "post", "New Topic")
+        end
+
+      _ ->
+        attrs
+    end
+  end
+
+  defp maybe_infer_legacy_post_button(attrs), do: attrs
+
+  defp put_alias(attrs, _key, nil), do: attrs
+
+  defp put_alias(attrs, key, value) do
+    case Map.get(attrs, key) do
+      nil -> Map.put(attrs, key, value)
+      "" -> Map.put(attrs, key, value)
+      _ -> attrs
+    end
   end
 
   defp prepare_uploads(attrs, config) do

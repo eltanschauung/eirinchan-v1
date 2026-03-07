@@ -163,4 +163,47 @@ defmodule Eirinchan.Runtime.ConfigTest do
     assert config.search_query_global_limit_window == 60
     assert config.search_query_global_limit_count == 0
   end
+
+  test "normalizes deprecated camelCase feature switches" do
+    config =
+      Config.compose(
+        %{
+          root: "/",
+          maxBody: 99,
+          maxLines: 4,
+          forceImageOp: true,
+          countryFlags: true,
+          allowNoCountry: true,
+          userFlag: true,
+          multipleFlags: true,
+          defaultUserFlag: "country, sau",
+          userFlags: %{"sau" => "Sauce"},
+          uploadByUrlEnabled: true,
+          uploadByUrlTimeoutMs: 1234,
+          captcha: %{
+            "captchaProvider" => "hcaptcha",
+            "captchaMode" => "reply",
+            "captchaRefreshOnError" => false
+          },
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    assert config.max_body == 99
+    assert config.maximum_lines == 4
+    assert config.force_image_op
+    assert config.country_flags
+    assert config.allow_no_country
+    assert config.user_flag
+    assert config.multiple_flags
+    assert config.default_user_flag == "country,sau"
+    assert config.user_flags["sau"] == "Sauce"
+    assert config.upload_by_url_enabled
+    assert config.upload_by_url_timeout_ms == 1234
+    assert config.captcha.provider == "hcaptcha"
+    assert config.captcha.mode == "reply"
+    refute config.captcha.refresh_on_error
+  end
 end

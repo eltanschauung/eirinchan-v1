@@ -106,6 +106,43 @@ defmodule Eirinchan.PostsTest do
     assert reply.thread_id == thread.id
   end
 
+  test "create_post accepts legacy post parameter aliases and mode=regist" do
+    board = board_fixture()
+
+    assert {:ok, thread, %{noko: false}} =
+             Posts.create_post(
+               board,
+               %{
+                 "name" => "anon",
+                 "sub" => "legacy subject",
+                 "com" => "legacy body",
+                 "pwd" => "secretpw",
+                 "mode" => "regist"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.subject == "legacy subject"
+    assert thread.body == "legacy body"
+    assert thread.password == "secretpw"
+
+    assert {:ok, reply, %{noko: false}} =
+             Posts.create_post(
+               board,
+               %{
+                 "resto" => Integer.to_string(thread.id),
+                 "message" => "legacy reply",
+                 "mode" => "regist"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert reply.thread_id == thread.id
+    assert reply.body == "legacy reply"
+  end
+
   test "create_post stores upload metadata for image posts" do
     board = board_fixture()
     upload = upload_fixture("first.png", "png-bytes")

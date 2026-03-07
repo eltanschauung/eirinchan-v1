@@ -166,18 +166,69 @@ defmodule Eirinchan.Runtime.Config do
 
   @type t :: map()
 
+  @deprecated_switch_aliases %{
+    "maxLines" => :maximum_lines,
+    "maxBody" => :max_body,
+    "forceBody" => :force_body,
+    "forceBodyOp" => :force_body_op,
+    "forceImageOp" => :force_image_op,
+    "countryFlags" => :country_flags,
+    "allowNoCountry" => :allow_no_country,
+    "countryFlagData" => :country_flag_data,
+    "countryFlagFallback" => :country_flag_fallback,
+    "countryFlagExclusions" => :country_flag_exclusions,
+    "userFlag" => :user_flag,
+    "userFlags" => :user_flags,
+    "defaultUserFlag" => :default_user_flag,
+    "multipleFlags" => :multiple_flags,
+    "fieldDisableName" => :field_disable_name,
+    "fieldDisableEmail" => :field_disable_email,
+    "fieldDisableSubject" => :field_disable_subject,
+    "fieldDisableReplySubject" => :field_disable_reply_subject,
+    "fieldDisablePassword" => :field_disable_password,
+    "floodTimeIp" => :flood_time_ip,
+    "floodTimeSame" => :flood_time_same,
+    "searchEnabled" => :search_enabled,
+    "searchAllowedBoards" => :search_allowed_boards,
+    "searchDisallowedBoards" => :search_disallowed_boards,
+    "uploadByUrlEnabled" => :upload_by_url_enabled,
+    "uploadByUrlTimeoutMs" => :upload_by_url_timeout_ms,
+    "generationStrategy" => :generation_strategy,
+    "replyHardLimit" => :reply_hard_limit,
+    "imageHardLimit" => :image_hard_limit,
+    "maxFilesize" => :max_filesize,
+    "thumbWidth" => :thumb_width,
+    "thumbHeight" => :thumb_height,
+    "thumbOpWidth" => :thumb_op_width,
+    "thumbOpHeight" => :thumb_op_height
+  }
+
+  @deprecated_nested_aliases %{
+    captcha: %{
+      "captchaProvider" => :provider,
+      "captchaMode" => :mode,
+      "captchaRefreshOnError" => :refresh_on_error,
+      "captchaVerifyUrl" => :verify_url,
+      "captchaSecret" => :secret,
+      "captchaHttpTimeoutMs" => :http_timeout_ms
+    }
+  }
+
   @spec default_config() :: t()
   def default_config, do: @default_config
 
   @spec compose(map() | nil, map(), map(), keyword()) :: t()
   def compose(defaults \\ nil, instance_overrides \\ %{}, board_overrides \\ %{}, opts \\ []) do
-    base_defaults = deep_merge(default_config(), defaults || %{})
+    normalized_defaults = normalize_override_keys(defaults || %{})
+    normalized_instance = normalize_override_keys(instance_overrides || %{})
+    normalized_board = normalize_override_keys(board_overrides || %{})
+    base_defaults = deep_merge(default_config(), normalized_defaults)
     board = Keyword.get(opts, :board)
     request_host = Keyword.get(opts, :request_host)
 
     base_defaults
-    |> deep_merge(instance_overrides)
-    |> deep_merge(board_overrides)
+    |> deep_merge(normalized_instance)
+    |> deep_merge(normalized_board)
     |> apply_computed_defaults(board, request_host)
   end
 
@@ -196,13 +247,15 @@ defmodule Eirinchan.Runtime.Config do
   def normalize_override_keys(overrides) when is_map(overrides) do
     Enum.into(overrides, %{}, fn
       {key, value} when is_binary(key) ->
-        {normalize_override_key(key), normalize_override_value(value)}
+        normalized_key = normalize_override_key(key)
+        {normalized_key, normalize_override_value(normalized_key, value)}
 
       {key, value} when is_atom(key) ->
-        {key, normalize_override_value(value)}
+        normalized_key = normalize_override_key(key)
+        {normalized_key, normalize_override_value(normalized_key, value)}
 
       {key, value} ->
-        {key, normalize_override_value(value)}
+        {key, normalize_override_value(key, value)}
     end)
   end
 
@@ -253,20 +306,49 @@ defmodule Eirinchan.Runtime.Config do
     |> Map.put_new(:uri_img, board_asset_path(config, board.dir, config.dir.img))
   end
 
-  defp normalize_override_key(key) do
-    try do
-      String.to_existing_atom(key)
-    rescue
-      ArgumentError -> key
-    end
+  defp normalize_override_key(key) when is_binary(key) do
+    Map.get(@deprecated_switch_aliases, key) ||
+      try do
+        String.to_existing_atom(key)
+      rescue
+        ArgumentError -> key
+      end
   end
 
-  defp normalize_override_value(value) when is_map(value), do: normalize_override_keys(value)
+  defp normalize_override_key(key) when is_atom(key) do
+    Map.get(@deprecated_switch_aliases, Atom.to_string(key), key)
+  end
 
-  defp normalize_override_value(value) when is_list(value),
-    do: Enum.map(value, &normalize_override_value/1)
+  defp normalize_override_value(_key, %{__struct__: _} = value), do: value
 
-  defp normalize_override_value(value), do: value
+  defp normalize_override_value(key, value) when is_map(value) do
+    nested_aliases = Map.get(@deprecated_nested_aliases, key, %{})
+
+    value
+    |> Enum.into(%{}, fn
+      {nested_key, nested_value} when is_binary(nested_key) ->
+        normalized_nested_key =
+          Map.get(nested_aliases, nested_key) ||
+            try do
+              String.to_existing_atom(nested_key)
+            rescue
+              ArgumentError -> nested_key
+            end
+
+        {normalized_nested_key, normalize_override_value(normalized_nested_key, nested_value)}
+
+      {nested_key, nested_value} when is_atom(nested_key) ->
+        {nested_key, normalize_override_value(nested_key, nested_value)}
+
+      {nested_key, nested_value} ->
+        {nested_key, normalize_override_value(nested_key, nested_value)}
+    end)
+  end
+
+  defp normalize_override_value(_key, value) when is_list(value),
+    do: Enum.map(value, &normalize_override_value(nil, &1))
+
+  defp normalize_override_value(_key, value), do: value
 
   defp normalize_flags(config) do
     config =
