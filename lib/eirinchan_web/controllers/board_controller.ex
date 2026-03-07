@@ -20,7 +20,10 @@ defmodule EirinchanWeb.BoardController do
     page_num =
       page_num_html
       |> String.replace_suffix(".html", "")
-      |> String.to_integer()
+      |> case do
+        "index" -> 1
+        value -> String.to_integer(value)
+      end
 
     render_page(conn, page_num)
   end
