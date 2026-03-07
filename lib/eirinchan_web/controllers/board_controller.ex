@@ -1,6 +1,7 @@
 defmodule EirinchanWeb.BoardController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Announcement
   alias Eirinchan.Boards
   alias Eirinchan.Build
   alias Eirinchan.Posts
@@ -34,6 +35,7 @@ defmodule EirinchanWeb.BoardController do
         render(conn, :catalog,
           board: board,
           board_title: board.title,
+          announcement: Announcement.current(),
           threads: threads,
           config: config,
           boards: Boards.list_boards()
@@ -54,6 +56,7 @@ defmodule EirinchanWeb.BoardController do
         render(conn, :show,
           board: board,
           board_title: board.title,
+          announcement: Announcement.current(),
           page_data: page_data,
           config: config,
           boards: Boards.list_boards()

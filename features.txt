@@ -201,7 +201,7 @@ board create/edit workflow parity: partial
 board title/subtitle configuration parity: partial
 board URL and abbreviation formatting parity: partial
 board search box behavior parity: incomplete
-global announcement/blotter behavior parity: incomplete
+global announcement/blotter behavior parity: partial
 custom pages CRUD parity: incomplete
 news pages parity: partial
 

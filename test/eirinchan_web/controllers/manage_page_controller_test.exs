@@ -171,6 +171,62 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert Eirinchan.News.list_entries() == []
   end
 
+  test "browser announcement management creates, updates, and deletes the site announcement", %{
+    conn: conn
+  } do
+    moderator = moderator_fixture(%{role: "admin"})
+
+    create_conn =
+      conn
+      |> login_moderator(moderator)
+      |> post("/manage/announcement/browser", %{
+        "title" => "Banner",
+        "body" => "Important notice"
+      })
+
+    assert redirected_to(create_conn) == "/manage/announcement/browser"
+
+    announcement_page =
+      create_conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> get("/manage/announcement/browser")
+      |> html_response(200)
+
+    assert announcement_page =~ "Manage Announcement"
+    assert announcement_page =~ "Banner"
+    assert announcement_page =~ "Important notice"
+
+    update_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> post("/manage/announcement/browser", %{
+        "title" => "Banner Updated",
+        "body" => "Important notice updated"
+      })
+
+    assert redirected_to(update_conn) == "/manage/announcement/browser"
+
+    home_page =
+      update_conn
+      |> recycle()
+      |> get("/")
+      |> html_response(200)
+
+    assert home_page =~ "Banner Updated"
+    assert home_page =~ "Important notice updated"
+
+    delete_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> delete("/manage/announcement/browser")
+
+    assert redirected_to(delete_conn) == "/manage/announcement/browser"
+    assert Eirinchan.Announcement.current() == nil
+  end
+
   test "browser recent posts page filters by board, query, and ip", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
     board = board_fixture(%{uri: "tea", title: "Tea"})

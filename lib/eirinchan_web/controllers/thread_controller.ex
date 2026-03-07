@@ -1,6 +1,7 @@
 defmodule EirinchanWeb.ThreadController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Announcement
   alias Eirinchan.Boards
   alias Eirinchan.Build
   alias Eirinchan.Posts
@@ -29,6 +30,7 @@ defmodule EirinchanWeb.ThreadController do
           render(conn, :show,
             board: board,
             board_title: board.title,
+            announcement: Announcement.current(),
             summary: summary,
             config: config,
             page_num: page_num,

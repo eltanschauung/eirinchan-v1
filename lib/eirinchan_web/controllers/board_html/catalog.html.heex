@@ -11,6 +11,14 @@
   <% end %>
 </nav>
 
+<section :if={@announcement}>
+  <h2>Announcement</h2>
+  <article>
+    <h3><%= @announcement.title %></h3>
+    <p><%= @announcement.body %></p>
+  </article>
+</section>
+
 <section>
   <h2>Catalog</h2>
   <%= if @threads == [] do %>

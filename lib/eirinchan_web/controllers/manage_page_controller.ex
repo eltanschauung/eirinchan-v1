@@ -1,6 +1,7 @@
 defmodule EirinchanWeb.ManagePageController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Announcement
   alias Eirinchan.Boards
   alias Eirinchan.Build
   alias Eirinchan.Bans
@@ -46,6 +47,7 @@ defmodule EirinchanWeb.ManagePageController do
       render(conn, :dashboard,
         moderator: moderator,
         boards: Moderation.list_accessible_boards(moderator),
+        announcement: Announcement.current(),
         news_entries: News.list_entries(limit: 10),
         error: nil,
         params: %{"uri" => nil, "title" => nil, "subtitle" => nil}
@@ -122,6 +124,52 @@ defmodule EirinchanWeb.ManagePageController do
 
       nil ->
         render_news_error(conn, "News entry not found.", :not_found)
+    end
+  end
+
+  def announcement(conn, _params) do
+    with {:ok, moderator} <- ensure_moderator(conn) do
+      render(conn, :announcement,
+        moderator: moderator,
+        announcement: Announcement.current(),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
+    end
+  end
+
+  def upsert_announcement(conn, %{"title" => title, "body" => body}) do
+    with {:ok, moderator} <- ensure_news_editor(conn),
+         {:ok, _announcement} <-
+           Announcement.upsert(%{title: title, body: body, mod_user_id: moderator.id}) do
+      conn
+      |> put_flash(:info, "Announcement updated.")
+      |> redirect(to: ~p"/manage/announcement/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_announcement_error(conn, "Moderator access required.")
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_announcement_error(conn, format_changeset(changeset), :unprocessable_entity)
+    end
+  end
+
+  def delete_announcement(conn, _params) do
+    with {:ok, _moderator} <- ensure_news_editor(conn),
+         {:ok, _announcement} <- Announcement.delete_current() do
+      conn
+      |> put_flash(:info, "Announcement removed.")
+      |> redirect(to: ~p"/manage/announcement/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_announcement_error(conn, "Moderator access required.")
     end
   end
 
@@ -532,6 +580,7 @@ defmodule EirinchanWeb.ManagePageController do
         |> render(:dashboard,
           moderator: conn.assigns[:current_moderator],
           boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
+          announcement: Announcement.current(),
           news_entries: News.list_entries(limit: 10),
           error: "Administrator access required.",
           params: Map.take(stringify(params), ["uri", "title", "subtitle"])
@@ -543,6 +592,7 @@ defmodule EirinchanWeb.ManagePageController do
         |> render(:dashboard,
           moderator: conn.assigns.current_moderator,
           boards: Moderation.list_accessible_boards(conn.assigns.current_moderator),
+          announcement: Announcement.current(),
           news_entries: News.list_entries(limit: 10),
           error: format_changeset(changeset),
           params: Map.take(stringify(params), ["uri", "title", "subtitle"])
@@ -650,6 +700,7 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:dashboard,
       moderator: conn.assigns[:current_moderator],
       boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
+      announcement: Announcement.current(),
       news_entries: News.list_entries(limit: 10),
       error: message,
       params: Map.take(stringify(params), ["uri", "title", "subtitle"])
@@ -662,6 +713,16 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:news,
       moderator: conn.assigns[:current_moderator],
       news_entries: News.list_entries(),
+      error: message
+    )
+  end
+
+  defp render_announcement_error(conn, message, status \\ :forbidden) do
+    conn
+    |> put_status(status)
+    |> render(:announcement,
+      moderator: conn.assigns[:current_moderator],
+      announcement: Announcement.current(),
       error: message
     )
   end

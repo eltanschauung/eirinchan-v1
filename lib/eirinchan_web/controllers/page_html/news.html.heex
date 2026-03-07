@@ -3,6 +3,14 @@
   <p><a href={~p"/"}>Home</a></p>
 </section>
 
+<section :if={@announcement}>
+  <h2>Announcement</h2>
+  <article>
+    <h3><%= @announcement.title %></h3>
+    <p><%= @announcement.body %></p>
+  </article>
+</section>
+
 <section>
   <%= if @news_entries == [] do %>
     <p>No news entries yet.</p>
