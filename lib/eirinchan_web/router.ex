@@ -111,6 +111,8 @@ defmodule EirinchanWeb.Router do
 
     get "/b.php", BannerController, :show
     post "/theme", ThemeController, :update
+    get "/auth", IpAccessAuthController, :show
+    post "/auth", IpAccessAuthController, :create
     get "/setup", SetupController, :show
     post "/setup", SetupController, :create
   end

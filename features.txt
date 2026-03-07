@@ -180,13 +180,13 @@ useIpAccessList toggle parity (default disabled): partial
 security gate near post OP multi-image path parity: partial
 OP multi-image allowance rules under access-list security parity: partial
 IPv6 range matching behavior for access lists: partial
-IpAccessAuth theme install/build lifecycle parity: incomplete
-IpAccessAuth password list configuration (comma-separated): incomplete
-IpAccessAuth default passwords bootstrap behavior: incomplete
-IpAccessAuth range derivation on successful auth: incomplete
-IpAccessAuth access.conf append/update safety behavior: incomplete
-IpAccessAuth output path configurability (/auth default): incomplete
-IpAccessAuth minimal UI parity (no image/footer by default): incomplete
+IpAccessAuth theme install/build lifecycle parity: partial
+IpAccessAuth password list configuration (comma-separated): partial
+IpAccessAuth default passwords bootstrap behavior: partial
+IpAccessAuth range derivation on successful auth: partial
+IpAccessAuth access.conf append/update safety behavior: partial
+IpAccessAuth output path configurability (/auth default): partial
+IpAccessAuth minimal UI parity (no image/footer by default): partial
 
 [IP Privacy, Hashing, and Moderation Visibility]
 ipcrypt hashing parity for public/mod contexts: partial
