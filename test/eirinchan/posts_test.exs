@@ -204,6 +204,51 @@ defmodule Eirinchan.PostsTest do
     assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
   end
 
+  test "create_post uses OP-specific thumbnail dimensions for thread starters" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          thumb_width: 40,
+          thumb_height: 40,
+          thumb_op_width: 80,
+          thumb_op_height: 80
+        }
+      })
+
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload_fixture("thread.png", geometry: "120x60"),
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "reply body",
+                 "file" => upload_fixture("reply.png", geometry: "120x60"),
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert identify_value(Eirinchan.Uploads.filesystem_path(thread.thumb_path), "%wx%h") ==
+             "80x40"
+
+    assert identify_value(Eirinchan.Uploads.filesystem_path(reply.thumb_path), "%wx%h") == "40x20"
+  end
+
   test "create_post stores extra files from a multi-file upload" do
     board = board_fixture()
 

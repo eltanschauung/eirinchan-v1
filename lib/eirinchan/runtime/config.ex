@@ -60,6 +60,8 @@ defmodule Eirinchan.Runtime.Config do
     max_filename_display_length: 64,
     thumb_width: 250,
     thumb_height: 250,
+    thumb_op_width: 250,
+    thumb_op_height: 250,
     max_image_width: 0,
     max_image_height: 0,
     minimum_copy_resize: false,
