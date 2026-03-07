@@ -12,6 +12,7 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.Reports
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
+  alias Eirinchan.Themes
   alias EirinchanWeb.ManageSecurity
   alias EirinchanWeb.ThemeRegistry
 
@@ -205,6 +206,7 @@ defmodule EirinchanWeb.ManagePageController do
       render(conn, :themes,
         moderator: moderator,
         themes: ThemeRegistry.all(),
+        page_themes: Themes.page_themes(),
         default_theme: ThemeRegistry.default_theme(),
         error: nil
       )
@@ -244,6 +246,24 @@ defmodule EirinchanWeb.ManagePageController do
     end
   end
 
+  def update_page_theme(conn, %{"name" => name, "enabled" => enabled}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         {:ok, _name} <- toggle_page_theme(name, enabled) do
+      conn
+      |> put_flash(:info, "Theme updated.")
+      |> redirect(to: ~p"/manage/themes/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :not_found} ->
+        render_themes_error(conn, "Theme not found.", :not_found)
+    end
+  end
+
   defp assign_manage_shell(conn, _opts) do
     conn
     |> assign(:base_stylesheet, "/stylesheets/style.css")
@@ -255,6 +275,20 @@ defmodule EirinchanWeb.ManagePageController do
     |> assign(:skip_app_stylesheet, true)
     |> assign(:skip_flash_group, true)
     |> assign(:hide_theme_switcher, true)
+  end
+
+  defp toggle_page_theme(name, enabled) do
+    if enabled in ["true", "1", "on"] do
+      case Themes.enable_page_theme(name) do
+        :ok -> {:ok, name}
+        error -> error
+      end
+    else
+      case Themes.disable_page_theme(name) do
+        :ok -> {:ok, name}
+        error -> error
+      end
+    end
   end
 
   def update_theme(conn, %{"name" => _name, "default_theme" => default_theme}) do

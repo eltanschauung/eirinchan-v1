@@ -6,6 +6,7 @@ defmodule EirinchanWeb.ApiController do
   alias Eirinchan.Posts
 
   plug EirinchanWeb.Plugs.LoadBoard when action in [:page, :catalog, :threads, :thread]
+  plug :require_catalog_theme when action in [:catalog, :threads]
 
   def boards(conn, _params) do
     json(conn, Api.boards_json(Boards.list_boards()))
@@ -44,5 +45,9 @@ defmodule EirinchanWeb.ApiController do
       {:ok, summary} -> json(conn, Api.thread_json(summary))
       {:error, :not_found} -> send_resp(conn, :not_found, "Thread not found")
     end
+  end
+
+  defp require_catalog_theme(conn, _opts) do
+    EirinchanWeb.Plugs.RequirePageTheme.call(conn, theme: "catalog")
   end
 end

@@ -467,7 +467,13 @@
         [Return]
       </a>
       <a id="thread-top" href="#top">[Go to top]</a>
-      <a id="thread-catalog" href={"/#{@board.uri}/catalog.html"}>[Catalog]</a>
+      <a
+        :if={Eirinchan.Themes.page_theme_enabled?("catalog")}
+        id="thread-catalog"
+        href={"/#{@board.uri}/catalog.html"}
+      >
+        [Catalog]
+      </a>
     </span>
     <span id="thread-quick-reply">
       <a id="link-quick-reply" href="#reply-form">[Post a Reply]</a>

@@ -4,6 +4,7 @@ defmodule EirinchanWeb.PostView do
   import Phoenix.HTML, only: [html_escape: 1, safe_to_string: 1]
 
   alias Eirinchan.Posts.PostFile
+  alias Eirinchan.Themes
   alias Eirinchan.ThreadPaths
 
   def template_assigns(board, post, config) do
@@ -132,7 +133,12 @@ defmodule EirinchanWeb.PostView do
         ""
       end
 
-    ~s(<div class="pages">#{previous_html}  #{page_links}#{if next_html != "", do: "  " <> next_html, else: ""} | <a href="/#{board_uri}/catalog.html">Catalog</a></div>)
+    catalog_link =
+      if Themes.page_theme_enabled?("catalog"),
+        do: ~s( | <a href="/#{board_uri}/catalog.html">Catalog</a>),
+        else: ""
+
+    ~s(<div class="pages">#{previous_html}  #{page_links}#{if next_html != "", do: "  " <> next_html, else: ""}#{catalog_link}</div>)
   end
 
   def post_flags(post, config) do

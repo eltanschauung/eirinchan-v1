@@ -11,6 +11,7 @@ defmodule EirinchanWeb.BoardController do
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show]
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show_page]
   plug EirinchanWeb.Plugs.LoadBoard when action in [:catalog]
+  plug :require_catalog_theme when action in [:catalog]
 
   def show(conn, _params) do
     render_page(conn, 1)
@@ -151,4 +152,8 @@ defmodule EirinchanWeb.BoardController do
 
   defp board_extra_stylesheets(_board),
     do: ["/stylesheets/eirinchan-public.css", "/stylesheets/eirinchan-bant.css"]
+
+  defp require_catalog_theme(conn, _opts) do
+    EirinchanWeb.Plugs.RequirePageTheme.call(conn, theme: "catalog")
+  end
 end

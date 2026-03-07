@@ -64,6 +64,7 @@ defmodule EirinchanWeb.Router do
     patch "/config/browser", ManagePageController, :update_config
     get "/themes/browser", ManagePageController, :themes
     post "/themes/browser", ManagePageController, :create_theme
+    patch "/themes/browser/pages/:name", ManagePageController, :update_page_theme
     patch "/themes/browser/:name", ManagePageController, :update_theme
     delete "/themes/browser/:name", ManagePageController, :delete_theme
     get "/announcement/browser", ManagePageController, :announcement
@@ -110,6 +111,7 @@ defmodule EirinchanWeb.Router do
   scope "/", EirinchanWeb do
     pipe_through :browser
 
+    get "/mod.php", LegacyModController, :show
     get "/b.php", BannerController, :show
     get "/search.php", SearchController, :show
     post "/post.php", PostController, :create

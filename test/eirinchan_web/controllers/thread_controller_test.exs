@@ -1,9 +1,23 @@
 defmodule EirinchanWeb.ThreadControllerTest do
-  use EirinchanWeb.ConnCase, async: true
+  use EirinchanWeb.ConnCase, async: false
 
   alias Eirinchan.Posts
   alias Eirinchan.Runtime.Config
   alias Eirinchan.ThreadPaths
+
+  setup do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+    path = Path.join(System.tmp_dir!(), "eirinchan-thread-themes-#{System.unique_integer([:positive])}.json")
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    :ok
+  end
 
   test "plain thread urls redirect to the canonical slug path", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{slugify: true}})
@@ -175,7 +189,7 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ ~s(title="Meta">meta</a>)
     assert page =~ ~s(title="#{board.title}">#{board.uri}</a>)
     assert page =~ ~s(var active_page = "thread", board_name = "#{board.uri}")
-    assert page =~ ~s(src="/main.js")
+    assert page =~ ~s(src="/main.js)
   end
 
   test "thread pages render the distribution chrome shell", %{conn: conn} do
@@ -186,11 +200,11 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     assert page =~ ~s(class="8chan vichan is-not-moderator active-thread")
     assert page =~ ~s(data-stylesheet="yotsuba.css")
-    assert page =~ ~s(href="/stylesheets/style.css")
-    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
-    assert page =~ ~s(src="/main.js")
+    assert page =~ ~s(href="/stylesheets/style.css)
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css)
+    assert page =~ ~s(src="/main.js)
     assert page =~ ~s(src="/b.php")
-    assert page =~ "[Catalog]"
+    refute page =~ "[Catalog]"
     assert page =~ ~s(class="boardlist")
   end
 

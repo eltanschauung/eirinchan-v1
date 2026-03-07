@@ -1,5 +1,19 @@
 defmodule EirinchanWeb.BoardManagementControllerTest do
-  use EirinchanWeb.ConnCase, async: true
+  use EirinchanWeb.ConnCase, async: false
+
+  setup do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+    path = Path.join(System.tmp_dir!(), "eirinchan-board-themes-#{System.unique_integer([:positive])}.json")
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    :ok
+  end
 
   test "creates, updates, shows, and deletes boards over HTTP", %{conn: conn} do
     moderator = moderator_fixture()
@@ -82,10 +96,10 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert response =~
              ~s(<script type="text/javascript">var active_page = "index", board_name = "#{board.uri}";</script>)
 
-    assert response =~ ~s(href="/stylesheets/style.css")
-    assert response =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
+    assert response =~ ~s(href="/stylesheets/style.css)
+    assert response =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css)
     assert response =~ ~s(data-stylesheet="yotsuba.css")
-    assert response =~ ~s(src="/main.js")
+    assert response =~ ~s(src="/main.js)
     assert response =~ ~s(title="Meta">meta</a>)
     assert response =~ "Board notice"
     assert response =~ "Visible on boards"
@@ -173,6 +187,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
   end
 
   test "catalog page renders thread summaries across board pages", %{conn: conn} do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     board = board_fixture(%{config_overrides: %{threads_per_page: 1}})
 
     conn
@@ -205,6 +220,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
   end
 
   test "catalog page renders the distribution chrome shell", %{conn: conn} do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     board = board_fixture(%{uri: "bant", title: "International Random"})
     thread_fixture(board, %{body: "First body", subject: "First thread"})
 
@@ -215,8 +231,8 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert page =~ ~s(class="8chan vichan is-not-moderator theme-catalog active-catalog")
     assert page =~ ~s(data-stylesheet="yotsuba.css")
-    assert page =~ ~s(href="/stylesheets/style.css")
-    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
+    assert page =~ ~s(href="/stylesheets/style.css)
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css)
     assert page =~ "Return to Index"
     assert page =~ "Sort by:"
     assert page =~ ~s(id="Grid")
@@ -224,6 +240,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
   end
 
   test "catalog page renders formatted body excerpts", %{conn: conn} do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     board = board_fixture()
     thread_fixture(board, %{body: ">quoted\nsecond line"})
 
@@ -460,6 +477,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
   end
 
   test "fileboard pages use filenames as thread titles when subjects are absent", %{conn: conn} do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     board = board_fixture(%{config_overrides: %{fileboard: true, force_body_op: false}})
 
     conn

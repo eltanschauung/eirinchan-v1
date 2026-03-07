@@ -24,8 +24,8 @@
 
 <div class="pages top">
   [<a href={~p"/"}>Home</a>]
-  [<a href={~p"/ukko"}>Ukko</a>]
-  [<a href={~p"/recent"}>Recent</a>]
+  <span :if={Eirinchan.Themes.page_theme_enabled?("ukko")}>[<a href={~p"/ukko"}>Ukko</a>]</span>
+  <span :if={Eirinchan.Themes.page_theme_enabled?("recent")}>[<a href={~p"/recent"}>Recent</a>]</span>
 </div>
 
 <section>

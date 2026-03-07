@@ -10,6 +10,7 @@ defmodule Eirinchan.Build do
   alias Eirinchan.Posts
   alias Eirinchan.Purge
   alias Eirinchan.Repo
+  alias Eirinchan.Themes
   alias Eirinchan.ThreadPaths
   alias EirinchanWeb.PostView
 
@@ -220,9 +221,14 @@ defmodule Eirinchan.Build do
   end
 
   defp write_catalog_page(board, page_data_list, config) do
-    html = render_catalog(board, page_data_list, config)
-    output = Path.join([board_root(), board.uri, config.file_catalog])
-    maybe_write_file(output, html, pages_last_modified(page_data_list), config)
+    if Themes.page_theme_enabled?("catalog") do
+      html = render_catalog(board, page_data_list, config)
+      output = Path.join([board_root(), board.uri, config.file_catalog])
+      maybe_write_file(output, html, pages_last_modified(page_data_list), config)
+    else
+      File.rm(Path.join([board_root(), board.uri, config.file_catalog]))
+      :ok
+    end
   end
 
   defp write_api_pages(_board, _page_data_list, %{api: %{enabled: false}}), do: :ok
@@ -239,20 +245,26 @@ defmodule Eirinchan.Build do
         end
       end)
 
-    with :ok <- per_page_results,
-         :ok <-
-           maybe_write_file(
-             Path.join([board_root(), board.uri, "catalog.json"]),
-             Jason.encode!(Api.catalog_json(page_data_list)),
-             pages_last_modified(page_data_list),
-             config
-           ) do
-      maybe_write_file(
-        Path.join([board_root(), board.uri, "threads.json"]),
-        Jason.encode!(Api.catalog_json(page_data_list, threads_page: true)),
-        pages_last_modified(page_data_list),
-        config
-      )
+    if Themes.page_theme_enabled?("catalog") do
+      with :ok <- per_page_results,
+           :ok <-
+             maybe_write_file(
+               Path.join([board_root(), board.uri, "catalog.json"]),
+               Jason.encode!(Api.catalog_json(page_data_list)),
+               pages_last_modified(page_data_list),
+               config
+             ) do
+        maybe_write_file(
+          Path.join([board_root(), board.uri, "threads.json"]),
+          Jason.encode!(Api.catalog_json(page_data_list, threads_page: true)),
+          pages_last_modified(page_data_list),
+          config
+        )
+      end
+    else
+      File.rm(Path.join([board_root(), board.uri, "catalog.json"]))
+      File.rm(Path.join([board_root(), board.uri, "threads.json"]))
+      per_page_results
     end
   end
 

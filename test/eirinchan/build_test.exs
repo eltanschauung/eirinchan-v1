@@ -6,7 +6,22 @@ defmodule Eirinchan.BuildTest do
   alias Eirinchan.Posts
   alias Eirinchan.Runtime.Config
 
+  setup do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+    path = Path.join(System.tmp_dir!(), "eirinchan-build-themes-#{System.unique_integer([:positive])}.json")
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    :ok
+  end
+
   test "posting rebuilds paginated board, thread, and api files" do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     File.rm_rf!(Build.board_root())
 
     board =

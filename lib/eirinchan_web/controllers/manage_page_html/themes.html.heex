@@ -67,3 +67,23 @@
     </article>
   <% end %>
 </section>
+
+<section>
+  <h2>Page Themes</h2>
+  <%= for theme <- @page_themes do %>
+    <article id={"page-theme-#{theme.name}"}>
+      <h3><%= theme.label %></h3>
+      <p><%= theme.description %></p>
+      <p>Status: <strong><%= if theme.enabled, do: "Enabled", else: "Disabled" %></strong></p>
+
+      <form action={"/manage/themes/browser/pages/#{theme.name}"} method="post">
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+        <input type="hidden" name="_method" value="patch" />
+        <input type="hidden" name="enabled" value={if theme.enabled, do: "false", else: "true"} />
+        <button type="submit">
+          <%= if theme.enabled, do: "Disable Theme", else: "Enable Theme" %>
+        </button>
+      </form>
+    </article>
+  <% end %>
+</section>
