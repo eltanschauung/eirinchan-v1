@@ -5,11 +5,13 @@ defmodule EirinchanWeb.PublicShell do
     "/main.js",
     "/js/jquery.min.js",
     "/js/inline-expanding.js",
+    "/js/jquery.min.js",
     "/js/youtube.js",
     "/js/save-user_flag.js",
     "/js/thread-stats.js",
     "/js/strftime.min.js",
     "/js/ajax.js",
+    "/js/navarrows2.js",
     "/js/file-selector.js",
     "/js/expand.js",
     "/js/options.js",
@@ -17,6 +19,7 @@ defmodule EirinchanWeb.PublicShell do
     "/js/options/general.js",
     "/js/options/user-js.js",
     "/js/options/user-css.js",
+    "/js/instance.settings.js",
     "/js/jquery-ui.custom.min.js",
     "/js/quick-reply.js",
     "/js/filters.js",
@@ -36,7 +39,9 @@ defmodule EirinchanWeb.PublicShell do
     "/js/download-original.js",
     "/js/unspoiler3.js",
     "/js/ruffle.js",
+    "/js/expand-swf.js",
     "/js/catalog-search.js",
+    "/js/webm-settings.js",
     "/js/webm-settings.js",
     "/js/expand-video.js"
   ]
@@ -48,8 +53,14 @@ defmodule EirinchanWeb.PublicShell do
         value -> ~s("#{value}")
       end
 
+    thread_fragment =
+      case Keyword.get(opts, :thread_id) do
+        nil -> ""
+        value -> ~s(, thread_id = "#{value}")
+      end
+
     """
-    <script type="text/javascript">var active_page = "#{active_page}", board_name = #{board_name};</script><script type="text/javascript">var configRoot="/";var inMod = false;var modRoot="/"+(inMod ? "mod.php?/" : "");var resourceVersion="";</script>
+    <script type="text/javascript">var active_page = "#{active_page}", board_name = #{board_name}#{thread_fragment};</script><script type="text/javascript">var configRoot="/";var inMod = false;var modRoot="/"+(inMod ? "mod.php?/" : "");var resourceVersion="";</script>
     """
     |> String.trim()
   end

@@ -11,13 +11,7 @@
   if (typeof do_boardlist !== 'undefined') do_boardlist();
 </script>
 
-<img
-  :if={@board.uri == "bant" || @config.banners != []}
-  class="board_image"
-  src="/b.php"
-  style="width:300px;height:100px"
-  alt=""
-/>
+<img class="board_image" src="/b.php" style="width:300px;height:100px" alt="" />
 
 <header>
   <h1><%= PostView.board_heading(@board) %></h1>
@@ -267,9 +261,9 @@
 
 <hr />
 <!-- Start Search Form -->
-<form style="display:inline;" action="/search" method="get">
+<form style="display:inline;" action="/search.php" method="get">
   <p style="margin: 8px;">
-    <input type="text" style="max-width:40%;" name="search" placeholder="Search" />
+    <input type="text" style="max-width:40%;" name="search" placeholder={"#{@board.uri} search"} />
     <input type="hidden" name="board" value={@board.uri} />
     <input type="submit" value="Search" style="margin-right:4px;" />
     <%= for link <- EirinchanWeb.BoardChrome.search_links(@board.uri) do %>
@@ -308,7 +302,7 @@
                 ><%= PostView.original_file_name(file) %></span>)
               </span>
             </p>
-            <a href={file.file_path} target="_blank">
+            <a href={file.file_path}>
               <img
                 class="post-image"
                 src={file.thumb_path || file.file_path}
@@ -449,7 +443,7 @@
                     ><%= PostView.original_file_name(file) %></span>)
                   </span>
                 </p>
-                <a href={file.file_path} target="_blank">
+                <a href={file.file_path}>
                   <img
                     class="post-image"
                     src={file.thumb_path || file.file_path}

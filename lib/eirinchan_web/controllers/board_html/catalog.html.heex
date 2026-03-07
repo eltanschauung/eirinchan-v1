@@ -12,13 +12,7 @@
 </script>
 
 <header>
-  <img
-    :if={@board.uri == "bant" || @config.banners != []}
-    class="board_image"
-    style="margin-bottom:1em;width:300px;height:100px"
-    src="/b.php"
-    alt=""
-  />
+  <img class="board_image" style="margin-bottom:1em;width:300px;height:100px" src="/b.php" alt="" />
   <h1><%= PostView.board_heading(@board) %></h1>
   <div style="text-align:center;" id="indexLink">
     <a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>Return to Index</a>

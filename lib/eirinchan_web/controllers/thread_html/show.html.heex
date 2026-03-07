@@ -14,13 +14,7 @@
 </script>
 
 <a id="top"></a>
-<img
-  :if={@board.uri == "bant" || @config.banners != []}
-  class="board_image"
-  src="/b.php"
-  style="width:300px;height:100px"
-  alt=""
-/>
+<img class="board_image" src="/b.php" style="width:300px;height:100px" alt="" />
 
 <header>
   <h1><%= PostView.board_heading(@board) %></h1>

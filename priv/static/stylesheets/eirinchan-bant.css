@@ -1,24 +1,12 @@
-#blotterContainer {
-  text-align: center;
-}
-
-#blotterContainer .subtitle td {
-  text-align: left;
-}
-
-.news-button {
-  font-size: 10pt;
-  cursor: pointer;
-}
-
-.news-blotter {
-  display: none;
-}
-
 .glow {
   text-shadow: 0 0 3px rgba(255, 220, 220, 0.9);
 }
 
-.styles {
-  max-width: none;
+#blotterContainer .news-button:hover {
+  color: #b00;
+}
+
+#blotterContainer .news-blotter {
+  background: rgba(255, 247, 230, 0.72);
+  padding: 4px 8px 6px;
 }
