@@ -526,12 +526,7 @@ defmodule Eirinchan.Posts do
           query
 
         term ->
-          pattern = "%#{term}%"
-
-          from post in query,
-            where:
-              ilike(post.body, ^pattern) or ilike(post.subject, ^pattern) or
-                ilike(post.name, ^pattern)
+          apply_search_filter(query, term)
       end
 
     query =
@@ -2276,6 +2271,57 @@ defmodule Eirinchan.Posts do
   end
 
   defp request_ip_string(attrs), do: Map.get(attrs, "ip_subnet")
+
+  defp apply_search_filter(query, term) do
+    case parse_search_filter(term) do
+      {:id, id} ->
+        from post in query, where: post.id == ^id
+
+      {:thread, thread_id} ->
+        from post in query, where: post.id == ^thread_id or post.thread_id == ^thread_id
+
+      {:subject, value} ->
+        pattern = "%#{value}%"
+        from post in query, where: ilike(post.subject, ^pattern)
+
+      {:name, value} ->
+        pattern = "%#{value}%"
+        from post in query, where: ilike(post.name, ^pattern)
+
+      {:generic, value} ->
+        pattern = "%#{value}%"
+
+        from post in query,
+          where:
+            ilike(post.body, ^pattern) or ilike(post.subject, ^pattern) or
+              ilike(post.name, ^pattern)
+    end
+  end
+
+  defp parse_search_filter(term) do
+    case Regex.run(~r/^(id|thread|subject|name):(.*)$/u, term, capture: :all_but_first) do
+      ["id", id] ->
+        case Integer.parse(String.trim(id)) do
+          {value, ""} -> {:id, value}
+          _ -> {:generic, term}
+        end
+
+      ["thread", id] ->
+        case Integer.parse(String.trim(id)) do
+          {value, ""} -> {:thread, value}
+          _ -> {:generic, term}
+        end
+
+      ["subject", value] ->
+        {:subject, String.trim(value)}
+
+      ["name", value] ->
+        {:name, String.trim(value)}
+
+      _ ->
+        {:generic, term}
+    end
+  end
 
   defp normalize_request_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
 
