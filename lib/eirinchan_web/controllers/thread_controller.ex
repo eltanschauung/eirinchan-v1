@@ -47,7 +47,12 @@ defmodule EirinchanWeb.ThreadController do
             body_class: board_body_class(conn),
             body_data_stylesheet: board_data_stylesheet(conn),
             head_html:
-              PublicShell.head_html("thread", board_name: board.uri, thread_id: summary.thread.id),
+              PublicShell.head_html("thread",
+                board_name: board.uri,
+                thread_id: summary.thread.id,
+                theme_name: conn.assigns[:theme_name],
+                theme_options: conn.assigns[:theme_options]
+              ),
             head_after_assets_html: PublicShell.thread_meta_html(board, summary.thread, config),
             javascript_urls: PublicShell.javascript_urls(:thread),
             body_end_html: PublicShell.body_end_html(),

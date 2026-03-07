@@ -90,7 +90,13 @@ defmodule EirinchanWeb.SearchController do
     |> assign(:primary_stylesheet_id, "stylesheet")
     |> assign(:body_class, "8chan vichan is-not-moderator active-search")
     |> assign(:body_data_stylesheet, Path.basename(stylesheet))
-    |> assign(:head_html, PublicShell.head_html("search"))
+    |> assign(
+      :head_html,
+      PublicShell.head_html("search",
+        theme_name: conn.assigns[:theme_name],
+        theme_options: conn.assigns[:theme_options]
+      )
+    )
     |> assign(:javascript_urls, PublicShell.javascript_urls())
     |> assign(:body_end_html, PublicShell.body_end_html())
     |> assign(:extra_stylesheets, [

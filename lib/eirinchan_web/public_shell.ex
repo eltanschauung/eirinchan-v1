@@ -63,8 +63,33 @@ defmodule EirinchanWeb.PublicShell do
         value -> ~s(, thread_id = "#{value}")
       end
 
+    selected_style =
+      opts
+      |> Keyword.get(:theme_name, "default")
+      |> case do
+        "default" -> "Yotsuba"
+        "yotsuba" -> "Yotsuba"
+        value -> label_for_theme_option(value, Keyword.get(opts, :theme_options, []))
+      end
+
+    styles_json =
+      opts
+      |> Keyword.get(:theme_options, [])
+      |> Enum.map(fn option ->
+        {
+          option.label,
+          %{
+            name: option.name,
+            uri: option.stylesheet
+          }
+        }
+      end)
+      |> Map.new()
+      |> Jason.encode!()
+
     """
     <script type="text/javascript">var active_page = "#{active_page}", board_name = #{board_name}#{thread_fragment};</script><script type="text/javascript">var configRoot="/";var inMod = false;var modRoot="/"+(inMod ? "mod.php?/" : "");var resourceVersion="";</script>
+    <script type="text/javascript">var selectedstyle = #{Jason.encode!(selected_style)}; var styles = #{styles_json};</script>
     """
     |> String.trim()
   end
@@ -97,6 +122,12 @@ defmodule EirinchanWeb.PublicShell do
 
   def body_end_html do
     "<script type=\"text/javascript\">ready();</script>"
+  end
+
+  defp label_for_theme_option(name, options) do
+    Enum.find_value(options, "Yotsuba", fn option ->
+      if option.name == name, do: option.label
+    end)
   end
 
   defp board_heading(board), do: "/#{board.uri}/ - #{board.title}"
