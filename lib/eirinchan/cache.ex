@@ -65,6 +65,42 @@ defmodule Eirinchan.Cache do
     end
   end
 
+  def collect(config \\ %{}) do
+    if driver(config) == "fs" do
+      config
+      |> normalize_config()
+      |> fs_root()
+      |> Path.join("*.cache")
+      |> Path.wildcard()
+      |> Enum.reduce(0, fn path, acc ->
+        case File.read(path) do
+          {:ok, binary} ->
+            case safe_binary_to_term(binary) do
+              {:ok, %{expires_at: expires_at}} ->
+                if expired?(expires_at) do
+                  _ = File.rm(path)
+                  acc + 1
+                else
+                  acc
+                end
+
+              {:error, _reason} ->
+                _ = File.rm(path)
+                acc + 1
+
+              _ ->
+                acc
+            end
+
+          _ ->
+            acc
+        end
+      end)
+    else
+      0
+    end
+  end
+
   defp get_memory(key) do
     ensure_table()
 

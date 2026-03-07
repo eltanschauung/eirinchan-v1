@@ -27,16 +27,49 @@ defmodule Eirinchan.LogSystem do
     :ok
   end
 
+  def exception(level, event, exception, stacktrace, metadata, config \\ %{}) do
+    log(
+      level,
+      event,
+      Exception.message(exception),
+      Map.merge(metadata, %{
+        exception: inspect(exception),
+        stacktrace: Exception.format_stacktrace(stacktrace)
+      }),
+      config
+    )
+  end
+
   defp render_line(level, event, message, metadata) do
     timestamp = DateTime.utc_now() |> DateTime.truncate(:second) |> DateTime.to_iso8601()
-    parts = [timestamp, Atom.to_string(level), event, message | render_metadata(metadata)]
-    Enum.join(parts, " ") <> "\n"
+
+    case Map.get(metadata, :log_format) || Map.get(metadata, "log_format") do
+      "json" ->
+        Jason.encode!(%{
+          timestamp: timestamp,
+          level: Atom.to_string(level),
+          event: event,
+          message: message,
+          metadata: stringify_metadata(metadata)
+        }) <> "\n"
+
+      _ ->
+        parts = [timestamp, Atom.to_string(level), event, message | render_metadata(metadata)]
+        Enum.join(parts, " ") <> "\n"
+    end
   end
 
   defp render_metadata(metadata) when is_map(metadata) do
     metadata
     |> Enum.sort_by(fn {key, _value} -> to_string(key) end)
+    |> Enum.reject(fn {key, _value} -> to_string(key) == "log_format" end)
     |> Enum.map(fn {key, value} -> "#{key}=#{metadata_value(value)}" end)
+  end
+
+  defp stringify_metadata(metadata) do
+    metadata
+    |> Enum.reject(fn {key, _value} -> to_string(key) == "log_format" end)
+    |> Map.new(fn {key, value} -> {to_string(key), metadata_value(value)} end)
   end
 
   defp metadata_value(value) when is_binary(value), do: value

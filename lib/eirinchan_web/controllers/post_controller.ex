@@ -1,6 +1,8 @@
 defmodule EirinchanWeb.PostController do
   use EirinchanWeb, :controller
 
+  require Logger
+
   alias Eirinchan.Bans
   alias Eirinchan.LogSystem
   alias Eirinchan.Posts
@@ -427,7 +429,9 @@ defmodule EirinchanWeb.PostController do
       %{
         reason: reason,
         status: Plug.Conn.Status.code(status),
-        board: conn.assigns.current_board.uri
+        board: conn.assigns.current_board.uri,
+        request_id: Logger.metadata()[:request_id],
+        remote_ip: RequestMeta.effective_remote_ip(conn)
       },
       conn.assigns.current_board_config
     )
