@@ -38,6 +38,50 @@
     document.body.appendChild(container);
   }
 
+  function cookieThemeName() {
+    var match = document.cookie.match('(?:^|; )theme=([^;]*)');
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  function basename(path) {
+    return (path || '').split('/').pop();
+  }
+
+  function findStyleNameByThemeName(themeName) {
+    var styles = window.styles || {};
+    var styleNames = Object.keys(styles);
+
+    for (var i = 0; i < styleNames.length; i++) {
+      var styleName = styleNames[i];
+      var style = styles[styleName];
+      var configuredThemeName = style && (style.name || window.styleThemeNames[styleName]);
+
+      if (configuredThemeName === themeName) {
+        return styleName;
+      }
+    }
+
+    return null;
+  }
+
+  function restoreSavedStyle() {
+    var cookieTheme = cookieThemeName();
+    var storedLabel = null;
+
+    try {
+      storedLabel = localStorage.getItem('stylesheet');
+    } catch (_error) {
+    }
+
+    var selected =
+      findStyleNameByThemeName(cookieTheme) ||
+      (window.styles && window.styles[storedLabel] ? storedLabel : null);
+
+    if (selected) {
+      window.changeStyle(selected);
+    }
+  }
+
   window._ = window._ || identity;
   window.fmt = window.fmt || function (string, args) {
     return string.replace(/\{([0-9]+)\}/g, function (_, index) {
@@ -69,6 +113,7 @@
 
       node.href = stylePath + (window.resourceVersion ? '?v=' + window.resourceVersion : '');
       window.selectedstyle = styleName;
+      document.body.setAttribute('data-stylesheet', basename(stylePath));
       try {
         localStorage.setItem('stylesheet', styleName);
       } catch (_error) {
@@ -82,6 +127,13 @@
       document.querySelectorAll('div.styles a').forEach(function (styleLink) {
         styleLink.className = styleLink === link ? 'selected' : '';
       });
+
+      var chooser = document.querySelector('#style-select select');
+      if (chooser) {
+        Array.prototype.forEach.call(chooser.options, function (option) {
+          option.selected = option.text === styleName;
+        });
+      }
     };
 
   window.initStyleChooser = window.initStyleChooser || appendStyleChooser;
@@ -98,5 +150,6 @@
     function () {
       document.body.classList.add('desktop-style');
       window.initStyleChooser();
+      restoreSavedStyle();
     };
 })();
