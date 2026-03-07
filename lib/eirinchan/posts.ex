@@ -2281,20 +2281,13 @@ defmodule Eirinchan.Posts do
         from post in query, where: post.id == ^thread_id or post.thread_id == ^thread_id
 
       {:subject, value} ->
-        pattern = "%#{value}%"
-        from post in query, where: ilike(post.subject, ^pattern)
+        apply_field_search(query, :subject, value)
 
       {:name, value} ->
-        pattern = "%#{value}%"
-        from post in query, where: ilike(post.name, ^pattern)
+        apply_field_search(query, :name, value)
 
       {:generic, value} ->
-        pattern = "%#{value}%"
-
-        from post in query,
-          where:
-            ilike(post.body, ^pattern) or ilike(post.subject, ^pattern) or
-              ilike(post.name, ^pattern)
+        apply_generic_search(query, value)
     end
   end
 
@@ -2321,6 +2314,54 @@ defmodule Eirinchan.Posts do
       _ ->
         {:generic, term}
     end
+  end
+
+  defp apply_field_search(query, field_name, value) do
+    Enum.reduce(search_patterns(value), query, fn pattern, scoped_query ->
+      from post in scoped_query, where: ilike(field(post, ^field_name), ^pattern)
+    end)
+  end
+
+  defp apply_generic_search(query, value) do
+    Enum.reduce(search_patterns(value), query, fn pattern, scoped_query ->
+      from post in scoped_query,
+        where:
+          ilike(post.body, ^pattern) or ilike(post.subject, ^pattern) or
+            ilike(post.name, ^pattern)
+    end)
+  end
+
+  defp search_patterns(value) do
+    value
+    |> tokenize_search_terms()
+    |> Enum.map(&wildcard_pattern/1)
+  end
+
+  defp tokenize_search_terms(value) do
+    matches = Regex.scan(~r/"([^\"]+)"|(\S+)/u, value, capture: :all_but_first)
+
+    terms =
+      Enum.map(matches, fn captures ->
+        Enum.find(captures, &(&1 not in [nil, ""]))
+      end)
+
+    if terms == [] do
+      [String.trim(value)]
+    else
+      Enum.reject(terms, &(&1 == ""))
+    end
+  end
+
+  defp wildcard_pattern(term) do
+    escaped =
+      term
+      |> String.replace("\\", "\\\\")
+      |> String.replace("%", "\\%")
+      |> String.replace("_", "\\_")
+      |> String.replace("*", "%")
+      |> String.replace("?", "_")
+
+    "%#{escaped}%"
   end
 
   defp normalize_request_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
