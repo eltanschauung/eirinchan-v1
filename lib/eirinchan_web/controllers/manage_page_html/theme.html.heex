@@ -37,12 +37,20 @@
             checked={Map.get(@theme.settings, field.name, false)}
           />
         <% else %>
+          <%= if field.type == "textarea" do %>
+          <textarea
+            id={"theme-#{@theme.name}-#{field.name}"}
+            name={field.name}
+            rows="8"
+          ><%= Map.get(@theme.settings, field.name, "") %></textarea>
+          <% else %>
           <input
             id={"theme-#{@theme.name}-#{field.name}"}
             type="text"
             name={field.name}
             value={Map.get(@theme.settings, field.name, "")}
           />
+          <% end %>
         <% end %>
       </div>
     <% end %>

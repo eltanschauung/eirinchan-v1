@@ -19,6 +19,25 @@
 	list-style: none;
 	margin: 0;
 }
+.box.middle {
+	width: auto;
+	background: #fff;
+	color: #000;
+	border: 1px solid #800;
+	float: none;
+	clear: both;
+}
+.box.middle .content {
+	padding: 8px 12px;
+	line-height: 1.5em;
+	color: #000;
+}
+.box.middle h2 {
+	background: #800;
+	color: #fff;
+	font-weight: 700;
+	font-size: 131%;
+}
 .box.left {
 	background: #efe;
 	color: #060;

@@ -44,6 +44,23 @@ defmodule EirinchanWeb.ThemeManagementControllerTest do
     assert theme_page =~ "Use tooltipster"
   end
 
+  test "recent theme exposes body fields on its config page", %{conn: conn} do
+    moderator = moderator_fixture(%{role: "admin"})
+
+    theme_page =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage/themes/browser/recent")
+      |> html_response(200)
+
+    assert theme_page =~ "Configuring theme: RecentPosts"
+    assert theme_page =~ "Body Title"
+    assert theme_page =~ "Body"
+    assert theme_page =~ ~s(name="body_title")
+    assert theme_page =~ ~s(name="body")
+    assert theme_page =~ "<textarea"
+  end
+
   test "admin can install, rebuild, and uninstall catalog from the themes page", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
     board = board_fixture(%{uri: "meta#{System.unique_integer([:positive])}", title: "Meta"})
