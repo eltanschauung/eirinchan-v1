@@ -1,0 +1,72 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>IP History: <%= @ip %></h1>
+  <p><a href={~p"/manage"}>Back to Manage</a></p>
+  <p :if={@board}>Board: /<%= @board.uri %>/</p>
+</section>
+
+<section>
+  <h2>Posts</h2>
+  <%= if @posts == [] do %>
+    <p>No posts for this IP.</p>
+  <% else %>
+    <%= for post <- @posts do %>
+      <article>
+        <h3>#<%= post.id %> on /<%= post.board_id %>/</h3>
+        <p :if={post.subject}><strong><%= post.subject %></strong></p>
+        <p :if={post.body}><%= post.body %></p>
+      </article>
+    <% end %>
+  <% end %>
+
+  <form :if={@board} action={"/manage/boards/#{@board.uri}/ip/#{@ip}/browser/posts"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+    <input type="hidden" name="_method" value="delete" />
+    <button type="submit">Delete Posts On This Board</button>
+  </form>
+
+  <form :if={!@board} action={"/manage/ip/#{@ip}/browser/posts"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+    <input type="hidden" name="_method" value="delete" />
+    <button type="submit">Delete Posts Across Accessible Boards</button>
+  </form>
+</section>
+
+<section :if={@board}>
+  <h2>Notes</h2>
+  <form action={"/manage/boards/#{@board.uri}/ip/#{@ip}/browser/notes"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+    <label>
+      <span>New Note</span>
+      <input type="text" name="body" />
+    </label>
+    <button type="submit">Add Note</button>
+  </form>
+
+  <%= if @notes == [] do %>
+    <p>No notes for this IP on this board.</p>
+  <% else %>
+    <%= for note <- @notes do %>
+      <article>
+        <p><%= note.body %></p>
+        <form
+          action={"/manage/boards/#{@board.uri}/ip/#{@ip}/browser/notes/#{note.id}"}
+          method="post"
+        >
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="_method" value="patch" />
+          <input type="text" name="body" value={note.body} />
+          <button type="submit">Update Note</button>
+        </form>
+        <form
+          action={"/manage/boards/#{@board.uri}/ip/#{@ip}/browser/notes/#{note.id}"}
+          method="post"
+        >
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="_method" value="delete" />
+          <button type="submit">Delete Note</button>
+        </form>
+      </article>
+    <% end %>
+  <% end %>
+</section>
