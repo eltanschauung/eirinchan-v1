@@ -60,6 +60,9 @@ defmodule EirinchanWeb.ManagePageController do
         error: nil,
         params: %{"uri" => nil, "title" => nil, "subtitle" => nil}
       )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
     end
   end
 
