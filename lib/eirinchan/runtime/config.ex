@@ -174,6 +174,7 @@ defmodule Eirinchan.Runtime.Config do
     |> Map.put_new(:global_message, false)
     |> Map.put_new(:post_url, path_join(config.root, config.file_post))
     |> put_nested_new([:cookies, :path], config.root)
+    |> normalize_cookie_names()
     |> Map.put_new(:referer_match, build_referer_match(config, request_host))
     |> ensure_web_assets()
     |> ensure_static_assets()
@@ -255,6 +256,17 @@ defmodule Eirinchan.Runtime.Config do
       "" -> "country"
       value -> value
     end
+  end
+
+  defp normalize_cookie_names(config) do
+    cookie_name =
+      case {get_in(config, [:cookies, :jail]), get_in(config, [:cookies, :mod]), config.root} do
+        {true, name, "/"} -> "__Host-" <> String.trim_leading(to_string(name), "__Host-")
+        {true, name, _root} -> "__Secure-" <> String.trim_leading(to_string(name), "__Secure-")
+        {_jail, name, _root} -> to_string(name)
+      end
+
+    put_nested_new(config, [:cookies, :mod_cookie_name], cookie_name)
   end
 
   defp put_nested_new(config, [key], value), do: Map.put_new(config, key, value)

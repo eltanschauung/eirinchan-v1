@@ -28,6 +28,7 @@ defmodule EirinchanWeb.FeedbackManagementControllerTest do
              queue_conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> patch("/manage/feedback/#{feedback_id}/read", %{})
              |> json_response(200)
@@ -38,6 +39,7 @@ defmodule EirinchanWeb.FeedbackManagementControllerTest do
              queue_conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> post("/manage/feedback/#{feedback_id}/comments", %{"body" => "Admin note"})
              |> json_response(200)
@@ -46,6 +48,7 @@ defmodule EirinchanWeb.FeedbackManagementControllerTest do
              queue_conn
              |> recycle()
              |> login_moderator(moderator)
+             |> put_secure_manage_token()
              |> put_req_header("accept", "application/json")
              |> delete("/manage/feedback/#{feedback_id}"),
              204

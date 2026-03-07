@@ -91,6 +91,7 @@ defmodule EirinchanWeb.ApiControllerTest do
     conn =
       conn
       |> login_moderator(moderator_fixture())
+      |> put_secure_manage_token()
       |> put_req_header("accept", "application/json")
       |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{
         "sticky" => "true",

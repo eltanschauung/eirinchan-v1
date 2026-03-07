@@ -41,6 +41,14 @@ defmodule EirinchanWeb.ConnCase do
   end
 
   def login_moderator(conn, moderator) do
-    Phoenix.ConnTest.init_test_session(conn, moderator_user_id: moderator.id)
+    Phoenix.ConnTest.init_test_session(conn,
+      moderator_user_id: moderator.id,
+      secure_manage_token: EirinchanWeb.ManageSecurity.generate_token()
+    )
+  end
+
+  def put_secure_manage_token(conn) do
+    token = Plug.Conn.get_session(conn, :secure_manage_token)
+    Plug.Conn.put_req_header(conn, "x-secure-token", token)
   end
 end
