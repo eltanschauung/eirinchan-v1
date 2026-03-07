@@ -38,6 +38,8 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "Maintenance"
     assert page =~ "Rules"
     assert page =~ ~s(action="/search")
+    assert page =~ ~s(href="/stylesheets/style.css")
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
     assert page =~ ~s(var active_page = "index", board_name = null;)
     assert page =~ ~s(src="/main.js")
     assert page =~ "View News - 02/14/26"

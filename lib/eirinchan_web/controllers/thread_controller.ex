@@ -81,7 +81,7 @@ defmodule EirinchanWeb.ThreadController do
   defp board_data_stylesheet(_board), do: nil
 
   defp board_primary_stylesheet(%{uri: "bant"}), do: "/stylesheets/christmas.css"
-  defp board_primary_stylesheet(_board), do: nil
+  defp board_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
 
   defp board_extra_stylesheets(%{uri: "bant"}), do: []
   defp board_extra_stylesheets(_board), do: []

@@ -172,8 +172,7 @@ defmodule EirinchanWeb.PageController do
   defp public_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
   defp public_data_stylesheet(_board), do: nil
 
-  defp public_primary_stylesheet(%{uri: "bant"}), do: "/stylesheets/christmas.css"
-  defp public_primary_stylesheet(_board), do: nil
+  defp public_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
 
   defp public_extra_stylesheets(%{uri: "bant"}), do: []
   defp public_extra_stylesheets(_board), do: []
