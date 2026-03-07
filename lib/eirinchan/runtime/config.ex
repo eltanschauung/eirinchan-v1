@@ -63,6 +63,13 @@ defmodule Eirinchan.Runtime.Config do
     field_disable_subject: false,
     field_disable_reply_subject: false,
     field_disable_password: false,
+    ip_access_auth: %{
+      auth_path: "/auth",
+      passwords: "password,nigel,whitehouse",
+      message: "Enter a password to gain access.",
+      access_file: "access.conf",
+      theme: "ipaccessauth"
+    },
     threads_per_page: 10,
     max_pages: 10,
     threads_preview: 5,

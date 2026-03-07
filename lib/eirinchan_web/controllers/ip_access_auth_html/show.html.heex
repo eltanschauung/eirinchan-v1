@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <title>IP Access Auth</title>
+    <link
+      :if={@theme_stylesheet}
+      rel="stylesheet"
+      href={EirinchanWeb.Layouts.versioned_asset(@theme_stylesheet, @asset_version)}
+    />
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 2rem 1rem;
+        background: #f6f7f9;
+        color: #222;
+      }
+      .container {
+        max-width: 420px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 1.25rem;
+        border: 1px solid #dadada;
+      }
+      .message {
+        margin: 0 0 1rem 0;
+      }
+      input[type="password"] {
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+      }
+      button {
+        padding: 0.5rem 1rem;
+      }
+      .result {
+        margin: 0 0 0.75rem 0;
+      }
+      .success {
+        color: #0b7a2f;
+      }
+      .error {
+        color: #9d1c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <p class="message"><%= @message %></p>
+      <p :if={@success} class="result success">Access granted. You can continue to the board.</p>
+      <p :if={@error} class="result error"><%= @error %></p>
+      <form method="post" action={@auth_path} autocomplete="off">
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+        <input
+          type="password"
+          name="password"
+          value={@entered_password}
+          autocomplete="off"
+          required
+        />
+        <button type="submit">Enter</button>
+      </form>
+    </div>
+  </body>
+</html>
