@@ -146,6 +146,17 @@ defmodule Eirinchan.Uploads do
   def image_extension?(ext) when is_binary(ext), do: ext in @image_extensions
   def image_extension?(_ext), do: false
 
+  @spec fetch_remote_upload(String.t(), map()) :: {:ok, Plug.Upload.t()} | {:error, atom()}
+  def fetch_remote_upload(url, config) when is_binary(url) do
+    with {:ok, uri} <- normalize_remote_uri(url),
+         :ok <- ensure_http_client(),
+         {:ok, body, headers} <- download_remote_body(uri, config) do
+      write_remote_upload(uri, headers, body)
+    end
+  end
+
+  def fetch_remote_upload(_url, _config), do: {:error, :upload_failed}
+
   defp maybe_image_metadata(path, file_type) do
     if String.starts_with?(file_type, "image/") do
       case image_metadata(path) do
@@ -168,6 +179,113 @@ defmodule Eirinchan.Uploads do
       _ ->
         MIME.from_path(normalized_name)
     end
+  end
+
+  defp normalize_remote_uri(url) do
+    uri = url |> String.trim() |> URI.parse()
+
+    if uri.scheme in ["http", "https"] and is_binary(uri.host) do
+      {:ok, uri}
+    else
+      {:error, :upload_failed}
+    end
+  end
+
+  defp ensure_http_client do
+    _ = :inets.start()
+    _ = :ssl.start()
+    :ok
+  end
+
+  defp download_remote_body(uri, config) do
+    timeout = config[:upload_by_url_timeout_ms] || 5_000
+    request = {String.to_charlist(URI.to_string(uri)), []}
+    http_options = [timeout: timeout, connect_timeout: timeout, autoredirect: true]
+
+    case :httpc.request(:get, request, http_options, body_format: :binary) do
+      {:ok, {{_version, 200, _reason}, headers, body}} ->
+        {:ok, body, headers}
+
+      {:ok, {{_version, _status, _reason}, _headers, _body}} ->
+        {:error, :upload_failed}
+
+      {:error, _reason} ->
+        {:error, :upload_failed}
+    end
+  end
+
+  defp write_remote_upload(uri, headers, body) when is_binary(body) do
+    filename = remote_filename(uri, headers)
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-remote-upload-#{System.unique_integer([:positive])}-#{Path.basename(filename)}"
+      )
+
+    case File.write(path, body) do
+      :ok ->
+        {:ok,
+         %Plug.Upload{
+           path: path,
+           filename: filename,
+           content_type: remote_content_type(headers, filename)
+         }}
+
+      {:error, _reason} ->
+        {:error, :upload_failed}
+    end
+  end
+
+  defp remote_filename(uri, headers) do
+    from_disposition = header_filename(headers)
+
+    candidate =
+      cond do
+        is_binary(from_disposition) and from_disposition != "" ->
+          from_disposition
+
+        is_binary(uri.path) and uri.path not in [nil, "/"] ->
+          uri.path |> Path.basename() |> URI.decode()
+
+        true ->
+          "remote-upload"
+      end
+
+    if Path.extname(candidate) == "" do
+      case MIME.extensions(remote_content_type(headers, candidate)) do
+        [ext | _rest] -> "#{candidate}.#{ext}"
+        _ -> candidate
+      end
+    else
+      candidate
+    end
+  end
+
+  defp remote_content_type(headers, filename) do
+    header_value(headers, "content-type") || MIME.from_path(filename)
+  end
+
+  defp header_filename(headers) do
+    case header_value(headers, "content-disposition") do
+      nil ->
+        nil
+
+      disposition ->
+        case Regex.run(~r/filename="?([^\";]+)"?/, disposition, capture: :all_but_first) do
+          [filename] -> filename
+          _ -> nil
+        end
+    end
+  end
+
+  defp header_value(headers, header_name) do
+    Enum.find_value(headers, fn
+      {key, value} ->
+        if String.downcase(to_string(key)) == header_name do
+          to_string(value)
+        end
+    end)
   end
 
   defp normalize_stored_upload(path, config, metadata) do

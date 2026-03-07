@@ -59,6 +59,87 @@ defmodule Eirinchan.UploadsFixtures do
     }
   end
 
+  def serve_upload_fixture(body, filename, opts \\ []) do
+    {:ok, listen_socket} =
+      :gen_tcp.listen(0, [
+        :binary,
+        packet: :raw,
+        active: false,
+        reuseaddr: true,
+        ip: {127, 0, 0, 1}
+      ])
+
+    {:ok, {_address, port}} = :inet.sockname(listen_socket)
+    content_type = Keyword.get(opts, :content_type, MIME.from_path(filename))
+
+    {:ok, task} =
+      Task.start_link(fn ->
+        {:ok, socket} = :gen_tcp.accept(listen_socket)
+        _ = :gen_tcp.recv(socket, 0)
+
+        response = [
+          "HTTP/1.1 200 OK\r\n",
+          "Content-Length: #{byte_size(body)}\r\n",
+          "Content-Type: #{content_type}\r\n",
+          "Connection: close\r\n\r\n",
+          body
+        ]
+
+        :ok = :gen_tcp.send(socket, response)
+        :gen_tcp.close(socket)
+        :gen_tcp.close(listen_socket)
+      end)
+
+    %{
+      url: "http://127.0.0.1:#{port}/#{filename}",
+      stop: fn ->
+        _ = :gen_tcp.close(listen_socket)
+
+        if Process.alive?(task) do
+          Process.exit(task, :kill)
+        end
+
+        :ok
+      end
+    }
+  end
+
+  def serve_stalled_upload(filename \\ "stall.png", opts \\ []) do
+    {:ok, listen_socket} =
+      :gen_tcp.listen(0, [
+        :binary,
+        packet: :raw,
+        active: false,
+        reuseaddr: true,
+        ip: {127, 0, 0, 1}
+      ])
+
+    {:ok, {_address, port}} = :inet.sockname(listen_socket)
+    delay_ms = Keyword.get(opts, :delay_ms, 500)
+
+    {:ok, task} =
+      Task.start_link(fn ->
+        {:ok, socket} = :gen_tcp.accept(listen_socket)
+        _ = :gen_tcp.recv(socket, 0)
+        Process.sleep(delay_ms)
+        :gen_tcp.close(socket)
+        :gen_tcp.close(listen_socket)
+      end)
+
+    %{
+      url: "http://127.0.0.1:#{port}/#{filename}",
+      stop: fn ->
+        _ = :gen_tcp.close(listen_socket)
+
+        if Process.alive?(task) do
+          Process.exit(task, :kill)
+        end
+
+        :ok
+      end
+    }
+  end
+
   defp normalize_opts(opts) when is_list(opts) do
     %{
       content: to_string(Keyword.get(opts, :content, "fixture")),

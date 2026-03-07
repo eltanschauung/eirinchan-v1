@@ -387,29 +387,29 @@ defmodule Eirinchan.Posts do
   end
 
   defp prepare_uploads(attrs, config) do
-    uploads = collect_uploads(attrs)
+    with {:ok, attrs, uploads} <- maybe_add_remote_upload(attrs, config) do
+      case Enum.reduce_while(uploads, {:ok, []}, fn upload, {:ok, entries} ->
+             case Uploads.describe(upload, config) do
+               {:ok, metadata} ->
+                 {:cont, {:ok, entries ++ [%{upload: upload, metadata: metadata}]}}
 
-    case Enum.reduce_while(uploads, {:ok, []}, fn upload, {:ok, entries} ->
-           case Uploads.describe(upload, config) do
-             {:ok, metadata} ->
-               {:cont, {:ok, entries ++ [%{upload: upload, metadata: metadata}]}}
+               {:error, reason} ->
+                 {:halt, {:error, reason}}
+             end
+           end) do
+        {:ok, []} ->
+          {:ok, attrs |> Map.put("file", nil) |> Map.put("__upload_entries__", [])}
 
-             {:error, reason} ->
-               {:halt, {:error, reason}}
-           end
-         end) do
-      {:ok, []} ->
-        {:ok, attrs |> Map.put("file", nil) |> Map.put("__upload_entries__", [])}
+        {:ok, [primary | _] = entries} ->
+          {:ok,
+           attrs
+           |> Map.put("file", primary.upload)
+           |> Map.put("__upload_metadata__", primary.metadata)
+           |> Map.put("__upload_entries__", maybe_apply_spoiler(attrs, entries))}
 
-      {:ok, [primary | _] = entries} ->
-        {:ok,
-         attrs
-         |> Map.put("file", primary.upload)
-         |> Map.put("__upload_metadata__", primary.metadata)
-         |> Map.put("__upload_entries__", maybe_apply_spoiler(attrs, entries))}
-
-      {:error, reason} ->
-        {:error, reason}
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
 
@@ -431,6 +431,30 @@ defmodule Eirinchan.Posts do
       _ ->
         []
     end)
+  end
+
+  defp maybe_add_remote_upload(attrs, config) do
+    uploads = collect_uploads(attrs)
+
+    cond do
+      uploads != [] ->
+        {:ok, attrs, uploads}
+
+      not config.upload_by_url_enabled ->
+        {:ok, attrs, uploads}
+
+      true ->
+        case trim_to_nil(Map.get(attrs, "file_url") || Map.get(attrs, "url")) do
+          nil ->
+            {:ok, attrs, uploads}
+
+          remote_url ->
+            case Uploads.fetch_remote_upload(remote_url, config) do
+              {:ok, upload} -> {:ok, Map.put(attrs, "file", upload), [upload]}
+              {:error, reason} -> {:error, reason}
+            end
+        end
+    end
   end
 
   defp maybe_apply_spoiler(attrs, entries) do
