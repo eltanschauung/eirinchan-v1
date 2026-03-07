@@ -5,7 +5,7 @@ effective config derivation with computed defaults: partial
 board context loading/openBoard equivalent with per-board state: partial
 global mutable state replacement strategy (config/board/mod/build pages): partial
 public request router parity for post/report/search/static/mod entrypoints: partial
-error handling model parity (user-facing + internal logging): incomplete
+error handling model parity (user-facing + internal logging): partial
 post submission orchestration pipeline parity (end-to-end): partial
 thread display pipeline parity (OP + replies + omitted counters): partial
 index display pipeline parity (pagination + previews + links): partial
@@ -57,8 +57,8 @@ countFlags-style multi-flag count validation behavior: partial
 hidden input anti-spam hash validation: partial
 simple question anti-spam for OPs: partial
 captcha provider abstraction parity (native/recaptcha/hcaptcha): partial
-dynamic captcha mode logic parity: incomplete
-captcha error and refresh behavior parity: incomplete
+dynamic captcha mode logic parity: partial
+captcha error and refresh behavior parity: partial
 DNSBL check pipeline parity: incomplete
 ban check pipeline parity: partial
 robot9001 unoriginal-content detection: incomplete

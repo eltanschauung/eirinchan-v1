@@ -328,6 +328,19 @@ defmodule Eirinchan.Posts do
     end
   end
 
+  @spec captcha_required?(map(), boolean()) :: boolean()
+  def captcha_required?(config, op?) do
+    captcha = Map.get(config, :captcha, %{})
+
+    cond do
+      not Map.get(captcha, :enabled, false) -> false
+      Map.get(captcha, :mode) == "none" -> false
+      Map.get(captcha, :mode) == "op" -> op?
+      Map.get(captcha, :mode) == "reply" -> not op?
+      true -> true
+    end
+  end
+
   defp create_post_record(board, thread, attrs, repo, config, now) do
     upload_entries = Map.get(attrs, "__upload_entries__", [])
 
@@ -1183,7 +1196,9 @@ defmodule Eirinchan.Posts do
   end
 
   defp validate_captcha(attrs, config, request, board) do
-    if moderator_board_access?(request, board) or not get_in(config, [:captcha, :enabled]) do
+    op? = is_nil(blank_to_nil(Map.get(attrs, "thread")))
+
+    if moderator_board_access?(request, board) or not captcha_required?(config, op?) do
       :ok
     else
       provider = get_in(config, [:captcha, :provider]) || "native"

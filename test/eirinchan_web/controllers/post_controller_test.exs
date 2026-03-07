@@ -1,6 +1,8 @@
 defmodule EirinchanWeb.PostControllerTest do
   use EirinchanWeb.ConnCase, async: true
 
+  import ExUnit.CaptureLog
+
   test "classic posting redirects OP creation to the thread page", %{conn: conn} do
     board = board_fixture(%{title: "Technology"})
 
@@ -642,16 +644,28 @@ defmodule EirinchanWeb.PostControllerTest do
         }
       })
 
-    conn =
-      conn
-      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
-      |> post(~p"/#{board.uri}/post", %{
-        "body" => "first post",
-        "json_response" => "1",
-        "post" => "New Topic"
-      })
+    log =
+      capture_log(fn ->
+        conn =
+          conn
+          |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+          |> post(~p"/#{board.uri}/post", %{
+            "body" => "first post",
+            "json_response" => "1",
+            "post" => "New Topic"
+          })
 
-    assert %{"error" => "Captcha validation failed."} = json_response(conn, 422)
+        assert %{
+                 "error" => "Captcha validation failed.",
+                 "error_code" => "invalid_captcha",
+                 "refresh_captcha" => true,
+                 "captcha_provider" => "hcaptcha",
+                 "captcha_field" => "h-captcha-response",
+                 "captcha_refresh_token" => _
+               } = json_response(conn, 422)
+      end)
+
+    assert log =~ "post.error reason=invalid_captcha"
   end
 
   test "posting rejects active banned ips", %{conn: conn} do

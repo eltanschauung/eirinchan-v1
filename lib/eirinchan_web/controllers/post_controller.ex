@@ -1,6 +1,8 @@
 defmodule EirinchanWeb.PostController do
   use EirinchanWeb, :controller
 
+  require Logger
+
   alias Eirinchan.Bans
   alias Eirinchan.Posts
   alias Eirinchan.Reports
@@ -28,10 +30,16 @@ defmodule EirinchanWeb.PostController do
             respond_reported(conn, board, report, params)
 
           {:error, reason} when is_atom(reason) ->
-            respond_error(conn, error_status(reason), error_message(reason, config))
+            respond_error(
+              conn,
+              reason,
+              error_status(reason),
+              error_message(reason, config),
+              config
+            )
 
           {:error, %Ecto.Changeset{} = changeset} ->
-            respond_error(conn, :unprocessable_entity, error_message(changeset))
+            respond_changeset_error(conn, changeset)
         end
 
       :delete ->
@@ -40,10 +48,16 @@ defmodule EirinchanWeb.PostController do
             respond_deleted(conn, board, result, params)
 
           {:error, reason} when is_atom(reason) ->
-            respond_error(conn, error_status(reason), error_message(reason, config))
+            respond_error(
+              conn,
+              reason,
+              error_status(reason),
+              error_message(reason, config),
+              config
+            )
 
           {:error, %Ecto.Changeset{} = changeset} ->
-            respond_error(conn, :unprocessable_entity, error_message(changeset))
+            respond_changeset_error(conn, changeset)
         end
 
       :appeal ->
@@ -52,10 +66,10 @@ defmodule EirinchanWeb.PostController do
             respond_appealed(conn, board, appeal, params)
 
           {:error, :not_found} ->
-            respond_error(conn, :not_found, "Ban not found")
+            respond_error(conn, :ban_not_found, :not_found, "Ban not found", config)
 
           {:error, %Ecto.Changeset{} = changeset} ->
-            respond_error(conn, :unprocessable_entity, error_message(changeset))
+            respond_changeset_error(conn, changeset)
         end
 
       :post ->
@@ -64,10 +78,16 @@ defmodule EirinchanWeb.PostController do
             respond_created(conn, board, post, params, meta)
 
           {:error, reason} when is_atom(reason) ->
-            respond_error(conn, error_status(reason), error_message(reason, config))
+            respond_error(
+              conn,
+              reason,
+              error_status(reason),
+              error_message(reason, config),
+              config
+            )
 
           {:error, %Ecto.Changeset{} = changeset} ->
-            respond_error(conn, :unprocessable_entity, error_message(changeset))
+            respond_changeset_error(conn, changeset)
         end
     end
   end
@@ -107,16 +127,37 @@ defmodule EirinchanWeb.PostController do
     end
   end
 
-  defp respond_error(conn, status, message) do
+  defp respond_error(conn, reason, status, message, config) do
+    log_post_error(reason, status, conn)
+
     if conn.params["json_response"] == "1" do
+      payload =
+        %{
+          error: message,
+          error_code: Atom.to_string(reason)
+        }
+        |> maybe_put_captcha_refresh(reason, config)
+
       conn
       |> put_status(status)
-      |> json(%{error: message})
+      |> json(payload)
     else
       conn
       |> put_status(status)
       |> text(message)
     end
+  end
+
+  defp respond_changeset_error(conn, changeset) do
+    Logger.warning("post.changeset_error errors=#{inspect(changeset.errors)}")
+
+    respond_error(
+      conn,
+      :changeset,
+      :unprocessable_entity,
+      error_message(changeset),
+      conn.assigns.current_board_config
+    )
   end
 
   defp respond_reported(conn, board, report, params) do
@@ -186,6 +227,7 @@ defmodule EirinchanWeb.PostController do
 
   defp error_status(:thread_not_found), do: :not_found
   defp error_status(:post_not_found), do: :not_found
+  defp error_status(:ban_not_found), do: :not_found
   defp error_status(:invalid_password), do: :forbidden
   defp error_status(:banned), do: :forbidden
   defp error_status(:thread_locked), do: :forbidden
@@ -207,11 +249,12 @@ defmodule EirinchanWeb.PostController do
   defp error_status(:invalid_file_type), do: :unprocessable_entity
   defp error_status(:file_too_large), do: :unprocessable_entity
   defp error_status(:upload_failed), do: :internal_server_error
+  defp error_status(:changeset), do: :unprocessable_entity
 
   defp error_message(:thread_not_found, _config), do: "Thread not found"
   defp error_message(:post_not_found, _config), do: "Post not found"
   defp error_message(:invalid_password, config), do: config.error.password
-  defp error_message(:banned, _config), do: "You are banned."
+  defp error_message(:banned, config), do: config.error.banned
   defp error_message(:thread_locked, config), do: config.error.locked
   defp error_message(:invalid_referer, config), do: config.error.referer
   defp error_message(:antispam, config), do: config.error.antispam
@@ -231,10 +274,49 @@ defmodule EirinchanWeb.PostController do
   defp error_message(:invalid_file_type, config), do: config.error.filetype
   defp error_message(:file_too_large, config), do: config.error.file_too_large
   defp error_message(:upload_failed, config), do: config.error.upload_failed
+  defp error_message(:ban_not_found, _config), do: "Ban not found"
+  defp error_message(:changeset, _config), do: "Request invalid"
 
   defp error_message(changeset) do
     Enum.map_join(changeset.errors, ", ", fn {field, {message, _opts}} ->
       "#{field} #{message}"
     end)
+  end
+
+  defp maybe_put_captcha_refresh(payload, :invalid_captcha, config) do
+    captcha = config.captcha || %{}
+
+    if captcha.refresh_on_error do
+      Map.merge(payload, %{
+        refresh_captcha: true,
+        captcha_provider: captcha.provider,
+        captcha_field: captcha_field(captcha.provider),
+        captcha_challenge: captcha.challenge,
+        captcha_refresh_token: Integer.to_string(System.unique_integer([:positive]))
+      })
+    else
+      payload
+    end
+  end
+
+  defp maybe_put_captcha_refresh(payload, _reason, _config), do: payload
+
+  defp captcha_field("native"), do: "captcha"
+  defp captcha_field("recaptcha"), do: "g-recaptcha-response"
+  defp captcha_field("hcaptcha"), do: "h-captcha-response"
+  defp captcha_field(_provider), do: "captcha"
+
+  defp log_post_error(reason, status, conn) do
+    level =
+      if status in [:internal_server_error] do
+        :error
+      else
+        :warning
+      end
+
+    Logger.log(
+      level,
+      "post.error reason=#{reason} status=#{Plug.Conn.Status.code(status)} board=#{conn.assigns.current_board.uri}"
+    )
   end
 end

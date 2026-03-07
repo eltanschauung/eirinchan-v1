@@ -307,4 +307,21 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(document, ~s(input[name="antispam_answer"])) != []
     assert Floki.find(document, ~s(input[name="g-recaptcha-response"])) != []
   end
+
+  test "board page respects captcha mode for OP forms", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          captcha: %{enabled: true, provider: "native", mode: "op", challenge: "2 + 2 = ?"}
+        }
+      })
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ "2 + 2 = ?"
+    assert Floki.find(Floki.parse_document!(page), ~s(input[name="captcha"])) != []
+  end
 end

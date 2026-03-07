@@ -176,6 +176,25 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ "/ #{board.uri} /"
   end
 
+  test "thread reply forms respect captcha mode for replies only", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          captcha: %{enabled: true, provider: "native", mode: "reply", challenge: "reply check"}
+        }
+      })
+
+    thread = thread_fixture(board)
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+    document = Floki.parse_document!(page)
+
+    assert page =~ "reply check"
+    assert Floki.find(document, ~s(input[name="captcha"])) != []
+
+    board_page = conn |> recycle() |> get("/#{board.uri}") |> html_response(200)
+    refute board_page =~ "reply check"
+  end
+
   test "thread pages render poster tripcodes", %{conn: conn} do
     board = board_fixture()
     config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")

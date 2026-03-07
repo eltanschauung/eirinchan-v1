@@ -96,7 +96,14 @@ defmodule Eirinchan.Runtime.Config do
     upload_by_url_timeout_ms: 5_000,
     allowed_ext_files_op: nil,
     allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif"],
-    captcha: %{enabled: false, provider: "native", expected_response: nil},
+    captcha: %{
+      enabled: false,
+      provider: "native",
+      expected_response: nil,
+      mode: "always",
+      refresh_on_error: true,
+      challenge: nil
+    },
     api: %{enabled: false},
     cache: %{enabled: false},
     cookies: %{
@@ -126,6 +133,7 @@ defmodule Eirinchan.Runtime.Config do
       invalid_flag: "Invalid flag selection.",
       antispam: "Spam filter triggered.",
       captcha: "Captcha validation failed.",
+      banned: "You are banned.",
       locked: "Thread locked. You may not reply at this time.",
       reply_hard_limit: "Thread has reached its maximum reply limit.",
       image_hard_limit: "Thread has reached its maximum image limit.",
@@ -223,6 +231,7 @@ defmodule Eirinchan.Runtime.Config do
       |> Map.put_new(:multiple_flags, false)
       |> Map.put_new(:default_user_flag, "country")
       |> Map.put_new(:user_flags, %{})
+      |> normalize_captcha()
 
     normalized_default =
       normalize_default_user_flag(config.default_user_flag, config.multiple_flags)
@@ -232,6 +241,32 @@ defmodule Eirinchan.Runtime.Config do
     else
       %{config | default_user_flag: normalized_default, multiple_flags: false}
     end
+  end
+
+  defp normalize_captcha(config) do
+    captcha =
+      config
+      |> Map.get(:captcha, %{})
+      |> Map.put_new(:enabled, false)
+      |> Map.put_new(:provider, "native")
+      |> Map.put_new(:expected_response, nil)
+      |> Map.put_new(:mode, "always")
+      |> Map.put_new(:refresh_on_error, true)
+      |> Map.put_new(:challenge, nil)
+      |> Map.update!(:mode, fn mode ->
+        mode
+        |> to_string()
+        |> String.trim()
+        |> String.downcase()
+        |> case do
+          "op" -> "op"
+          "reply" -> "reply"
+          "none" -> "none"
+          _ -> "always"
+        end
+      end)
+
+    Map.put(config, :captcha, captcha)
   end
 
   defp normalize_default_user_flag(default_user_flag, true) do
