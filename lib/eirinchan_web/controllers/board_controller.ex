@@ -66,7 +66,7 @@ defmodule EirinchanWeb.BoardController do
           head_html:
             PublicShell.head_html("catalog",
               board_name: board.uri,
-              theme_name: conn.assigns[:theme_name],
+              theme_label: conn.assigns[:theme_label],
               theme_options: conn.assigns[:theme_options]
             ),
           javascript_urls: PublicShell.javascript_urls(:catalog),
@@ -110,7 +110,7 @@ defmodule EirinchanWeb.BoardController do
           head_html:
             PublicShell.head_html("index",
               board_name: board.uri,
-              theme_name: conn.assigns[:theme_name],
+              theme_label: conn.assigns[:theme_label],
               theme_options: conn.assigns[:theme_options]
             ),
           javascript_urls: PublicShell.javascript_urls(:index),

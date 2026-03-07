@@ -93,7 +93,7 @@ defmodule EirinchanWeb.SearchController do
     |> assign(
       :head_html,
       PublicShell.head_html("search",
-        theme_name: conn.assigns[:theme_name],
+        theme_label: conn.assigns[:theme_label],
         theme_options: conn.assigns[:theme_options]
       )
     )

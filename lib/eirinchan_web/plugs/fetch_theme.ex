@@ -8,24 +8,22 @@ defmodule EirinchanWeb.Plugs.FetchTheme do
   def init(opts), do: opts
 
   def call(conn, _opts) do
-    theme_name =
+    theme_identifier =
       conn.cookies["theme"]
-      |> normalize_theme()
+      |> normalize_theme_identifier()
 
-    theme = ThemeRegistry.fetch(theme_name) || ThemeRegistry.fetch(ThemeRegistry.default_theme())
-    public_theme_name = ThemeRegistry.canonical_public_name(theme_name)
+    public_theme = ThemeRegistry.public_lookup(theme_identifier) || ThemeRegistry.public_default()
+
+    theme =
+      ThemeRegistry.fetch(public_theme.name) || ThemeRegistry.fetch(ThemeRegistry.default_theme())
 
     conn
-    |> assign(:theme_name, public_theme_name)
+    |> assign(:theme_name, public_theme.name)
+    |> assign(:theme_label, public_theme.label)
     |> assign(:theme_stylesheet, theme.stylesheet)
     |> assign(:theme_options, ThemeRegistry.public_all())
   end
 
-  defp normalize_theme(name) do
-    if ThemeRegistry.valid_theme?(name) do
-      name
-    else
-      ThemeRegistry.default_theme()
-    end
-  end
+  defp normalize_theme_identifier(name) when is_binary(name), do: String.trim(name)
+  defp normalize_theme_identifier(_name), do: ""
 end
