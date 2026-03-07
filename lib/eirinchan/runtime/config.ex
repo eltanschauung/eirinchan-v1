@@ -208,19 +208,36 @@ defmodule Eirinchan.Runtime.Config do
       |> Map.put_new(:user_flags, %{})
 
     normalized_default =
-      config.default_user_flag
-      |> to_string()
-      |> String.trim()
-      |> String.downcase()
-      |> case do
-        "" -> "country"
-        value -> value
-      end
+      normalize_default_user_flag(config.default_user_flag, config.multiple_flags)
 
     if config.user_flag do
       %{config | default_user_flag: normalized_default}
     else
       %{config | default_user_flag: normalized_default, multiple_flags: false}
+    end
+  end
+
+  defp normalize_default_user_flag(default_user_flag, true) do
+    default_user_flag
+    |> to_string()
+    |> String.split(",", trim: false)
+    |> Enum.map(&(String.trim(&1) |> String.downcase()))
+    |> Enum.reject(&(&1 == ""))
+    |> Enum.join(",")
+    |> case do
+      "" -> "country"
+      value -> value
+    end
+  end
+
+  defp normalize_default_user_flag(default_user_flag, false) do
+    default_user_flag
+    |> to_string()
+    |> String.trim()
+    |> String.downcase()
+    |> case do
+      "" -> "country"
+      value -> value
     end
   end
 

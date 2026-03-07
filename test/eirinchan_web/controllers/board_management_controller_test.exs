@@ -212,4 +212,26 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ "Sauce"
     assert page =~ "Space"
   end
+
+  test "board page renders freeform user flag input when multiple_flags is enabled", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          multiple_flags: true,
+          default_user_flag: "country,sau",
+          user_flags: %{"country" => "Country", "sau" => "Sauce", "spc" => "Space"}
+        }
+      })
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(input[name="user_flag"][value="country,sau"])) != []
+    assert Floki.find(document, ~s(select[name="user_flag"])) == []
+  end
 end

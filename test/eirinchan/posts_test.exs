@@ -799,6 +799,83 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post parses multiple comma-separated flags and serializes alt text" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          multiple_flags: true,
+          user_flags: %{"country" => "Country", "sau" => "Sauce", "spc" => "Space"}
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "user_flag" => " sau, spc ",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.flag_codes == ["sau", "spc"]
+    assert thread.flag_alts == ["Sauce", "Space"]
+  end
+
+  test "create_post de-duplicates repeated multi flags using countFlags-style normalization" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          multiple_flags: true,
+          user_flags: %{"sau" => "Sauce", "spc" => "Space"}
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "user_flag" => "sau, spc, sau, spc",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.flag_codes == ["sau", "spc"]
+    assert thread.flag_alts == ["Sauce", "Space"]
+  end
+
+  test "create_post rejects overlong multiple flag input" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          multiple_flags: true,
+          user_flags: %{"sau" => "Sauce", "spc" => "Space"}
+        }
+      })
+
+    long_flags = String.duplicate("sau,", 76)
+
+    assert {:error, :invalid_user_flag} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "user_flag" => long_flags,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)
