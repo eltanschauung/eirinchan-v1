@@ -29,6 +29,7 @@ defmodule EirinchanWeb.ConnCase do
       import Phoenix.ConnTest
       import EirinchanWeb.ConnCase
       import Eirinchan.BoardsFixtures
+      import Eirinchan.ModerationFixtures
       import Eirinchan.PostsFixtures
     end
   end
@@ -36,5 +37,9 @@ defmodule EirinchanWeb.ConnCase do
   setup tags do
     Eirinchan.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
+  end
+
+  def login_moderator(conn, moderator) do
+    Phoenix.ConnTest.init_test_session(conn, moderator_user_id: moderator.id)
   end
 end

@@ -6,8 +6,12 @@ defmodule EirinchanWeb.ThreadManagementControllerTest do
     older_thread = thread_fixture(board, %{body: "Older body", subject: "Older"})
     _newer_thread = thread_fixture(board, %{body: "Newer body", subject: "Newer"})
     older_thread_id = older_thread.id
+    moderator = moderator_fixture()
 
-    conn = put_req_header(conn, "accept", "application/json")
+    conn =
+      conn
+      |> login_moderator(moderator)
+      |> put_req_header("accept", "application/json")
 
     assert %{"data" => %{"id" => ^older_thread_id, "sticky" => false, "locked" => false}} =
              conn
@@ -25,6 +29,7 @@ defmodule EirinchanWeb.ThreadManagementControllerTest do
            } =
              conn
              |> recycle()
+             |> login_moderator(moderator)
              |> patch("/manage/boards/#{board.uri}/threads/#{older_thread.id}", %{
                "sticky" => "true",
                "locked" => "true",
@@ -36,6 +41,7 @@ defmodule EirinchanWeb.ThreadManagementControllerTest do
     first_page =
       conn
       |> recycle()
+      |> login_moderator(moderator)
       |> put_req_header("accept", "text/html")
       |> get("/#{board.uri}")
       |> html_response(200)
@@ -50,9 +56,11 @@ defmodule EirinchanWeb.ThreadManagementControllerTest do
   test "locked thread state blocks posting replies after management update", %{conn: conn} do
     board = board_fixture()
     thread = thread_fixture(board)
+    moderator = moderator_fixture()
 
     conn =
       conn
+      |> login_moderator(moderator)
       |> put_req_header("accept", "application/json")
       |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{"locked" => "true"})
 

@@ -25,6 +25,7 @@ defmodule Eirinchan.DataCase do
       import Ecto.Query
       import Eirinchan.DataCase
       import Eirinchan.BoardsFixtures
+      import Eirinchan.ModerationFixtures
       import Eirinchan.PostsFixtures
     end
   end
