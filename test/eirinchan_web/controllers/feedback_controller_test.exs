@@ -2,7 +2,13 @@ defmodule EirinchanWeb.FeedbackControllerTest do
   use EirinchanWeb.ConnCase, async: true
 
   test "public feedback page renders and accepts submissions", %{conn: conn} do
-    assert conn |> get("/feedback") |> html_response(200) =~ "Send Feedback"
+    board_fixture(%{uri: "tech", title: "Technology"})
+
+    page = conn |> get("/feedback") |> html_response(200)
+
+    assert page =~ "Send Feedback"
+    assert page =~ "/ tech /"
+    assert page =~ ~s(class="feedback-textarea")
 
     conn =
       conn

@@ -1,6 +1,7 @@
 defmodule EirinchanWeb.BoardController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Boards
   alias Eirinchan.Posts
 
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show]
@@ -27,7 +28,13 @@ defmodule EirinchanWeb.BoardController do
     case Posts.list_page_data(board, config: config) do
       {:ok, pages} ->
         threads = Enum.flat_map(pages, & &1.threads)
-        render(conn, :catalog, board: board, threads: threads, config: config)
+
+        render(conn, :catalog,
+          board: board,
+          threads: threads,
+          config: config,
+          boards: Boards.list_boards()
+        )
 
       {:error, :not_found} ->
         send_resp(conn, :not_found, "Page not found")
@@ -40,7 +47,12 @@ defmodule EirinchanWeb.BoardController do
 
     case Posts.list_threads_page(board, page, config: config) do
       {:ok, page_data} ->
-        render(conn, :show, board: board, page_data: page_data, config: config)
+        render(conn, :show,
+          board: board,
+          page_data: page_data,
+          config: config,
+          boards: Boards.list_boards()
+        )
 
       {:error, :not_found} ->
         send_resp(conn, :not_found, "Page not found")

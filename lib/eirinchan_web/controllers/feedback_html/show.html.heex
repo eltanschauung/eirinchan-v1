@@ -1,19 +1,26 @@
 <.flash_group flash={@flash} />
-<section>
+<section class="feedback-theme">
   <h1>Feedback</h1>
   <p>Send feedback to the site administrators.</p>
 </section>
 
+<nav class="boardlist">
+  <strong>Boards</strong>
+  <%= for board <- @boards do %>
+    <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
+  <% end %>
+</nav>
+
 <%= if assigns[:errors] do %>
-  <section>
+  <section class="feedback-errors">
     <%= for {field, messages} <- @errors do %>
       <p><%= field %>: <%= Enum.join(messages, ", ") %></p>
     <% end %>
   </section>
 <% end %>
 
-<section>
-  <form action={~p"/feedback"} method="post">
+<section class="feedback-panel">
+  <form action={~p"/feedback"} method="post" class="feedback-form">
     <input type="text" name="name" placeholder="Name" value={get_in(assigns, [:params, "name"])} />
     <input
       type="text"
@@ -21,7 +28,8 @@
       placeholder="Email"
       value={get_in(assigns, [:params, "email"])}
     />
-    <textarea name="body" placeholder="Feedback"><%= get_in(assigns, [:params, "body"]) %></textarea>
+    <textarea name="body" rows="10" class="feedback-textarea" placeholder="Feedback"><%= get_in(assigns, [:params, "body"]) %></textarea>
+    <p>Keep it concise and include steps to reproduce when reporting bugs.</p>
     <button type="submit">Send Feedback</button>
   </form>
 </section>
