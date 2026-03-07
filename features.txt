@@ -61,8 +61,8 @@ dynamic captcha mode logic parity: partial
 captcha error and refresh behavior parity: partial
 DNSBL check pipeline parity: incomplete
 ban check pipeline parity: partial
-robot9001 unoriginal-content detection: incomplete
-robot mute escalation and mute duration logic: incomplete
+robot9001 unoriginal-content detection: skipped
+robot mute escalation and mute duration logic: skipped
 spam filter hooks before and after OCR parity: skipped
 strip_combining_chars logic parity: partial
 
@@ -218,19 +218,19 @@ theme registry and installation flow parity: incomplete
 theme settings persistence parity: incomplete
 theme rebuild triggers by action type parity: incomplete
 theme uninstall flow parity: incomplete
-catalog theme parity: incomplete
-ukko theme parity: incomplete
-sitemap theme parity: incomplete
-recent theme parity: incomplete
+catalog theme parity: partial
+ukko theme parity: partial
+sitemap theme parity: partial
+recent theme parity: partial
 IpAccessAuth theme parity: incomplete
 feedback theme parity: incomplete
 
 [Integrations and External Services]
-GeoIP legacy database lookup parity (GeoIPv6.dat): incomplete
+GeoIP legacy database lookup parity (GeoIPv6.dat): skipped
 GeoIP2 database lookup support (GeoLite2-Country.mmdb): partial
 captcha provider HTTP service abstraction parity: partial
-nntpchan inbound post ingestion parity: incomplete
-nntpchan outbound publication parity: incomplete
+nntpchan inbound post ingestion parity: skipped
+nntpchan outbound publication parity: skipped
 purge integration support parity: incomplete
 logging backends parity (error_log/file/stderr/syslog): partial
 
