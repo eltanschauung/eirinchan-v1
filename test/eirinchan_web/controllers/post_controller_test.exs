@@ -66,6 +66,36 @@ defmodule EirinchanWeb.PostControllerTest do
            )
   end
 
+  test "posting accepts legacy regist payloads and old field aliases", %{conn: conn} do
+    board = board_fixture(%{title: "Technology"})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "name" => "anon",
+        "sub" => "launch",
+        "com" => "first post",
+        "mode" => "regist",
+        "json_response" => "1"
+      })
+
+    assert %{"id" => thread_id, "thread_id" => thread_id} = json_response(conn, 200)
+
+    conn =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "resto" => Integer.to_string(thread_id),
+        "message" => "legacy reply",
+        "mode" => "regist",
+        "json_response" => "1"
+      })
+
+    assert %{"thread_id" => ^thread_id} = json_response(conn, 200)
+  end
+
   test "successful OP posts set a draft-clear cookie", %{conn: conn} do
     board = board_fixture(%{title: "Technology"})
 
@@ -881,5 +911,36 @@ defmodule EirinchanWeb.PostControllerTest do
       })
 
     assert %{"error" => "Incorrect password."} = json_response(conn, 403)
+  end
+
+  test "legacy mode payloads can delete and report posts", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board, %{body: "Thread body", password: "threadpw"})
+
+    report_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "mode" => "report",
+        "delete[]" => [Integer.to_string(thread.id)],
+        "reason" => "legacy report"
+      })
+
+    assert redirected_to(report_conn) == "/#{board.uri}/res/#{thread.id}.html"
+    [report] = Eirinchan.Reports.list_reports(board)
+    assert report.post_id == thread.id
+
+    delete_conn =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "mode" => "delete",
+        "delete[]" => [Integer.to_string(thread.id)],
+        "pwd" => "threadpw"
+      })
+
+    assert redirected_to(delete_conn) == "/#{board.uri}"
+    assert {:error, :not_found} = Eirinchan.Posts.get_thread(board, thread.id)
   end
 end

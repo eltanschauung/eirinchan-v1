@@ -11,6 +11,7 @@ defmodule EirinchanWeb.PostController do
   plug EirinchanWeb.Plugs.LoadBoard
 
   def create(conn, params) do
+    params = normalize_legacy_params(params)
     board = conn.assigns.current_board
     config = conn.assigns.current_board_config
 
@@ -218,6 +219,88 @@ defmodule EirinchanWeb.PostController do
       true -> :post
     end
   end
+
+  defp normalize_legacy_params(params) do
+    params
+    |> put_legacy_password()
+    |> put_legacy_action_id()
+    |> put_legacy_report_id()
+  end
+
+  defp put_legacy_password(%{"password" => password} = params)
+       when is_binary(password) and password != "",
+       do: params
+
+  defp put_legacy_password(params) do
+    case params["pwd"] do
+      value when is_binary(value) and value != "" -> Map.put(params, "password", value)
+      _ -> params
+    end
+  end
+
+  defp put_legacy_action_id(params) do
+    legacy_id = legacy_selected_post_id(params)
+
+    cond do
+      is_nil(legacy_id) ->
+        params
+
+      legacy_action(params) == :delete and not Map.has_key?(params, "delete_post_id") ->
+        Map.put(params, "delete_post_id", legacy_id)
+
+      true ->
+        params
+    end
+  end
+
+  defp put_legacy_report_id(params) do
+    legacy_id = legacy_selected_post_id(params)
+
+    cond do
+      is_nil(legacy_id) ->
+        params
+
+      legacy_action(params) == :report and not Map.has_key?(params, "report_post_id") ->
+        Map.put(params, "report_post_id", legacy_id)
+
+      true ->
+        params
+    end
+  end
+
+  defp legacy_action(params) do
+    case params["mode"] do
+      mode when is_binary(mode) ->
+        case String.downcase(String.trim(mode)) do
+          "delete" -> :delete
+          "report" -> :report
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp legacy_selected_post_id(params) do
+    [
+      Map.get(params, "delete_post_id"),
+      Map.get(params, "report_post_id"),
+      Map.get(params, "delete[]"),
+      Map.get(params, "delete")
+    ]
+    |> Enum.find_value(&first_legacy_id/1)
+  end
+
+  defp first_legacy_id(nil), do: nil
+  defp first_legacy_id(""), do: nil
+  defp first_legacy_id(value) when is_binary(value), do: value
+  defp first_legacy_id([value | _rest]), do: first_legacy_id(value)
+
+  defp first_legacy_id(%{} = values),
+    do: values |> Map.values() |> Enum.find_value(&first_legacy_id/1)
+
+  defp first_legacy_id(_value), do: nil
 
   defp thread_redirect_or_board(board, nil, _params, _config), do: "/#{board.uri}"
 
