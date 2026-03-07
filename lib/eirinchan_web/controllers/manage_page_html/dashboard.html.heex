@@ -50,6 +50,9 @@
             <button type="submit">Delete Board</button>
           </form>
         </section>
+
+        <p><a href={"/manage/boards/#{board.uri}/reports/browser"}>Reports Queue</a></p>
+        <p><a href={"/manage/boards/#{board.uri}/ban-appeals/browser"}>Ban Appeals</a></p>
       </article>
     <% end %>
   <% end %>

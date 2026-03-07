@@ -57,6 +57,15 @@ defmodule EirinchanWeb.Router do
     post "/login/browser", ManagePageController, :create_session
     get "/", ManagePageController, :dashboard
     get "/recent-posts/browser", ManagePageController, :recent_posts
+    get "/boards/:uri/reports/browser", ManagePageController, :reports
+    delete "/boards/:uri/reports/browser/:id", ManagePageController, :dismiss_report
+
+    delete "/boards/:uri/reports/browser/post/:post_id",
+           ManagePageController,
+           :dismiss_reports_for_post
+
+    get "/boards/:uri/ban-appeals/browser", ManagePageController, :ban_appeals
+    patch "/boards/:uri/ban-appeals/browser/:id", ManagePageController, :resolve_ban_appeal
     post "/boards/browser", ManagePageController, :create_board
     patch "/boards/:uri/browser", ManagePageController, :update_board
     delete "/boards/:uri/browser", ManagePageController, :delete_board

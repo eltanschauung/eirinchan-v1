@@ -161,4 +161,70 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert page =~ "green leaf"
     refute page =~ "other board"
   end
+
+  test "browser board pages expose report queue and ban appeals management", %{conn: conn} do
+    moderator = moderator_fixture(%{role: "admin"})
+    board = board_fixture(%{uri: "tea", title: "Tea"})
+    thread = thread_fixture(board, %{body: "Thread body"})
+
+    report_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post("/#{board.uri}/post", %{
+        "report_post_id" => Integer.to_string(thread.id),
+        "reason" => "Spam",
+        "json_response" => "1"
+      })
+
+    assert %{"report_id" => report_id} = json_response(report_conn, 200)
+
+    {:ok, ban} =
+      Eirinchan.Bans.create_ban(%{
+        board_id: board.id,
+        mod_user_id: moderator.id,
+        ip_subnet: "198.51.100.9",
+        reason: "Spam"
+      })
+
+    {:ok, appeal} = Eirinchan.Bans.create_appeal(ban.id, %{body: "Please review"})
+
+    reports_page =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> get("/manage/boards/#{board.uri}/reports/browser")
+      |> html_response(200)
+
+    assert reports_page =~ "Reports for /#{board.uri}/"
+    assert reports_page =~ "Spam"
+
+    dismiss_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> delete("/manage/boards/#{board.uri}/reports/browser/#{report_id}")
+
+    assert redirected_to(dismiss_conn) == "/manage/boards/#{board.uri}/reports/browser"
+
+    appeals_page =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> get("/manage/boards/#{board.uri}/ban-appeals/browser")
+      |> html_response(200)
+
+    assert appeals_page =~ "Ban Appeals for /#{board.uri}/"
+    assert appeals_page =~ "Please review"
+
+    resolve_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> patch("/manage/boards/#{board.uri}/ban-appeals/browser/#{appeal.id}", %{
+        "status" => "resolved",
+        "resolution_note" => "Reviewed in browser"
+      })
+
+    assert redirected_to(resolve_conn) == "/manage/boards/#{board.uri}/ban-appeals/browser"
+  end
 end
