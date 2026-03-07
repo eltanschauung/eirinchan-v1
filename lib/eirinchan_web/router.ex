@@ -7,6 +7,7 @@ defmodule EirinchanWeb.Router do
     plug :fetch_cookies
     plug EirinchanWeb.Plugs.FetchCurrentModerator
     plug EirinchanWeb.Plugs.FetchTheme
+    plug EirinchanWeb.Plugs.FetchSiteAssets
     plug :fetch_live_flash
     plug :put_root_layout, html: {EirinchanWeb.Layouts, :root}
     plug :protect_from_forgery

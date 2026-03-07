@@ -7,14 +7,30 @@
     <.live_title suffix=" · Phoenix Framework">
       <%= assigns[:page_title] || "Eirinchan" %>
     </.live_title>
-    <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
+    <link
+      phx-track-static
+      rel="stylesheet"
+      href={versioned_asset(~p"/assets/app.css", assigns[:asset_version])}
+    />
     <link
       :if={assigns[:theme_stylesheet]}
       phx-track-static
       rel="stylesheet"
-      href={assigns[:theme_stylesheet]}
+      href={versioned_asset(assigns[:theme_stylesheet], assigns[:asset_version])}
     />
-    <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
+    <script
+      defer
+      phx-track-static
+      type="text/javascript"
+      src={versioned_asset(~p"/assets/app.js", assigns[:asset_version])}
+    >
+    </script>
+    <script
+      :for={script_url <- assigns[:custom_javascript_urls] || []}
+      defer
+      type="text/javascript"
+      src={versioned_asset(script_url, assigns[:asset_version])}
+    >
     </script>
   </head>
   <body class="bg-white antialiased">
