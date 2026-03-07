@@ -952,6 +952,67 @@ defmodule Eirinchan.PostsTest do
     assert thread.flag_alts == ["United States", "Sauce"]
   end
 
+  test "create_post stores allowed OP tags and proxy metadata and encodes compatibility modifiers" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          allowed_tags: %{"A" => "Anime", "M" => "Music"},
+          proxy_save: true
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "tag" => "A",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request:
+                 post_request(board.uri)
+                 |> Map.put(:forwarded_for, "203.0.113.4, 10.0.0.1<script>")
+             )
+
+    assert thread.tag == "A"
+    assert thread.proxy == "203.0.113.4, 10.0.0.1"
+
+    compat_body = Posts.compat_body(thread)
+    assert compat_body =~ "<tinyboard tag>A</tinyboard>"
+    assert compat_body =~ "<tinyboard proxy>203.0.113.4, 10.0.0.1</tinyboard>"
+  end
+
+  test "create_post ignores disallowed tags and reply tags" do
+    board = board_fixture(%{config_overrides: %{allowed_tags: %{"A" => "Anime"}}})
+    config = post_config(board.config_overrides)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "first post", "tag" => "invalid", "post" => "New Topic"},
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert thread.tag == nil
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "reply body",
+                 "tag" => "A",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert reply.tag == nil
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)

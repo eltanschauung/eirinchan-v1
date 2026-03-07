@@ -10,6 +10,11 @@ defmodule Eirinchan.Posts.Post do
     field :body, :string
     field :flag_codes, {:array, :string}, default: []
     field :flag_alts, {:array, :string}, default: []
+    field :tag, :string
+    field :proxy, :string
+    field :tripcode, :string
+    field :capcode, :string
+    field :raw_html, :boolean, default: false
     field :file_name, :string
     field :file_path, :string
     field :thumb_path, :string
@@ -45,6 +50,11 @@ defmodule Eirinchan.Posts.Post do
       :body,
       :flag_codes,
       :flag_alts,
+      :tag,
+      :proxy,
+      :tripcode,
+      :capcode,
+      :raw_html,
       :file_name,
       :file_path,
       :thumb_path,

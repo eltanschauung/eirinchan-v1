@@ -265,6 +265,36 @@ defmodule Eirinchan.BuildTest do
     assert File.read!(thread_path) =~ "Flags: Sauce"
   end
 
+  test "static outputs render stored OP tags" do
+    File.rm_rf!(Build.board_root())
+
+    board =
+      board_fixture(%{
+        config_overrides: %{allowed_tags: %{"A" => "Anime", "M" => "Music"}}
+      })
+
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening post body",
+                 "tag" => "A",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(index_path) =~ "Tag: Anime"
+    assert File.read!(thread_path) =~ "Tag: Anime"
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 
