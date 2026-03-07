@@ -147,6 +147,17 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert second_page =~ ~s(id="delete_)
   end
 
+  test "index.html resolves to the first board page", %{conn: conn} do
+    board = board_fixture(%{uri: "meta#{System.unique_integer([:positive])}", title: "Meta"})
+
+    page =
+      conn
+      |> get("/#{board.uri}/index.html")
+      |> html_response(200)
+
+    assert page =~ "/#{board.uri}/ - #{board.title}"
+  end
+
   test "board pages render formatted quote links in thread previews", %{conn: conn} do
     board = board_fixture()
     thread = thread_fixture(board, %{body: "Opening body"})
