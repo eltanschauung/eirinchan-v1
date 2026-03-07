@@ -17,46 +17,24 @@ defmodule EirinchanWeb.PageControllerTest do
 
   test "GET /", %{conn: conn} do
     moderator_fixture()
-    _board = board_fixture(%{uri: "tech", title: "Technology"})
-    author = moderator_fixture(%{username: "announce-admin"})
-    page_author = moderator_fixture(%{username: "pageadmin"})
-
-    {:ok, _announcement} =
-      Eirinchan.Announcement.upsert(%{
-        title: "Read this",
-        body: "Global notice",
-        mod_user_id: author.id
-      })
-
-    {:ok, _page} =
-      Eirinchan.CustomPages.create_page(%{
-        slug: "rules",
-        title: "Rules",
-        body: "House rules",
-        mod_user_id: page_author.id
-      })
-
-    {:ok, _entry} =
-      Eirinchan.News.create_entry(%{
-        title: "Maintenance",
-        body: "Tonight",
-        mod_user_id: moderator_fixture(%{username: "newsadmin"}).id
-      })
+    board = board_fixture(%{uri: "tech", title: "Technology"})
+    thread = thread_fixture(board, %{subject: "Opening", body: "Alpha bravo charlie delta"})
+    reply_fixture(board, thread, %{body: "Recent reply body"})
 
     conn = get(conn, ~p"/")
     page = html_response(conn, 200)
-    assert page =~ "/tech/ - Technology"
-    assert page =~ "Manage"
-    assert page =~ "Feedback"
-    assert page =~ "Maintenance"
-    assert page =~ "Rules"
-    assert page =~ ~s(action="/search")
+    assert page =~ "Recent Posts"
+    assert page =~ "Recent Images"
+    assert page =~ "Latest Posts"
+    assert page =~ "Stats"
+    assert page =~ "Technology"
+    assert page =~ "Recent reply body"
     assert page =~ ~s(href="/stylesheets/style.css)
+    assert page =~ ~s(href="/recent.css)
     assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css)
     assert page =~ ~s(data-stylesheet="yotsuba.css")
     assert page =~ ~s(var active_page = "index", board_name = null;)
     assert page =~ ~s(src="/main.js)
-    assert page =~ "<strong>Read this</strong>: Global notice"
     assert page =~ "Powered by Eirinchan."
   end
 
@@ -166,9 +144,11 @@ defmodule EirinchanWeb.PageControllerTest do
       |> html_response(200)
 
     assert page =~ "Recent Posts"
+    assert page =~ "Recent Images"
     assert page =~ "Recent reply"
-    assert page =~ board.uri
+    assert page =~ board.title
     assert page =~ ~s(class="boardlist")
+    assert page =~ ~s(href="/recent.css)
   end
 
   test "GET /sitemap.xml renders board and thread urls", %{conn: conn} do
