@@ -28,6 +28,7 @@ end
 defmodule Eirinchan.PostsTest do
   use Eirinchan.DataCase, async: true
 
+  alias Eirinchan.Antispam
   alias Eirinchan.Posts
   alias Eirinchan.Posts.Post
   alias Eirinchan.Runtime.Config
@@ -2079,5 +2080,64 @@ defmodule Eirinchan.PostsTest do
     assert spoilered_thread.spoiler
     assert Enum.all?(spoilered_thread.extra_files, & &1.spoiler)
     refute File.read!(Eirinchan.Uploads.filesystem_path(thread.thumb_path)) == thumb_before
+  end
+
+  test "create_post records flood entries and rejects rapid repeated posts from the same ip" do
+    board = board_fixture(%{config_overrides: %{flood_time_ip: 60}})
+    config = post_config(board.config_overrides)
+
+    request = %{
+      referer: "http://example.test/#{board.uri}/index.html",
+      remote_ip: {203, 0, 113, 11}
+    }
+
+    assert {:ok, _thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "first body", "post" => "New Topic"},
+               config: config,
+               request: request,
+               repo: Repo
+             )
+
+    assert [%{ip_subnet: "203.0.113.11"}] =
+             Antispam.list_flood_entries("203.0.113.11", repo: Repo)
+
+    assert {:error, :antispam} =
+             Posts.create_post(
+               board,
+               %{"body" => "second body", "post" => "New Topic"},
+               config: config,
+               request: request,
+               repo: Repo
+             )
+  end
+
+  test "create_post rejects repeated bodies within the flood repeat window" do
+    board = board_fixture(%{config_overrides: %{flood_time_same: 60}})
+    config = post_config(board.config_overrides)
+
+    request = %{
+      referer: "http://example.test/#{board.uri}/index.html",
+      remote_ip: {203, 0, 113, 12}
+    }
+
+    assert {:ok, _thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "same body", "post" => "New Topic"},
+               config: config,
+               request: request,
+               repo: Repo
+             )
+
+    assert {:error, :antispam} =
+             Posts.create_post(
+               board,
+               %{"body" => "same body", "post" => "New Topic"},
+               config: config,
+               request: request,
+               repo: Repo
+             )
   end
 end

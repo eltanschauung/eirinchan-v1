@@ -5,6 +5,7 @@ defmodule Eirinchan.Posts do
 
   import Ecto.Query, only: [from: 2]
 
+  alias Eirinchan.Antispam
   alias Eirinchan.Bans
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
@@ -67,6 +68,7 @@ defmodule Eirinchan.Posts do
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
            :ok <- validate_thread_lock(thread, request, board),
            {:ok, attrs} <- normalize_post_metadata(attrs, config, request, op?),
+           :ok <- Antispam.check_post(board, attrs, request, config, repo: repo),
            :ok <- validate_body(op?, attrs, config),
            :ok <- validate_body_limits(attrs, config),
            :ok <- validate_upload(op?, attrs, config),
@@ -75,6 +77,7 @@ defmodule Eirinchan.Posts do
            :ok <- validate_image_limit(board, thread, attrs, config, repo),
            :ok <- validate_duplicate_upload(board, thread, attrs, config, repo),
            {:ok, post} <- create_post_record(board, thread, attrs, repo, config, now) do
+        _ = Antispam.log_post(board, attrs, request, repo: repo)
         _ = Build.rebuild_after_post(board, post, config: config, repo: repo)
         {:ok, post, %{noko: noko}}
       end
