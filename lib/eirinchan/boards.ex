@@ -10,6 +10,7 @@ defmodule Eirinchan.Boards do
   alias Eirinchan.Repo
   alias Eirinchan.Runtime
   alias Eirinchan.Runtime.{Config, RequestContext}
+  alias Eirinchan.Settings
 
   @spec list_boards(keyword()) :: [BoardRecord.t()]
   def list_boards(opts \\ []) do
@@ -90,7 +91,7 @@ defmodule Eirinchan.Boards do
       effective_config =
         Config.compose(
           Keyword.get(opts, :defaults),
-          Keyword.get(opts, :instance_overrides, %{}),
+          Keyword.get(opts, :instance_overrides, Settings.current_instance_config()),
           board.config_overrides,
           board: board,
           request_host: Keyword.get(opts, :request_host)

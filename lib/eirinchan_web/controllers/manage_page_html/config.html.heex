@@ -1,0 +1,21 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Instance Config</h1>
+  <p>Edit instance-level runtime overrides as JSON. These values apply before board overrides.</p>
+  <p :if={@error}><%= @error %></p>
+</section>
+
+<nav>
+  <a href={~p"/manage"}>Manage</a>
+  <a href={~p"/"}>Home</a>
+</nav>
+
+<section>
+  <form action={~p"/manage/config/browser"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+    <input type="hidden" name="_method" value="patch" />
+    <label for="config_json">JSON</label>
+    <textarea id="config_json" name="config_json" rows="24" cols="100"><%= @config_json %></textarea>
+    <button type="submit">Save Instance Config</button>
+  </form>
+</section>

@@ -5,6 +5,7 @@ defmodule EirinchanWeb.BuildManagementController do
   alias Eirinchan.Build
   alias Eirinchan.Moderation
   alias Eirinchan.Runtime.Config
+  alias Eirinchan.Settings
 
   action_fallback EirinchanWeb.FallbackController
 
@@ -45,32 +46,12 @@ defmodule EirinchanWeb.BuildManagementController do
   end
 
   defp board_config(board_record, request_host) do
-    Config.compose(nil, %{}, normalize_override_keys(board_record.config_overrides || %{}),
+    Config.compose(
+      nil,
+      Settings.current_instance_config(),
+      Config.normalize_override_keys(board_record.config_overrides || %{}),
       board: Eirinchan.Boards.BoardRecord.to_board(board_record),
       request_host: request_host
     )
-  end
-
-  defp normalize_override_keys(%{} = map) do
-    Map.new(map, fn {key, value} ->
-      normalized_key =
-        cond do
-          is_atom(key) ->
-            key
-
-          is_binary(key) ->
-            try do
-              String.to_existing_atom(key)
-            rescue
-              ArgumentError -> key
-            end
-
-          true ->
-            key
-        end
-
-      normalized_value = if is_map(value), do: normalize_override_keys(value), else: value
-      {normalized_key, normalized_value}
-    end)
   end
 end

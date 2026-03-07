@@ -264,9 +264,9 @@ error observability and structured logging: incomplete
 
 [Install, Migration, and Admin Tooling]
 installer parity for initial setup: partial
-config editor parity in mod panel: incomplete
+config editor parity in mod panel: partial
 instance config/secrets management parity: partial
-board-level config editor parity: incomplete
+board-level config editor parity: partial
 data import/export tools for migration: incomplete
 safe rollback and idempotent migration tooling: incomplete
 

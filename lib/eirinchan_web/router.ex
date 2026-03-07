@@ -59,6 +59,8 @@ defmodule EirinchanWeb.Router do
     get "/login", ManagePageController, :login
     post "/login/browser", ManagePageController, :create_session
     get "/", ManagePageController, :dashboard
+    get "/config/browser", ManagePageController, :config
+    patch "/config/browser", ManagePageController, :update_config
     get "/announcement/browser", ManagePageController, :announcement
     post "/announcement/browser", ManagePageController, :upsert_announcement
     delete "/announcement/browser", ManagePageController, :delete_announcement
@@ -89,6 +91,8 @@ defmodule EirinchanWeb.Router do
 
     get "/boards/:uri/ban-appeals/browser", ManagePageController, :ban_appeals
     patch "/boards/:uri/ban-appeals/browser/:id", ManagePageController, :resolve_ban_appeal
+    get "/boards/:uri/config/browser", ManagePageController, :board_config
+    patch "/boards/:uri/config/browser", ManagePageController, :update_board_config
     post "/boards/browser", ManagePageController, :create_board
     patch "/boards/:uri/browser", ManagePageController, :update_board
     delete "/boards/:uri/browser", ManagePageController, :delete_board

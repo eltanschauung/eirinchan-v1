@@ -11,6 +11,7 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.News
   alias Eirinchan.Reports
   alias Eirinchan.Runtime.Config
+  alias Eirinchan.Settings
   alias EirinchanWeb.ManageSecurity
 
   def login(conn, _params) do
@@ -54,6 +55,89 @@ defmodule EirinchanWeb.ManagePageController do
         error: nil,
         params: %{"uri" => nil, "title" => nil, "subtitle" => nil}
       )
+    end
+  end
+
+  def config(conn, _params) do
+    with {:ok, moderator} <- ensure_admin(conn) do
+      render(conn, :config,
+        moderator: moderator,
+        config_json: Settings.encode_for_edit(Settings.current_instance_config()),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
+      {:error, :forbidden} -> render_config_error(conn, "Administrator access required.")
+    end
+  end
+
+  def update_config(conn, %{"config_json" => config_json}) do
+    with {:ok, moderator} <- ensure_admin(conn),
+         {:ok, _config} <- Settings.update_instance_config_from_json(config_json) do
+      conn
+      |> put_flash(:info, "Instance config updated.")
+      |> redirect(to: ~p"/manage/config/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_config_error(conn, "Administrator access required.")
+
+      {:error, :invalid_json} ->
+        render_config_error(
+          conn,
+          "Config must be valid JSON.",
+          :unprocessable_entity,
+          config_json
+        )
+    end
+  end
+
+  def board_config(conn, %{"uri" => uri}) do
+    with {:ok, moderator} <- ensure_admin(conn),
+         board when not is_nil(board) <- Boards.get_board_by_uri(uri) do
+      render(conn, :board_config,
+        moderator: moderator,
+        board: board,
+        config_json: Settings.encode_for_edit(board.config_overrides || %{}),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      nil ->
+        render_dashboard_error(conn, "Board not found.", %{}, :not_found)
+    end
+  end
+
+  def update_board_config(conn, %{"uri" => uri, "config_json" => config_json}) do
+    with {:ok, moderator} <- ensure_admin(conn),
+         board when not is_nil(board) <- Boards.get_board_by_uri(uri),
+         {:ok, overrides} <- parse_config_json(config_json),
+         {:ok, _board} <- Boards.update_board(board, %{"config_overrides" => overrides}) do
+      conn
+      |> put_flash(:info, "Board config updated.")
+      |> redirect(to: "/manage/boards/#{uri}/config/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      nil ->
+        render_dashboard_error(conn, "Board not found.", %{}, :not_found)
+
+      {:error, :invalid_json} ->
+        render_board_config_error(conn, uri, "Config must be valid JSON.", config_json)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_board_config_error(conn, uri, format_changeset(changeset), config_json)
     end
   end
 
@@ -447,7 +531,7 @@ defmodule EirinchanWeb.ManagePageController do
          {:ok, board} <- load_accessible_board(moderator, uri),
          {:ok, _result} <-
            Eirinchan.Posts.moderate_delete_posts_by_ip(board, ip,
-             config: board_config(board, conn.host)
+             config: effective_board_config(board, conn.host)
            ) do
       conn
       |> put_flash(:info, "Posts deleted for IP.")
@@ -515,8 +599,8 @@ defmodule EirinchanWeb.ManagePageController do
              source_board,
              thread_id,
              target_board,
-             source_config: board_config(source_board, conn.host),
-             target_config: board_config(target_board, conn.host)
+             source_config: effective_board_config(source_board, conn.host),
+             target_config: effective_board_config(target_board, conn.host)
            ) do
       conn
       |> put_flash(:info, "Thread moved.")
@@ -525,7 +609,7 @@ defmodule EirinchanWeb.ManagePageController do
           Eirinchan.ThreadPaths.thread_path(
             target_board,
             moved_thread,
-            board_config(target_board, conn.host)
+            effective_board_config(target_board, conn.host)
           )
       )
     else
@@ -561,8 +645,8 @@ defmodule EirinchanWeb.ManagePageController do
              post_id,
              target_board,
              target_thread_id,
-             source_config: board_config(source_board, conn.host),
-             target_config: board_config(target_board, conn.host)
+             source_config: effective_board_config(source_board, conn.host),
+             target_config: effective_board_config(target_board, conn.host)
            ) do
       conn
       |> put_flash(:info, "Reply moved.")
@@ -571,7 +655,7 @@ defmodule EirinchanWeb.ManagePageController do
           Eirinchan.ThreadPaths.thread_path(
             target_board,
             %Eirinchan.Posts.Post{id: moved_reply.thread_id, slug: nil},
-            board_config(target_board, conn.host)
+            effective_board_config(target_board, conn.host)
           )
       )
     else
@@ -726,7 +810,7 @@ defmodule EirinchanWeb.ManagePageController do
     with {:ok, moderator} <- ensure_moderator(conn),
          board when not is_nil(board) <- Boards.get_board_by_uri(uri),
          true <- Moderation.board_access?(moderator, board) or moderator.role == "admin" do
-      config = board_config(board, conn.host)
+      config = effective_board_config(board, conn.host)
 
       _result =
         case config.generation_strategy do
@@ -819,6 +903,27 @@ defmodule EirinchanWeb.ManagePageController do
     )
   end
 
+  defp render_config_error(conn, message, status \\ :forbidden, config_json \\ "{}") do
+    conn
+    |> put_status(status)
+    |> render(:config,
+      moderator: conn.assigns[:current_moderator],
+      config_json: config_json,
+      error: message
+    )
+  end
+
+  defp render_board_config_error(conn, uri, message, config_json, status \\ :unprocessable_entity) do
+    conn
+    |> put_status(status)
+    |> render(:board_config,
+      moderator: conn.assigns[:current_moderator],
+      board: Boards.get_board_by_uri(uri),
+      config_json: config_json,
+      error: message
+    )
+  end
+
   defp load_accessible_board(moderator, uri) do
     case Boards.get_board_by_uri(uri) do
       nil ->
@@ -841,7 +946,7 @@ defmodule EirinchanWeb.ManagePageController do
   end
 
   defp config_map(boards, host) do
-    Map.new(boards, fn board -> {board.id, board_config(board, host)} end)
+    Map.new(boards, fn board -> {board.id, effective_board_config(board, host)} end)
   end
 
   defp load_custom_page(id), do: Eirinchan.Repo.get(Eirinchan.CustomPages.Page, id)
@@ -851,10 +956,20 @@ defmodule EirinchanWeb.ManagePageController do
     |> Enum.map_join(", ", fn {field, {message, _opts}} -> "#{field} #{message}" end)
   end
 
-  defp board_config(board_record, request_host) do
-    Config.compose(nil, %{}, board_record.config_overrides || %{},
+  defp effective_board_config(board_record, request_host) do
+    Config.compose(nil, Settings.current_instance_config(), board_record.config_overrides || %{},
       board: Eirinchan.Boards.BoardRecord.to_board(board_record),
       request_host: request_host
     )
+  end
+
+  defp parse_config_json(raw_json) when is_binary(raw_json) do
+    with {:ok, decoded} <- Jason.decode(raw_json),
+         true <- is_map(decoded) do
+      {:ok, Config.normalize_override_keys(decoded)}
+    else
+      {:error, %Jason.DecodeError{}} -> {:error, :invalid_json}
+      false -> {:error, :invalid_json}
+    end
   end
 end

@@ -191,6 +191,20 @@ defmodule Eirinchan.Runtime.Config do
     end)
   end
 
+  @spec normalize_override_keys(map()) :: map()
+  def normalize_override_keys(overrides) when is_map(overrides) do
+    Enum.into(overrides, %{}, fn
+      {key, value} when is_binary(key) ->
+        {normalize_override_key(key), normalize_override_value(value)}
+
+      {key, value} when is_atom(key) ->
+        {key, normalize_override_value(value)}
+
+      {key, value} ->
+        {key, normalize_override_value(value)}
+    end)
+  end
+
   defp apply_computed_defaults(config, board, request_host) do
     config
     |> Map.put_new(:global_message, false)
@@ -237,6 +251,21 @@ defmodule Eirinchan.Runtime.Config do
     |> Map.put_new(:uri_thumb, board_asset_path(config, board.dir, config.dir.thumb))
     |> Map.put_new(:uri_img, board_asset_path(config, board.dir, config.dir.img))
   end
+
+  defp normalize_override_key(key) do
+    try do
+      String.to_existing_atom(key)
+    rescue
+      ArgumentError -> key
+    end
+  end
+
+  defp normalize_override_value(value) when is_map(value), do: normalize_override_keys(value)
+
+  defp normalize_override_value(value) when is_list(value),
+    do: Enum.map(value, &normalize_override_value/1)
+
+  defp normalize_override_value(value), do: value
 
   defp normalize_flags(config) do
     config =
