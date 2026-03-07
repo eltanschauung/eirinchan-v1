@@ -289,9 +289,18 @@ defmodule Eirinchan.Posts do
     do: {:ok, repo.preload(post, :extra_files)}
 
   defp maybe_store_uploads(board, %Post{} = post, [primary | rest], repo, config) do
-    with {:ok, updated_post} <- store_primary_upload(board, post, primary, repo, config),
-         {:ok, _extra_files} <- store_extra_uploads(board, updated_post, rest, repo, config) do
+    with {:ok, updated_post, stored_files} <-
+           store_primary_upload(board, post, primary, repo, config),
+         {:ok, _extra_files, _stored_files} <-
+           store_extra_uploads(board, updated_post, rest, repo, config, stored_files) do
       {:ok, repo.preload(updated_post, :extra_files)}
+    else
+      {:error, reason, stored_files} ->
+        cleanup_stored_files(stored_files)
+        {:error, reason}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -300,7 +309,7 @@ defmodule Eirinchan.Posts do
       {:ok, stored_metadata} ->
         case post |> Post.create_changeset(stored_metadata) |> repo.update() do
           {:ok, updated_post} ->
-            {:ok, updated_post}
+            {:ok, updated_post, [stored_metadata]}
 
           {:error, %Ecto.Changeset{} = changeset} ->
             cleanup_stored_files([stored_metadata])
@@ -312,11 +321,12 @@ defmodule Eirinchan.Posts do
     end
   end
 
-  defp store_extra_uploads(_board, _post, [], _repo, _config), do: {:ok, []}
+  defp store_extra_uploads(_board, _post, [], _repo, _config, stored_files),
+    do: {:ok, [], stored_files}
 
-  defp store_extra_uploads(board, post, entries, repo, config) do
+  defp store_extra_uploads(board, post, entries, repo, config, stored_files) do
     Enum.with_index(entries, 1)
-    |> Enum.reduce_while({:ok, []}, fn {entry, position}, {:ok, inserted} ->
+    |> Enum.reduce_while({:ok, [], stored_files}, fn {entry, position}, {:ok, inserted, stored} ->
       case Uploads.store(
              board,
              post,
@@ -333,20 +343,19 @@ defmodule Eirinchan.Posts do
 
           case %PostFile{} |> PostFile.create_changeset(attrs) |> repo.insert() do
             {:ok, post_file} ->
-              {:cont, {:ok, [post_file | inserted]}}
+              {:cont, {:ok, [post_file | inserted], [stored_metadata | stored]}}
 
             {:error, %Ecto.Changeset{} = changeset} ->
-              cleanup_stored_files([stored_metadata])
-              {:halt, {:error, changeset}}
+              {:halt, {:error, changeset, [stored_metadata | stored]}}
           end
 
         {:error, reason} ->
-          {:halt, {:error, reason}}
+          {:halt, {:error, reason, stored}}
       end
     end)
     |> case do
-      {:ok, files} -> {:ok, Enum.reverse(files)}
-      {:error, reason} -> {:error, reason}
+      {:ok, files, stored} -> {:ok, Enum.reverse(files), stored}
+      {:error, reason, stored} -> {:error, reason, stored}
     end
   end
 

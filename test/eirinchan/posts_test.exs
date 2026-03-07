@@ -1,7 +1,35 @@
+defmodule Eirinchan.TestFailingPostFileRepo do
+  alias Eirinchan.Posts.PostFile
+  alias Eirinchan.Repo
+
+  def transaction(fun), do: Repo.transaction(fun)
+  def rollback(reason), do: Repo.rollback(reason)
+  def update(changeset), do: Repo.update(changeset)
+  def all(queryable), do: Repo.all(queryable)
+  def one(queryable), do: Repo.one(queryable)
+  def aggregate(queryable, aggregate, field), do: Repo.aggregate(queryable, aggregate, field)
+  def exists?(queryable), do: Repo.exists?(queryable)
+  def preload(struct_or_structs, preloads), do: Repo.preload(struct_or_structs, preloads)
+  def get_by(queryable, clauses), do: Repo.get_by(queryable, clauses)
+  def delete(struct), do: Repo.delete(struct)
+
+  def insert(%Ecto.Changeset{data: %PostFile{}} = changeset) do
+    if Process.get(:fail_post_file_insert_once) do
+      Process.delete(:fail_post_file_insert_once)
+      {:error, Ecto.Changeset.add_error(changeset, :position, "forced failure")}
+    else
+      Repo.insert(changeset)
+    end
+  end
+
+  def insert(changeset), do: Repo.insert(changeset)
+end
+
 defmodule Eirinchan.PostsTest do
   use Eirinchan.DataCase, async: true
 
   alias Eirinchan.Posts
+  alias Eirinchan.Posts.Post
   alias Eirinchan.Runtime.Config
 
   defp post_config(board_overrides) do
@@ -413,6 +441,33 @@ defmodule Eirinchan.PostsTest do
     assert thread.file_name == "remote.png"
     assert thread.file_type == "image/png"
     assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+  end
+
+  test "create_post removes stored files when a later file insert fails" do
+    File.rm_rf!(Eirinchan.Build.board_root())
+
+    board = board_fixture()
+    Process.put(:fail_post_file_insert_once, true)
+
+    assert {:error, %Ecto.Changeset{}} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "files" => [
+                   upload_fixture("first.png", "first"),
+                   upload_fixture("second.gif", "second")
+                 ],
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri),
+               repo: Eirinchan.TestFailingPostFileRepo
+             )
+
+    refute Repo.exists?(from post in Post, where: post.board_id == ^board.id)
+    assert Path.wildcard(Path.join(Eirinchan.Build.board_root(), "#{board.uri}/src/*")) == []
+    assert Path.wildcard(Path.join(Eirinchan.Build.board_root(), "#{board.uri}/thumb/*")) == []
   end
 
   test "create_post rejects replies to missing threads" do
