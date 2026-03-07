@@ -64,6 +64,8 @@ defmodule Eirinchan.Runtime.Config do
     thumb_op_height: 250,
     max_image_width: 0,
     max_image_height: 0,
+    file_thumb: nil,
+    file_icons: %{},
     minimum_copy_resize: false,
     redraw_image: false,
     strip_exif: false,

@@ -492,6 +492,19 @@ defmodule Eirinchan.Uploads do
   defp jpeg?(_metadata), do: false
 
   defp generate_placeholder_thumbnail(destination, config, metadata) do
+    case file_icon_source(config, metadata) do
+      nil ->
+        generate_placeholder_label_thumbnail(destination, config, metadata)
+
+      icon_source ->
+        case File.cp(icon_source, destination) do
+          :ok -> :ok
+          {:error, _reason} -> {:error, :upload_failed}
+        end
+    end
+  end
+
+  defp generate_placeholder_label_thumbnail(destination, config, metadata) do
     size = "#{config.thumb_width}x#{config.thumb_height}"
 
     label =
@@ -525,6 +538,31 @@ defmodule Eirinchan.Uploads do
          ) do
       {_output, 0} -> :ok
       _ -> {:error, :upload_failed}
+    end
+  end
+
+  defp file_icon_source(config, metadata) do
+    ext = metadata.ext || ""
+    ext_without_dot = String.trim_leading(ext, ".")
+
+    icon_name =
+      Map.get(config.file_icons || %{}, ext) ||
+        Map.get(config.file_icons || %{}, ext_without_dot) ||
+        Map.get(config.file_icons || %{}, "default")
+
+    cond do
+      not is_binary(icon_name) ->
+        nil
+
+      is_binary(config.file_thumb) and String.contains?(config.file_thumb, "%s") ->
+        path = String.replace(config.file_thumb, "%s", icon_name)
+        if File.exists?(path), do: path, else: nil
+
+      is_binary(icon_name) and File.exists?(icon_name) ->
+        icon_name
+
+      true ->
+        nil
     end
   end
 
