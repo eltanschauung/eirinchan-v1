@@ -9,6 +9,8 @@ defmodule Eirinchan.Posts do
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Moderation
   alias Eirinchan.Moderation.ModUser
+  alias Eirinchan.Posts.Cite
+  alias Eirinchan.Posts.NntpReference
   alias Eirinchan.Posts.Post
   alias Eirinchan.Posts.PostFile
   alias Eirinchan.Repo
@@ -24,6 +26,7 @@ defmodule Eirinchan.Posts do
              | :invalid_referer
              | :antispam
              | :invalid_captcha
+             | :cite_insert_failed
              | :board_locked
              | :thread_locked
              | :body_required
@@ -154,6 +157,31 @@ defmodule Eirinchan.Posts do
       end
 
     repo.all(query)
+  end
+
+  @spec list_cites_for_post(Post.t() | integer(), keyword()) :: [Cite.t()]
+  def list_cites_for_post(%Post{id: post_id}, opts), do: list_cites_for_post(post_id, opts)
+
+  def list_cites_for_post(post_id, opts) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    repo.all(
+      from cite in Cite, where: cite.post_id == ^post_id, order_by: [asc: cite.target_post_id]
+    )
+  end
+
+  @spec list_nntp_references_for_post(Post.t() | integer(), keyword()) :: [NntpReference.t()]
+  def list_nntp_references_for_post(%Post{id: post_id}, opts),
+    do: list_nntp_references_for_post(post_id, opts)
+
+  def list_nntp_references_for_post(post_id, opts) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    repo.all(
+      from reference in NntpReference,
+        where: reference.post_id == ^post_id,
+        order_by: [asc: reference.target_post_id]
+    )
   end
 
   @spec list_page_data(BoardRecord.t(), keyword()) :: {:ok, [map()]} | {:error, :not_found}
@@ -302,7 +330,8 @@ defmodule Eirinchan.Posts do
 
     case repo.transaction(fn ->
            with {:ok, post} <- insert_post(board, thread, attrs, repo, config, now),
-                {:ok, post} <- maybe_store_uploads(board, post, upload_entries, repo, config) do
+                {:ok, post} <- maybe_store_uploads(board, post, upload_entries, repo, config),
+                :ok <- store_citations(board, post, repo) do
              maybe_bump_thread(thread, attrs, config, repo, now)
              maybe_cycle_thread(board, thread, config, repo)
              post
@@ -1032,6 +1061,46 @@ defmodule Eirinchan.Posts do
       %ModUser{} = moderator -> Moderation.board_access?(moderator, board)
       _ -> false
     end
+  end
+
+  defp store_citations(board, post, repo) do
+    target_post_ids =
+      post.body
+      |> extract_cited_post_ids()
+      |> existing_cited_post_ids(board.id, repo)
+
+    Enum.reduce_while(target_post_ids, :ok, fn target_post_id, :ok ->
+      with {:ok, _cite} <-
+             %Cite{}
+             |> Cite.changeset(%{post_id: post.id, target_post_id: target_post_id})
+             |> repo.insert(on_conflict: :nothing, conflict_target: [:post_id, :target_post_id]),
+           {:ok, _reference} <-
+             %NntpReference{}
+             |> NntpReference.changeset(%{post_id: post.id, target_post_id: target_post_id})
+             |> repo.insert(on_conflict: :nothing, conflict_target: [:post_id, :target_post_id]) do
+        {:cont, :ok}
+      else
+        {:error, _changeset} -> {:halt, {:error, :cite_insert_failed}}
+      end
+    end)
+  end
+
+  defp extract_cited_post_ids(nil), do: []
+
+  defp extract_cited_post_ids(body) do
+    Regex.scan(~r/>>(\d+)/u, body)
+    |> Enum.map(fn [_, id] -> String.to_integer(id) end)
+    |> Enum.uniq()
+  end
+
+  defp existing_cited_post_ids([], _board_id, _repo), do: []
+
+  defp existing_cited_post_ids(target_ids, board_id, repo) do
+    repo.all(
+      from post in Post,
+        where: post.board_id == ^board_id and post.id in ^target_ids,
+        select: post.id
+    )
   end
 
   defp validate_hidden_input(attrs, config, request, board) do

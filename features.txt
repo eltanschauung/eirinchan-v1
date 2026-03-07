@@ -29,7 +29,7 @@ noko/nonoko/always_noko behavior: partial
 wordfilter pipeline integration: partial
 markup pre-processing and modifier escaping parity: partial
 raw HTML posting mode for authorized moderators: partial
-cite tracking extraction and persistence: incomplete
+cite tracking extraction and persistence: partial
 flood table writes and repeat checks: incomplete
 thread bump logic and bump-limit behavior: partial
 reply_hard_limit/image_hard_limit enforcement: partial
@@ -95,14 +95,14 @@ undoImage rollback on failure parity: partial
 board metadata table parity: partial
 per-board post storage model parity or compatible replacement: partial
 post files JSON payload compatibility layer: partial
-cites table behavior parity: incomplete
+cites table behavior parity: partial
 reports table behavior parity: partial
 feedback table behavior parity: partial
 feedback_comments table behavior parity: partial
 bans table behavior parity: incomplete
 mod users/modlogs/pms table behavior parity: partial
 search_queries rate-limiting table behavior parity: incomplete
-nntp_references table behavior parity: incomplete
+nntp_references table behavior parity: partial
 antispam/flood table behavior parity: incomplete
 schema migration tooling from existing MySQL data: incomplete
 

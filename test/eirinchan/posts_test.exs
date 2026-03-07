@@ -1214,6 +1214,37 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post extracts cites and stores nntp references for existing posts" do
+    board = board_fixture()
+    thread = thread_fixture(board)
+    reply = reply_fixture(board, thread)
+
+    assert {:ok, citing_post, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "see >>#{thread.id} and >>#{reply.id} and >>999999",
+                 "post" => "New Reply"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert Enum.map(Posts.list_cites_for_post(citing_post, repo: Repo), & &1.target_post_id) == [
+             thread.id,
+             reply.id
+           ]
+
+    assert Enum.map(
+             Posts.list_nntp_references_for_post(citing_post, repo: Repo),
+             & &1.target_post_id
+           ) == [
+             thread.id,
+             reply.id
+           ]
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)
