@@ -24,8 +24,10 @@ defmodule EirinchanWeb do
         images
         js
         main.js
+        recent.css
         static
         stylesheets
+        theme-thumbs
         background_christmas.jpg
         christmas_alice.png
         favicon.ico
