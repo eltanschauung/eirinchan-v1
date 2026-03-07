@@ -186,6 +186,9 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     assert page =~ ~s(class="8chan vichan is-not-moderator active-thread")
     assert page =~ ~s(data-stylesheet="christmas.css")
+    assert page =~ ~s(href="/stylesheets/style.css")
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/christmas.css")
+    assert page =~ ~s(src="/main.js")
     assert page =~ ~s(src="/b.php")
     assert page =~ "losers, creeps, whales"
     assert page =~ "[Archive This Thread]"

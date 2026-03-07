@@ -6,9 +6,18 @@
       <%= Phoenix.HTML.raw(assigns[:head_html]) %>
     <% end %>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="csrf-token" content={get_csrf_token()} />
+    <meta
+      name="viewport"
+      content={assigns[:viewport_content] || "width=device-width, initial-scale=1"}
+    />
+    <meta :if={!assigns[:public_shell]} name="csrf-token" content={get_csrf_token()} />
     <title><%= assigns[:page_title] || "Eirinchan" %></title>
+    <link
+      :if={assigns[:base_stylesheet]}
+      rel="stylesheet"
+      media="screen"
+      href={versioned_asset(assigns[:base_stylesheet], assigns[:asset_version])}
+    />
     <link
       :if={!assigns[:skip_app_stylesheet]}
       phx-track-static
@@ -23,7 +32,7 @@
       href={versioned_asset(assigns[:primary_stylesheet], assigns[:asset_version])}
     />
     <link
-      :if={!assigns[:primary_stylesheet] && assigns[:theme_stylesheet]}
+      :if={!assigns[:public_shell] && !assigns[:primary_stylesheet] && assigns[:theme_stylesheet]}
       phx-track-static
       rel="stylesheet"
       href={versioned_asset(assigns[:theme_stylesheet], assigns[:asset_version])}
@@ -41,8 +50,15 @@
       href={versioned_asset(stylesheet, assigns[:asset_version])}
     />
     <script
+      :if={!assigns[:public_shell]}
       defer
       phx-track-static
+      type="text/javascript"
+      src={versioned_asset(~p"/assets/app.js", assigns[:asset_version])}
+    >
+    </script>
+    <script
+      :if={assigns[:public_shell]}
       type="text/javascript"
       src={versioned_asset(~p"/assets/app.js", assigns[:asset_version])}
     >

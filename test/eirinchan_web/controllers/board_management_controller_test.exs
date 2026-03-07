@@ -135,11 +135,13 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert first_page =~ "Newer"
     assert first_page =~ "/#{board.uri}/2.html"
-    assert first_page =~ ~s(name="delete_post_id")
+    assert first_page =~ ~s(id="post-moderation-fields")
+    assert first_page =~ ~s(id="delete_)
     assert second_page =~ "Older"
     assert second_page =~ "1 posts"
     assert second_page =~ "Reply two"
-    assert second_page =~ ~s(name="delete_post_id")
+    assert second_page =~ ~s(id="post-moderation-fields")
+    assert second_page =~ ~s(id="delete_)
   end
 
   test "board pages render formatted quote links in thread previews", %{conn: conn} do
@@ -199,6 +201,8 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert page =~ ~s(class="8chan vichan is-not-moderator theme-catalog active-catalog")
     assert page =~ ~s(data-stylesheet="christmas.css")
+    assert page =~ ~s(href="/stylesheets/style.css")
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/christmas.css")
     assert page =~ "Return to Index"
     assert page =~ "View News - 02/14/26"
     assert page =~ "Sort by:"
@@ -316,7 +320,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(document, ~s(input[name="no_country"][type="checkbox"])) != []
   end
 
-  test "board page renders quick reply hooks and hidden reply forms for thread cites", %{
+  test "board page renders cite hooks that target the main post form", %{
     conn: conn
   } do
     board = board_fixture()
@@ -333,9 +337,8 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(document, ~s(a[data-quick-reply-thread="#{thread.id}"][data-quote-to])) !=
              []
 
-    assert Floki.find(document, ~s(section[data-quick-reply-panel][hidden])) != []
-    assert Floki.find(document, ~s(form[data-quick-reply-form="#{thread.id}"])) != []
-    assert Floki.find(document, ~s(textarea[data-post-body])) != []
+    assert Floki.find(document, ~s(form#new-thread-form[data-remember-stuff])) != []
+    assert Floki.find(document, ~s(form#new-thread-form textarea[data-post-body])) != []
   end
 
   test "board page renders allowed OP tag choices", %{conn: conn} do
@@ -411,9 +414,9 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(Floki.parse_document!(page), ~s(input[name="captcha"])) != []
   end
 
-  test "board page exposes rememberStuff hooks for thread and quick-reply forms", %{conn: conn} do
+  test "board page exposes rememberStuff hooks for the main post form", %{conn: conn} do
     board = board_fixture()
-    thread = thread_fixture(board)
+    _thread = thread_fixture(board)
 
     page =
       conn
@@ -425,11 +428,6 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(
              document,
              ~s(form#new-thread-form[data-remember-stuff][data-draft-key="new"])
-           ) != []
-
-    assert Floki.find(
-             document,
-             ~s(form[data-quick-reply-form="#{thread.id}"][data-remember-stuff])
            ) != []
   end
 
