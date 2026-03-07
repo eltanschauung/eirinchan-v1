@@ -45,13 +45,13 @@ defmodule EirinchanWeb.ThreadController do
             viewport_content: "width=device-width, initial-scale=1, user-scalable=yes",
             base_stylesheet: "/stylesheets/style.css",
             body_class: board_body_class(conn),
-            body_data_stylesheet: board_data_stylesheet(board),
+            body_data_stylesheet: board_data_stylesheet(conn),
             head_html:
               PublicShell.head_html("thread", board_name: board.uri, thread_id: summary.thread.id),
             head_after_assets_html: PublicShell.thread_meta_html(board, summary.thread, config),
             javascript_urls: PublicShell.javascript_urls(:thread),
             body_end_html: PublicShell.body_end_html(),
-            primary_stylesheet: board_primary_stylesheet(board),
+            primary_stylesheet: board_primary_stylesheet(conn),
             primary_stylesheet_id: "stylesheet",
             extra_stylesheets: board_extra_stylesheets(board),
             hide_theme_switcher: true,
@@ -81,9 +81,13 @@ defmodule EirinchanWeb.ThreadController do
     "8chan vichan #{moderator_class} active-thread"
   end
 
-  defp board_data_stylesheet(_board), do: "yotsuba.css"
+  defp board_data_stylesheet(conn) do
+    board_primary_stylesheet(conn)
+    |> Path.basename()
+  end
 
-  defp board_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
+  defp board_primary_stylesheet(conn),
+    do: conn.assigns[:theme_stylesheet] || "/stylesheets/yotsuba.css"
 
   defp board_extra_stylesheets(_board),
     do: ["/stylesheets/eirinchan-public.css", "/stylesheets/eirinchan-bant.css"]

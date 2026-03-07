@@ -3,13 +3,26 @@ defmodule EirinchanWeb.ThemeRegistry do
 
   alias Eirinchan.Settings
 
+  @static_stylesheet_dir "/home/telemazer/eirinchan-v1/priv/static/stylesheets"
+  @internal_stylesheets MapSet.new([
+                          "style.css",
+                          "contrast.css",
+                          "feedback.css",
+                          "ipaccessauth.css",
+                          "eirinchan-public.css",
+                          "eirinchan-bant.css",
+                          "eirinchan-mod.css"
+                        ])
+
   @themes %{
     "default" => %{label: "Yotsuba", stylesheet: "/stylesheets/yotsuba.css"},
     "yotsuba" => %{label: "Yotsuba", stylesheet: "/stylesheets/yotsuba.css"},
     "vichan" => %{label: "Vichan", stylesheet: "/stylesheets/style.css"},
     "contrast" => %{label: "Contrast", stylesheet: "/stylesheets/contrast.css"},
     "feedback" => %{label: "Feedback", stylesheet: "/stylesheets/feedback.css"},
-    "ipaccessauth" => %{label: "IpAccessAuth", stylesheet: "/stylesheets/ipaccessauth.css"}
+    "ipaccessauth" => %{label: "IpAccessAuth", stylesheet: "/stylesheets/ipaccessauth.css"},
+    "christmas" => %{label: "Christmas", stylesheet: "/stylesheets/christmas.css"},
+    "tomorrow" => %{label: "Tomorrow", stylesheet: "/stylesheets/tomorrow.css"}
   }
 
   def all do
@@ -40,6 +53,26 @@ defmodule EirinchanWeb.ThemeRegistry do
         {name, %{label: label, stylesheet: stylesheet}}
       end)
 
-    Map.merge(@themes, installed)
+    @themes
+    |> Map.merge(detected_static_themes())
+    |> Map.merge(installed)
+  end
+
+  defp detected_static_themes do
+    @static_stylesheet_dir
+    |> File.ls!()
+    |> Enum.filter(&String.ends_with?(&1, ".css"))
+    |> Enum.reject(&MapSet.member?(@internal_stylesheets, &1))
+    |> Map.new(fn filename ->
+      name = Path.rootname(filename)
+      {name, %{label: theme_label(name), stylesheet: "/stylesheets/#{filename}"}}
+    end)
+  end
+
+  defp theme_label(name) do
+    name
+    |> String.replace(~r/[_+-]+/, " ")
+    |> String.split()
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 end

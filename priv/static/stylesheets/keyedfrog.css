@@ -1,5 +1,9 @@
 body {
 	background: #ffe url('img/fade-yotsuba.png') repeat-x 50% 0%;
+        background-image: url(/secret_bfc.png);
+        background-position: bottom right;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
 	color: #800000;
 }
 

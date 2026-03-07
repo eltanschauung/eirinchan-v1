@@ -1,6 +1,5 @@
-
 body {
-  background: #EEF2FF url('img/fade-blue.png') repeat-x 50% 0%;
+  background: #d6ffd5;
   color: black;
   font-family: arial,helvetica,sans-serif;
   font-size: 10pt;
@@ -8,24 +7,20 @@ body {
   padding-left: 4px;
   padding-right: 4px;
 }
-.flag {
-  image-rendering: pixelated;
-  width: 16px;
-  height: 11px;
+
+.post-btn {
+   color:black !important; 
 }
+
+a:link:not(.close-btn):not(a.post_no),
+a:visited,
+.intro a.email span.name,
+.news-button {
+  color: #0000ff important;
+}
+
 .hidden {
   display: none;
-}
-
-.rotate {   animation: rotation 1s infinite linear;   display: inline-block;   overflow: hidden;
-  word-break: break-all;
-  color: #AF0A0F;
-  font-size: 11pt;
-  font-weight: bold;
-  max-width: 100%;}  @keyframes rotation {   from {     transform: rotateX(0deg);   }   to {     transform: rotateX(359deg);   } }
-
-.glow {
-	text-shadow:2px 2px 8px #00fe20, 0px 0px 2px #00fe20;
 }
 
 a,a:visited {
@@ -41,10 +36,6 @@ a.post_no {
   text-decoration: none;
   margin: 0;
   padding: 0;
-}
-
-.image_id {
-  margin-left:4px;
 }
 
 .intro a.post_no {
@@ -94,12 +85,6 @@ header div.subtitle,h1 {
   color: #AF0A0F;
   text-align: center;
 }
-
-#blotterContainer {
-  color: #AF0A0F;
-  text-align: center;
-}
-
 
 header div.subtitle {
   font-size: 8pt;
@@ -170,10 +155,6 @@ form table tr td div label {
 
 .unimportant,.unimportant * {
   font-size: 10px;
-}
-
-.unimportant2,.unimportant2 * {
-  font-size: 13px;
 }
 
 .file {
@@ -300,7 +281,6 @@ div.post.reply div.body {
   margin-top: 0.8em;
   padding-right: 3em;
   padding-bottom: 0.3em;
-  overflow:hidden;
 }
 
 div.post.reply.highlighted {
@@ -316,8 +296,8 @@ div.post {
 }
 
 div.post div.body {
-  white-space: pre-wrap;
   word-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 div.post.reply {
@@ -337,23 +317,6 @@ span.trip {
 
 span.quote {
   color: #789922;
-}
-
-span.quote2 {
-  color: #f12232;
-}
-
-span.truth {
-  color: #ff0000;
-}
-
-span.truthblue {
-  color: #000db3;
-}
-
-span.truthgold {
-  color: #a1993b;
-  font-weight: bold;
 }
 
 span.omitted {
@@ -475,8 +438,6 @@ div.pages {
   margin: 8px 0 4px 0;
   border-right: 1px solid #B7C5D9;
   border-bottom: 1px solid #B7C5D9;
-  float: left;
-  text-align: left;
 }
 
 div.pages.top {
@@ -599,6 +560,7 @@ table.mod.config-editor input[type="text"] {
   z-index: 30;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .15);
   border-bottom: 1px solid;
+  background: inherit;
 }
 
 .desktop-style body {
@@ -606,7 +568,7 @@ table.mod.config-editor input[type="text"] {
 }
 
 .desktop-style .sub {
-  margin-top: 5em;
+  background: inherit;
 }
 
 .desktop-style .sub .sub {
@@ -669,7 +631,7 @@ pre {
   margin: 0;
 }
 
-.theme-catalog div.thread img:not(.overlay-image) {
+.theme-catalog div.thread img {
   float: none!important;
   margin: auto;
   max-height: 150px;
@@ -686,12 +648,14 @@ pre {
   margin-top: 2px;
   margin-bottom: 2px;
   padding: 2px;
-  height: 432px;
+  height: 300px;
   width: 205px;
   overflow: hidden;
   position: relative;
-  font-size: 10pt;
+  font-size: 11px;
   max-height: 300px;
+  background: rgba(182,182,182,0.12);
+  border: 2px solid rgba(111,111,111,0.34);
 }
 
 .theme-catalog div.thread strong {
@@ -708,7 +672,7 @@ pre {
   border-color: #B7C5D9;
 }
 
-.theme-catalog div.grid-size-vsmall img:not(.overlay-image) {
+.theme-catalog div.grid-size-vsmall img {
   max-height: 33%;
   max-width: 95%
 }
@@ -718,7 +682,7 @@ pre {
   max-height: 148px;
 }
 
-.theme-catalog div.grid-size-small img:not(.overlay-image) {
+.theme-catalog div.grid-size-small img {
   max-height: 33%;
   max-width: 95%
 }
@@ -728,14 +692,14 @@ pre {
   max-height: 192px;
 }
 
-.theme-catalog div.grid-size-large img:not(.overlay-image) {
+.theme-catalog div.grid-size-large img {
   max-height: 40%;
   max-width: 95%
 }
 
 .theme-catalog div.grid-size-large {
-  min-width: 144px; max-width: 176px;
-  max-height: 352px;
+  min-width: 256px; max-width: 256px;
+  max-height: 384px;
 }
 
 .theme-catalog img.thread-image {
@@ -1026,7 +990,7 @@ div.boardlist {
 }
 
 div.boardlist.bottom {
-  margin-top: 5em;
+  margin-top: 12px;
   clear: both;
 }
 
@@ -1226,7 +1190,7 @@ table.fileboard .intro a {
   width: 100%;
 }
 
-#gallery_toolbar a {
+#gallery_toolbavr a {
   font-size: 28px;
   padding-right: 5px;
 }
@@ -1271,97 +1235,4 @@ table.fileboard .intro a {
 
 div.mix {
 	display: inline-block;
-}
-
-.site_logo {
-  width:271px;
-  height:148px;
-}
-
-.site_logo2 {
-  width:285px;
-  height:148px;
-}
-
-.spoiler-image {
-    width: 144px !important;
-    height: auto !important;
-    filter: blur(3px);
-}
-
-/* This is for my updated file-selector.js (Tested on Tenkochan) */
-
-.file-thumbs {
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
-}
-
-/* Each file container */
-.tmb-container {
-	display: block;
-	margin: 6px 0;
-	width: 100%;
-}
-
-/* Control bar: remove, up, down buttons */
-.tmb-controls {
-	display: flex;
-	justify-content: flex-start;
-	gap: 6px;
-	margin-bottom: 4px;
-}
-
-/* Up/down buttons */
-.tmb-controls > .move-up-btn,
-.tmb-controls > .move-down-btn {
-	cursor: pointer;
-	background: rgba(0, 0, 0, 0.6);
-	color: white;
-	font-weight: bold;
-	padding: 2px 6px;
-	border-radius: 3px;
-	font-size: 12px;
-	user-select: none;
-}
-
-.tmb-controls > .remove-btn {
-	cursor: pointer;
-        color: rgba(0, 0, 0, 0.6);
-	font-weight: bold;
-	user-select: none;
-
-}
-
-/* Thumbnail preview box */
-.file-tmb {
-	width: 100px;
-	height: 100px;
-	background-size: cover;
-	background-position: center;
-	border: 1px solid #ccc;
-	border-radius: 4px;
-	margin-bottom: 4px;
-}
-
-/* Filename under the thumbnail */
-.tmb-filename {
-	font-size: 12px;
-	word-break: break-all;
-	text-align: center;
-}
-.tmb-controls > .strip-fn-btn {
-	cursor: pointer;
-	background: rgba(0, 0, 0, 0.6);
-	color: #fff;
-	font-weight: bold;
-	padding: 2px 6px;
-	border-radius: 3px;
-	font-size: 12px;
-	user-select: none;
-}
-
-/* new catalog search */
-.catalog_search {
-	margin-left:4px;
 }
