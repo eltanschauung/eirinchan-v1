@@ -24,6 +24,7 @@ defmodule Eirinchan.Runtime.Config do
     file_catalog: "catalog.html",
     file_mod: "mod.php",
     file_script: "main.js",
+    generation_strategy: "immediate",
     fileboard: false,
     board_path: "%s/",
     board_abbreviation: "%s/",
@@ -110,7 +111,7 @@ defmodule Eirinchan.Runtime.Config do
       challenge: nil
     },
     api: %{enabled: false},
-    cache: %{enabled: false},
+    cache: %{enabled: false, ttl_seconds: 0},
     cookies: %{
       mod: "mod",
       js: "serv",

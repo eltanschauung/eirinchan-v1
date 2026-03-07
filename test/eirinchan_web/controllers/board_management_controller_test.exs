@@ -370,6 +370,21 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
            ) != []
   end
 
+  test "board pages trigger build-on-load index generation when configured", %{conn: conn} do
+    alias Eirinchan.Build
+
+    board = board_fixture(%{config_overrides: %{generation_strategy: "build_on_load"}})
+    File.rm_rf!(Path.join(Build.board_root(), board.uri))
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ "/ #{board.uri} /"
+    assert File.exists?(Path.join([Build.board_root(), board.uri, "index.html"]))
+  end
+
   test "fileboard pages use filenames as thread titles when subjects are absent", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{fileboard: true, force_body_op: false}})
 
