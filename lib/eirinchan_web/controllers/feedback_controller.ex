@@ -1,12 +1,22 @@
 defmodule EirinchanWeb.FeedbackController do
   use EirinchanWeb, :controller
 
+  alias Eirinchan.Announcement
   alias Eirinchan.Boards
+  alias Eirinchan.CustomPages
   alias Eirinchan.Feedback
+  alias EirinchanWeb.BoardChrome
   alias EirinchanWeb.RequestMeta
 
+  plug :assign_feedback_shell
+
   def show(conn, _params) do
-    render(conn, :show, boards: Boards.list_boards())
+    render(conn, :show,
+      boards: Boards.list_boards(),
+      announcement: Announcement.current(),
+      custom_pages: CustomPages.list_pages(),
+      board_chrome: BoardChrome.for_board(%{uri: "bant"})
+    )
   end
 
   def create(conn, params) do
@@ -29,10 +39,27 @@ defmodule EirinchanWeb.FeedbackController do
           |> render(:show,
             errors: translate_errors(changeset),
             params: params,
-            boards: Boards.list_boards()
+            boards: Boards.list_boards(),
+            announcement: Announcement.current(),
+            custom_pages: CustomPages.list_pages(),
+            board_chrome: BoardChrome.for_board(%{uri: "bant"})
           )
         end
     end
+  end
+
+  defp assign_feedback_shell(conn, _opts) do
+    stylesheet = conn.assigns[:theme_stylesheet] || "/stylesheets/yotsuba.css"
+
+    conn
+    |> assign(:page_title, "Feedback")
+    |> assign(:base_stylesheet, "/stylesheets/style.css")
+    |> assign(:primary_stylesheet, stylesheet)
+    |> assign(:primary_stylesheet_id, "stylesheet")
+    |> assign(:body_class, "8chan vichan is-not-moderator active-feedback")
+    |> assign(:body_data_stylesheet, Path.basename(stylesheet))
+    |> assign(:skip_app_stylesheet, true)
+    |> assign(:skip_flash_group, true)
   end
 
   defp translate_errors(changeset) do

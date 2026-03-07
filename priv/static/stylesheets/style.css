@@ -1715,3 +1715,19 @@ header .subtitle:empty {
 .mod-page .blotter {
   max-width: 980px;
 }
+
+.feedback-boardlist {
+  max-width: 980px;
+}
+
+.search-entry h3 {
+  margin-bottom: 0.25em;
+}
+
+.search-entry .body {
+  margin-left: 0;
+}
+
+.feedback-textarea {
+  width: min(100%, 36rem);
+}

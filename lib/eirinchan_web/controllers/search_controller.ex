@@ -11,8 +11,11 @@ defmodule EirinchanWeb.SearchController do
   alias Eirinchan.Repo
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
+  alias EirinchanWeb.BoardChrome
   alias EirinchanWeb.RequestMeta
   import Ecto.Query, only: [from: 2]
+
+  plug :assign_search_shell
 
   def show(conn, params) do
     query = String.trim(params["q"] || "")
@@ -68,10 +71,25 @@ defmodule EirinchanWeb.SearchController do
       board: board,
       boards: boards,
       announcement: Announcement.current(),
+      board_chrome: BoardChrome.for_board(%{uri: "bant"}),
       custom_pages: CustomPages.list_pages(),
       results: results,
       error: error
     )
+  end
+
+  defp assign_search_shell(conn, _opts) do
+    stylesheet = conn.assigns[:theme_stylesheet] || "/stylesheets/yotsuba.css"
+
+    conn
+    |> assign(:page_title, "Search")
+    |> assign(:base_stylesheet, "/stylesheets/style.css")
+    |> assign(:primary_stylesheet, stylesheet)
+    |> assign(:primary_stylesheet_id, "stylesheet")
+    |> assign(:body_class, "8chan vichan is-not-moderator active-search")
+    |> assign(:body_data_stylesheet, Path.basename(stylesheet))
+    |> assign(:skip_app_stylesheet, true)
+    |> assign(:skip_flash_group, true)
   end
 
   defp board_from_param(nil), do: nil

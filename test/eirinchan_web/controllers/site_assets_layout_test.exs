@@ -42,7 +42,7 @@ defmodule EirinchanWeb.SiteAssetsLayoutTest do
       |> get("/search", %{"q" => ""})
       |> html_response(200)
 
-    assert page =~ ~s(/assets/app.css?v=build-42)
+    assert page =~ ~s(/stylesheets/style.css?v=build-42)
     assert page =~ ~s(/assets/app.js?v=build-42)
     assert page =~ ~s(/js/custom-a.js?v=build-42)
     assert page =~ ~s(/js/custom-b.js?v=build-42)

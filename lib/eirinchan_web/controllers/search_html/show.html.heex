@@ -1,26 +1,37 @@
-<section>
+<%= raw(
+  EirinchanWeb.PostView.boardlist_html(
+    @board_chrome.boardlist_groups || EirinchanWeb.PostView.boardlist_groups(@boards)
+  )
+) %>
+
+<script type="text/javascript">
+  if (typeof do_boardlist !== 'undefined') do_boardlist();
+</script>
+
+<header>
   <h1>Search</h1>
-  <p><a href={~p"/"}>Home</a></p>
-</section>
+  <div class="subtitle">Cross-board post search</div>
+</header>
 
-<nav>
+<%= if @announcement do %>
+  <div class="blotter">
+    <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
+  </div>
+<% end %>
+
+<div class="pages top">
+  [<a href={~p"/"}>Home</a>]
+  [<a href={~p"/news"}>News</a>]
+  [<a href={~p"/catalog"}>Catalog</a>]
+  [<a href={~p"/recent"}>Recent</a>]
   <%= for page <- @custom_pages do %>
-    <a href={"/pages/#{page.slug}"}><%= page.title %></a>
+    [<a href={"/pages/#{page.slug}"}><%= page.title %></a>]
   <% end %>
-</nav>
+</div>
 
-<section :if={@announcement}>
-  <h2>Announcement</h2>
-  <article>
-    <h3><%= @announcement.title %></h3>
-    <p><%= @announcement.body %></p>
-  </article>
-</section>
-
-<section>
-  <form action={~p"/search"} method="get">
-    <label>
-      <span>Board</span>
+<section class="public-panel search-panel">
+  <form action={~p"/search"} method="get" class="search-form">
+    <p>
       <select name="board">
         <option value="">All boards</option>
         <%= for board <- @boards do %>
@@ -29,51 +40,36 @@
           </option>
         <% end %>
       </select>
-    </label>
-    <label>
-      <span>Query</span>
-      <input type="text" name="q" value={@query} />
-    </label>
-    <button type="submit">Search</button>
+      <input type="text" name="q" value={@query} placeholder="Search query" />
+      <input type="submit" value="Search" />
+    </p>
   </form>
-  <p :if={@error}><%= @error %></p>
+
+  <p :if={@error} class="error"><%= @error %></p>
 </section>
 
-<section>
+<section class="public-panel search-results-panel">
   <h2>Results</h2>
   <%= if @results == [] do %>
     <p>No results.</p>
   <% else %>
     <%= for result <- @results do %>
-      <article>
+      <article class="search-entry">
         <h3>
-          <%= result.object_type %> #<%= result.post.id %> on /<%= result.board.uri %>/
+          <a href={result.result_url}><%= result.object_type %> #<%= result.post.id %></a>
+          on /<%= result.board.uri %>/
         </h3>
-        <p>
-          <a href={result.result_url}>
-            View <%= result.object_type %>
-          </a>
-          | <a href={result.thread_url}>View Thread</a>
-        </p>
-        <section>
-          <h4>Thread</h4>
-          <p>#<%= result.thread.id %></p>
-          <p :if={result.thread.subject}><strong><%= result.thread.subject %></strong></p>
-          <p :if={result.thread.name}><%= result.thread.name %></p>
-          <p :if={result.thread_excerpt}><%= result.thread_excerpt %></p>
-        </section>
-        <section :if={!result.op?}>
-          <h4>Matched Reply</h4>
-        </section>
-        <section>
-          <p :if={result.post.subject}><strong><%= result.post.subject %></strong></p>
-          <p :if={result.post.name}><%= result.post.name %></p>
-          <p :if={result.excerpt}><%= result.excerpt %></p>
-        </section>
-        <p>
-          Result anchor: <code>#p<%= result.post.id %></code>
-        </p>
+        <p :if={!result.op?} class="unimportant">Matched Reply</p>
+        <p class="unimportant"><a href={result.thread_url}>View thread</a></p>
+        <p :if={result.thread.subject}><strong><%= result.thread.subject %></strong></p>
+        <p :if={result.thread_excerpt} class="unimportant"><%= result.thread_excerpt %></p>
+        <div :if={result.excerpt} class="body"><%= result.excerpt %></div>
       </article>
+      <hr />
     <% end %>
   <% end %>
 </section>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>
