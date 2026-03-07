@@ -1,0 +1,73 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Moderator Messages</h1>
+  <p><a href={~p"/manage"}>Back to dashboard</a></p>
+  <p :if={@error}><%= @error %></p>
+</section>
+
+<section>
+  <h2>Compose</h2>
+  <%= if @recipients == [] do %>
+    <p>No other moderators available.</p>
+  <% else %>
+    <form action={~p"/manage/messages/browser"} method="post">
+      <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+      <label>
+        <span>Recipient</span>
+        <select name="recipient_id">
+          <%= for recipient <- @recipients do %>
+            <option value={recipient.id}>
+              <%= recipient.username %> (<%= recipient.role %>)
+            </option>
+          <% end %>
+        </select>
+      </label>
+      <label>
+        <span>Subject</span>
+        <input type="text" name="subject" />
+      </label>
+      <label>
+        <span>Body</span>
+        <textarea name="body" rows="5"></textarea>
+      </label>
+      <button type="submit">Send Message</button>
+    </form>
+  <% end %>
+</section>
+
+<section>
+  <h2>Inbox</h2>
+  <%= if @messages == [] do %>
+    <p>No messages yet.</p>
+  <% else %>
+    <%= for message <- @messages do %>
+      <article id={"message-#{message.id}"}>
+        <h3><%= message.subject || "(no subject)" %></h3>
+        <p>From <%= message.sender.username %> to <%= message.recipient.username %></p>
+        <p><%= message.body %></p>
+        <p :if={message.reply_to}>Reply to #<%= message.reply_to_id %></p>
+
+        <%= if @recipients != [] do %>
+          <form action={~p"/manage/messages/browser"} method="post">
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+            <input
+              type="hidden"
+              name="recipient_id"
+              value={
+                if message.sender_id == @moderator.id,
+                  do: message.recipient_id,
+                  else: message.sender_id
+              }
+            />
+            <input type="hidden" name="reply_to_id" value={message.id} />
+            <label>
+              <span>Reply</span>
+              <textarea name="body" rows="3"></textarea>
+            </label>
+            <button type="submit">Reply</button>
+          </form>
+        <% end %>
+      </article>
+    <% end %>
+  <% end %>
+</section>

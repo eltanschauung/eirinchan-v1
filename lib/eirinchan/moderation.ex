@@ -6,7 +6,7 @@ defmodule Eirinchan.Moderation do
   import Ecto.Query, only: [from: 2]
 
   alias Eirinchan.Boards.BoardRecord
-  alias Eirinchan.Moderation.{IpNote, ModBoardAccess, ModUser}
+  alias Eirinchan.Moderation.{IpNote, ModBoardAccess, ModMessage, ModUser}
   alias Eirinchan.Posts.Post
   alias Eirinchan.Repo
 
@@ -206,6 +206,74 @@ defmodule Eirinchan.Moderation do
       nil -> {:error, :not_found}
       note -> delete_ip_note(note, opts)
     end
+  end
+
+  @spec send_message(ModUser.t(), map(), keyword()) ::
+          {:ok, ModMessage.t()} | {:error, Ecto.Changeset.t()}
+  def send_message(%ModUser{} = sender, attrs, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    %ModMessage{}
+    |> ModMessage.changeset(
+      attrs
+      |> Enum.into(%{})
+      |> Map.put(:sender_id, sender.id)
+    )
+    |> repo.insert()
+    |> case do
+      {:ok, message} -> {:ok, repo.preload(message, [:sender, :recipient, :reply_to])}
+      error -> error
+    end
+  end
+
+  @spec list_inbox(ModUser.t(), keyword()) :: [ModMessage.t()]
+  def list_inbox(%ModUser{} = user, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    repo.all(
+      from message in ModMessage,
+        where: message.recipient_id == ^user.id or message.sender_id == ^user.id,
+        order_by: [desc: message.inserted_at, desc: message.id],
+        preload: [:sender, :recipient, :reply_to]
+    )
+  end
+
+  @spec list_recipients(ModUser.t(), keyword()) :: [ModUser.t()]
+  def list_recipients(%ModUser{id: user_id}, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    repo.all(from user in ModUser, where: user.id != ^user_id, order_by: [asc: user.username])
+  end
+
+  @spec count_unread_messages(ModUser.t(), keyword()) :: non_neg_integer()
+  def count_unread_messages(user, opts \\ [])
+  def count_unread_messages(nil, _opts), do: 0
+
+  def count_unread_messages(%ModUser{} = user, opts) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    repo.aggregate(
+      from(message in ModMessage,
+        where: message.recipient_id == ^user.id and is_nil(message.read_at)
+      ),
+      :count
+    )
+  end
+
+  @spec mark_inbox_read(ModUser.t(), keyword()) :: :ok
+  def mark_inbox_read(%ModUser{} = user, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
+
+    _ =
+      repo.update_all(
+        from(message in ModMessage,
+          where: message.recipient_id == ^user.id and is_nil(message.read_at)
+        ),
+        set: [read_at: now]
+      )
+
+    :ok
   end
 
   defp normalize_ip(ip) when is_binary(ip), do: String.trim(ip)
