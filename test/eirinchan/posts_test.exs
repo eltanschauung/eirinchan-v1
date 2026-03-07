@@ -876,6 +876,82 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post auto-injects a country flag from request metadata" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          country_flags: true,
+          country_flag_data: %{"187.180.254.75" => %{code: "mx", name: "Mexico"}}
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: Map.put(post_request(board.uri), :remote_ip, {187, 180, 254, 75})
+             )
+
+    assert thread.flag_codes == ["mx"]
+    assert thread.flag_alts == ["Mexico"]
+  end
+
+  test "create_post skips auto country injection when no_country is enabled" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          country_flags: true,
+          allow_no_country: true,
+          country_flag_data: %{"187.180.254.75" => %{code: "mx", name: "Mexico"}}
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "no_country" => "1",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: Map.put(post_request(board.uri), :remote_ip, {187, 180, 254, 75})
+             )
+
+    assert thread.flag_codes == []
+    assert thread.flag_alts == []
+  end
+
+  test "create_post resolves the country pseudo-flag with fallback metadata" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          multiple_flags: true,
+          user_flags: %{"country" => "Country", "sau" => "Sauce"}
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "user_flag" => "country, sau",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.flag_codes == ["us", "sau"]
+    assert thread.flag_alts == ["United States", "Sauce"]
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)

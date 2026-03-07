@@ -13,6 +13,12 @@ defmodule EirinchanWeb.PostController do
 
     request = %{referer: List.first(get_req_header(conn, "referer"))}
 
+    request =
+      Map.merge(request, %{
+        remote_ip: conn.remote_ip,
+        forwarded_for: List.first(get_req_header(conn, "x-forwarded-for"))
+      })
+
     case branch(params) do
       :report ->
         case Reports.create_report(board, params) do

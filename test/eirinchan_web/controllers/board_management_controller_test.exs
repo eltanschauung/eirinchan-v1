@@ -234,4 +234,17 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(document, ~s(input[name="user_flag"][value="country,sau"])) != []
     assert Floki.find(document, ~s(select[name="user_flag"])) == []
   end
+
+  test "board page renders a no_country checkbox when country opt-out is enabled", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{country_flags: true, allow_no_country: true}})
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(input[name="no_country"][type="checkbox"])) != []
+  end
 end

@@ -604,6 +604,36 @@ defmodule EirinchanWeb.PostControllerTest do
     assert thread_page =~ "Flags: Sauce, Space"
   end
 
+  test "posting auto-injects country flags from connection metadata", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          country_flags: true,
+          country_flag_data: %{"187.180.254.75" => %{code: "mx", name: "Mexico"}}
+        }
+      })
+
+    conn =
+      conn
+      |> Map.put(:remote_ip, {187, 180, 254, 75})
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => thread_id} = json_response(conn, 200)
+
+    thread_page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/res/#{thread_id}.html")
+      |> html_response(200)
+
+    assert thread_page =~ "Flags: Mexico"
+  end
+
   test "report branch creates a report and returns thread redirect metadata", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{slugify: true}})
     thread = thread_fixture(board, %{subject: "Reported subject", body: "Thread body"})
