@@ -47,6 +47,9 @@
     </figure>
   <% end %>
   <p><%= @summary.thread.body %></p>
+  <p :if={@summary.thread.flag_alts != []}>
+    Flags: <%= Enum.join(@summary.thread.flag_alts, ", ") %>
+  </p>
   <form action={~p"/#{@board.uri}/post"} method="post">
     <input type="hidden" name="delete_post_id" value={@summary.thread.id} />
     <input type="password" name="password" placeholder="Password" />
@@ -72,6 +75,12 @@
       name="password"
       placeholder="Password"
     />
+    <select :if={@config.user_flag} name="user_flag">
+      <option value="">None</option>
+      <%= for {flag, text} <- @config.user_flags do %>
+        <option value={flag} selected={@config.default_user_flag == flag}><%= text %></option>
+      <% end %>
+    </select>
     <input :if={@config.max_images > 1} type="file" name="files[]" multiple />
     <input :if={@config.max_images <= 1} type="file" name="file" />
     <label><input type="checkbox" name="spoiler" value="1" /> Spoiler</label>
@@ -121,6 +130,7 @@
           </figure>
         <% end %>
         <p><%= reply.body %></p>
+        <p :if={reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
         <form action={~p"/#{@board.uri}/post"} method="post">
           <input type="hidden" name="delete_post_id" value={reply.id} />
           <input type="password" name="password" placeholder="Password" />

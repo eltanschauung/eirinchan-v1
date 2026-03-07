@@ -162,6 +162,7 @@ defmodule EirinchanWeb.PostController do
   defp error_status(:board_locked), do: :forbidden
   defp error_status(:body_too_long), do: :unprocessable_entity
   defp error_status(:too_many_lines), do: :unprocessable_entity
+  defp error_status(:invalid_user_flag), do: :unprocessable_entity
   defp error_status(:reply_hard_limit), do: :unprocessable_entity
   defp error_status(:image_hard_limit), do: :unprocessable_entity
   defp error_status(:invalid_image), do: :unprocessable_entity
@@ -182,6 +183,7 @@ defmodule EirinchanWeb.PostController do
   defp error_message(:board_locked, config), do: config.error.board_locked
   defp error_message(:body_too_long, config), do: config.error.toolong_body
   defp error_message(:too_many_lines, config), do: config.error.toomanylines
+  defp error_message(:invalid_user_flag, config), do: config.error.invalid_flag
   defp error_message(:reply_hard_limit, config), do: config.error.reply_hard_limit
   defp error_message(:image_hard_limit, config), do: config.error.image_hard_limit
   defp error_message(:invalid_image, config), do: config.error.invalid_image

@@ -235,6 +235,36 @@ defmodule Eirinchan.BuildTest do
     assert hd(op["extra_files"])["spoiler"] == 1
   end
 
+  test "static outputs render stored user flag labels" do
+    File.rm_rf!(Build.board_root())
+
+    board =
+      board_fixture(%{
+        config_overrides: %{user_flag: true, user_flags: %{"sau" => "Sauce", "spc" => "Space"}}
+      })
+
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening post body",
+                 "user_flag" => "sau",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(index_path) =~ "Flags: Sauce"
+    assert File.read!(thread_path) =~ "Flags: Sauce"
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 

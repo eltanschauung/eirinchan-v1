@@ -206,7 +206,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{delete_form}#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{delete_form}#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -233,7 +233,7 @@ defmodule Eirinchan.Build do
         media = render_media(reply)
         delete_form = render_delete_form(board, reply.id)
 
-        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}<p>#{body}</p>#{delete_form}</article>)
+        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}<p>#{body}</p>#{render_post_flags(reply)}#{delete_form}</article>)
       end)
 
     """
@@ -246,6 +246,7 @@ defmodule Eirinchan.Build do
     #{render_thread_badges(summary.thread)}
     #{render_media(summary.thread)}
     <p>#{html_escape(summary.thread.body || "")}</p>
+    #{render_post_flags(summary.thread)}
     #{render_delete_form(board, summary.thread.id)}
     </article>
     #{replies_html}
@@ -266,7 +267,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{delete_form}<p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}<p>#{body}</p>#{render_post_flags(summary.thread)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -320,11 +321,18 @@ defmodule Eirinchan.Build do
     ~s(<form class="delete-form" action="/#{board.uri}/post" method="post"><input type="hidden" name="delete_post_id" value="#{post_id}" /><input type="password" name="password" placeholder="Password" /><button type="submit">Delete</button></form>)
   end
 
+  defp render_post_flags(%{flag_alts: flag_alts}) when is_list(flag_alts) and flag_alts != [] do
+    ~s(<p class="post-flags">Flags: #{html_escape(Enum.join(flag_alts, ", "))}</p>)
+  end
+
+  defp render_post_flags(_post), do: ""
+
   defp render_preview_replies(replies) do
     Enum.map_join(replies, "\n", fn reply ->
       body = html_escape(reply.body || "")
       media = render_media(reply)
-      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}<p>#{body}</p></div>)
+
+      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}<p>#{body}</p>#{render_post_flags(reply)}</div>)
     end)
   end
 

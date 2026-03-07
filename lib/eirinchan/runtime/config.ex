@@ -109,6 +109,7 @@ defmodule Eirinchan.Runtime.Config do
       tooshort_body: "Body too short.",
       toolong_body: "The body was too long.",
       toomanylines: "Your post contains too many lines!",
+      invalid_flag: "Invalid flag selection.",
       locked: "Thread locked. You may not reply at this time.",
       reply_hard_limit: "Thread has reached its maximum reply limit.",
       image_hard_limit: "Thread has reached its maximum image limit.",

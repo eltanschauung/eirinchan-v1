@@ -25,6 +25,7 @@ defmodule Eirinchan.Posts do
              | :body_required
              | :body_too_long
              | :too_many_lines
+             | :invalid_user_flag
              | :reply_hard_limit
              | :image_hard_limit
              | :invalid_image
@@ -44,9 +45,7 @@ defmodule Eirinchan.Posts do
     with {:ok, attrs} <- prepare_uploads(attrs, config) do
       thread_param = blank_to_nil(Map.get(attrs, "thread"))
       op? = is_nil(thread_param)
-      attrs = normalize_post_identity(attrs, config)
       noko = noko?(attrs["email"], config)
-      attrs = normalize_noko_email(attrs)
       now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
       with :ok <- validate_post_button(op?, attrs, config),
@@ -54,6 +53,7 @@ defmodule Eirinchan.Posts do
            :ok <- validate_board_lock(config),
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
            :ok <- validate_thread_lock(thread),
+           {:ok, attrs} <- normalize_post_metadata(attrs, config),
            :ok <- validate_body(op?, attrs, config),
            :ok <- validate_body_limits(attrs, config),
            :ok <- validate_upload(op?, attrs, config),
@@ -499,6 +499,15 @@ defmodule Eirinchan.Posts do
     |> Map.update("email", nil, &normalize_email/1)
   end
 
+  defp normalize_post_metadata(attrs, config) do
+    attrs =
+      attrs
+      |> normalize_post_identity(config)
+      |> normalize_noko_email()
+
+    normalize_user_flag(attrs, config)
+  end
+
   defp default_name(nil, config), do: config.anonymous
 
   defp default_name(value, config) do
@@ -527,6 +536,50 @@ defmodule Eirinchan.Posts do
       "noko" -> Map.put(attrs, "email", nil)
       "nonoko" -> Map.put(attrs, "email", nil)
       _ -> attrs
+    end
+  end
+
+  defp normalize_user_flag(attrs, %{user_flag: false}), do: {:ok, attrs}
+
+  defp normalize_user_flag(attrs, config) do
+    allowed_flags =
+      config.user_flags
+      |> Enum.into(%{}, fn {flag, text} ->
+        {flag |> to_string() |> String.trim() |> String.downcase(), to_string(text)}
+      end)
+
+    default_flag =
+      config.default_user_flag
+      |> trim_to_nil()
+      |> case do
+        nil ->
+          nil
+
+        value ->
+          normalized = value |> String.trim() |> String.downcase()
+          if Map.has_key?(allowed_flags, normalized), do: normalized, else: nil
+      end
+
+    selected_flag =
+      attrs["user_flag"]
+      |> trim_to_nil()
+      |> case do
+        nil -> default_flag
+        value -> value |> String.trim() |> String.downcase()
+      end
+
+    cond do
+      is_nil(selected_flag) or selected_flag == "" ->
+        {:ok, attrs |> Map.put("flag_codes", []) |> Map.put("flag_alts", [])}
+
+      Map.has_key?(allowed_flags, selected_flag) ->
+        {:ok,
+         attrs
+         |> Map.put("flag_codes", [selected_flag])
+         |> Map.put("flag_alts", [Map.fetch!(allowed_flags, selected_flag)])}
+
+      true ->
+        {:error, :invalid_user_flag}
     end
   end
 
