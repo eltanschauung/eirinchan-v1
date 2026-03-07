@@ -1,17 +1,6 @@
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) - 1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
@@ -19,7 +8,7 @@
 
 <header>
   <h1>Ukko</h1>
-  <div class="subtitle"></div>
+  <div class="subtitle"><%= @board_chrome.subtitle || "Cross-board thread index" %></div>
 </header>
 
 <div class="pages top">
@@ -28,21 +17,21 @@
   [<a href={~p"/recent"}>Recent</a>]
 </div>
 
-<section>
+<section class="public-panel">
   <%= if @threads == [] do %>
     <p>No board threads yet.</p>
   <% else %>
     <%= for %{board: board, summary: summary} <- @threads do %>
-      <article id={"ukko-#{summary.thread.id}"}>
-        <h2><a href={"/#{board.uri}"}>/ <%= board.uri %> /</a></h2>
+      <article id={"ukko-#{summary.thread.id}"} class="news-entry">
+        <h2><a href={"/#{board.uri}"}>/<%= board.uri %>/</a></h2>
         <h3>
           <a href={"/#{board.uri}/res/#{summary.thread.id}.html"}>
             <%= summary.thread.subject || "Untitled" %>
           </a>
         </h3>
-        <p>
+        <div class="body">
           <%= raw(PostView.body_html(summary.thread, board, summary.thread, %{fileboard: false})) %>
-        </p>
+        </div>
       </article>
       <hr />
     <% end %>

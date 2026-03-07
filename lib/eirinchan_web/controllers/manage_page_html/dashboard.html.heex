@@ -1,129 +1,161 @@
-<.flash_group flash={@flash} />
-<section>
+<header>
   <h1>Manage</h1>
-  <p>Signed in as <strong><%= @moderator.username %></strong> (<%= @moderator.role %>).</p>
-</section>
+  <div class="subtitle">
+    Signed in as <strong><%= @moderator.username %></strong> (<%= @moderator.role %>).
+  </div>
+</header>
 
-<nav>
-  <a href={~p"/"}>Home</a>
-  <a :if={@moderator.role == "admin"} href={~p"/manage/config/browser"}>Instance Config</a>
-  <a :if={@moderator.role == "admin"} href={~p"/manage/themes/browser"}>Themes</a>
-  <a href={~p"/manage/announcement/browser"}>Announcement</a>
-  <a href={~p"/manage/pages/browser"}>Pages</a>
-  <a href={~p"/news"}>News</a>
-  <a href={~p"/manage/news/browser"}>Manage News</a>
-  <a href={~p"/manage/recent-posts/browser"}>Recent Posts</a>
-  <a href={~p"/manage/messages/browser"}>Messages (<%= @unread_messages %>)</a>
-  <form action={~p"/manage/logout/browser"} method="post" style="display:inline">
-    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-    <input type="hidden" name="_method" value="delete" />
-    <button type="submit">Logout</button>
-  </form>
-</nav>
+<fieldset>
+  <legend>User account</legend>
+  <ul>
+    <li><a href={~p"/"}>Home</a></li>
+    <li><a href={~p"/news"}>News</a></li>
+    <li><a href={~p"/manage/recent-posts/browser"}>Recent posts</a></li>
+    <li><a href={~p"/manage/messages/browser"}>PM inbox (<%= @unread_messages %> unread)</a></li>
+    <li>
+      <form action={~p"/manage/logout/browser"} method="post" class="inline-form">
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+        <input type="hidden" name="_method" value="delete" />
+        <input type="submit" value="Logout" />
+      </form>
+    </li>
+  </ul>
+</fieldset>
 
-<section>
-  <h2>Boards</h2>
-  <%= if @boards == [] do %>
-    <p>No boards yet.</p>
-  <% else %>
-    <%= for board <- @boards do %>
-      <article>
-        <h3><a href={"/#{board.uri}"}>/ <%= board.uri %> / - <%= board.title %></a></h3>
-        <p :if={board.subtitle}><%= board.subtitle %></p>
-        <form action={"/manage/boards/#{board.uri}/browser/rebuild"} method="post">
-          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-          <button type="submit">Rebuild Board</button>
-        </form>
+<fieldset>
+  <legend>Administration</legend>
+  <ul>
+    <li :if={@moderator.role == "admin"}>
+      <a href={~p"/manage/config/browser"}>Instance configuration</a>
+    </li>
+    <li :if={@moderator.role == "admin"}>
+      <a href={~p"/manage/themes/browser"}>Manage themes</a>
+    </li>
+    <li><a href={~p"/manage/announcement/browser"}>Announcement</a></li>
+    <li><a href={~p"/manage/pages/browser"}>Global static pages</a></li>
+    <li><a href={~p"/manage/news/browser"}>Manage news</a></li>
+  </ul>
+</fieldset>
 
-        <section :if={@moderator.role == "admin"}>
-          <h4>Edit Board</h4>
-          <p><a href={"/manage/boards/#{board.uri}/config/browser"}>Board Config</a></p>
-          <form action={"/manage/boards/#{board.uri}/browser"} method="post">
-            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-            <input type="hidden" name="_method" value="patch" />
-            <label>
-              <span>Title</span>
-              <input type="text" name="title" value={board.title} />
-            </label>
-            <label>
-              <span>Subtitle</span>
-              <input type="text" name="subtitle" value={board.subtitle} />
-            </label>
-            <button type="submit">Update Board</button>
-          </form>
+<fieldset>
+  <legend>Boards</legend>
+  <ul>
+    <%= if @boards == [] do %>
+      <li>No boards yet.</li>
+    <% else %>
+      <%= for board <- @boards do %>
+        <li>
+          <a href={"/#{board.uri}"}>/<%= board.uri %>/</a>
+          - <%= board.title %>
+          <%= if board.subtitle do %>
+            <small>- <%= board.subtitle %></small>
+          <% end %>
+          <small>
+            [<a href={"/manage/boards/#{board.uri}/reports/browser"}>reports</a>]
+            [<a href={"/manage/boards/#{board.uri}/ban-appeals/browser"}>appeals</a>]
+            [<a href={"/manage/boards/#{board.uri}/config/browser"}>config</a>]
+          </small>
 
-          <form action={"/manage/boards/#{board.uri}/browser"} method="post">
-            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-            <input type="hidden" name="_method" value="delete" />
-            <button type="submit">Delete Board</button>
-          </form>
-        </section>
+          <div class="mod-board-actions">
+            <form
+              action={"/manage/boards/#{board.uri}/browser/rebuild"}
+              method="post"
+              class="inline-form"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <input type="submit" value="Rebuild board" />
+            </form>
+          </div>
 
-        <p><a href={"/manage/boards/#{board.uri}/reports/browser"}>Reports Queue</a></p>
-        <p><a href={"/manage/boards/#{board.uri}/ban-appeals/browser"}>Ban Appeals</a></p>
-      </article>
+          <div :if={@moderator.role == "admin"} class="mod-board-editor">
+            <form
+              action={"/manage/boards/#{board.uri}/browser"}
+              method="post"
+              class="mod-board-form"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <input type="hidden" name="_method" value="patch" />
+              <table class="mod-form-table compact">
+                <tr>
+                  <th>Title</th>
+                  <td><input type="text" name="title" value={board.title} /></td>
+                </tr>
+                <tr>
+                  <th>Subtitle</th>
+                  <td><input type="text" name="subtitle" value={board.subtitle} /></td>
+                </tr>
+                <tr>
+                  <td></td>
+                  <td><input type="submit" value="Update board" /></td>
+                </tr>
+              </table>
+            </form>
+
+            <form
+              action={"/manage/boards/#{board.uri}/browser"}
+              method="post"
+              class="inline-form danger-form"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <input type="hidden" name="_method" value="delete" />
+              <input type="submit" value="Delete board" />
+            </form>
+          </div>
+        </li>
+      <% end %>
     <% end %>
-  <% end %>
-</section>
+  </ul>
+</fieldset>
 
-<section>
-  <h2>Announcement</h2>
-  <%= if @announcement do %>
-    <article>
-      <h3><%= @announcement.title %></h3>
-      <p><%= @announcement.body %></p>
-    </article>
-  <% else %>
-    <p>No announcement is active.</p>
-  <% end %>
-</section>
-
-<section>
-  <h2>Custom Pages</h2>
-  <%= if @custom_pages == [] do %>
-    <p>No custom pages yet.</p>
-  <% else %>
-    <%= for page <- @custom_pages do %>
-      <article>
-        <h3><a href={"/pages/#{page.slug}"}><%= page.title %></a></h3>
-        <p>Slug: <%= page.slug %></p>
-      </article>
-    <% end %>
-  <% end %>
-</section>
-
-<section>
-  <h2>News</h2>
-  <%= if @news_entries == [] do %>
-    <p>No news yet.</p>
-  <% else %>
+<fieldset>
+  <legend>Messages</legend>
+  <ul>
+    <li :if={@announcement}>
+      <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
+    </li>
+    <li :if={!@announcement}>No announcement is active.</li>
     <%= for entry <- @news_entries do %>
-      <article>
-        <h3><%= entry.title %></h3>
-        <p><%= entry.body %></p>
-      </article>
+      <li><strong><%= entry.title %></strong>: <%= entry.body %></li>
     <% end %>
-  <% end %>
-</section>
+  </ul>
+</fieldset>
 
-<section :if={@moderator.role == "admin"}>
-  <h2>Create Board</h2>
-  <p :if={@error}><%= @error %></p>
+<fieldset>
+  <legend>Custom pages</legend>
+  <ul>
+    <%= if @custom_pages == [] do %>
+      <li>No custom pages yet.</li>
+    <% else %>
+      <%= for page <- @custom_pages do %>
+        <li><a href={"/pages/#{page.slug}"}><%= page.title %></a> (<%= page.slug %>)</li>
+      <% end %>
+    <% end %>
+  </ul>
+</fieldset>
 
-  <form action={~p"/manage/boards/browser"} method="post">
+<fieldset :if={@moderator.role == "admin"}>
+  <legend>Create new board</legend>
+  <p :if={@error} class="error"><%= @error %></p>
+
+  <form action={~p"/manage/boards/browser"} method="post" class="mod-create-board">
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-    <label>
-      <span>URI</span>
-      <input type="text" name="uri" value={@params["uri"]} />
-    </label>
-    <label>
-      <span>Title</span>
-      <input type="text" name="title" value={@params["title"]} />
-    </label>
-    <label>
-      <span>Subtitle</span>
-      <input type="text" name="subtitle" value={@params["subtitle"]} />
-    </label>
-    <button type="submit">Create Board</button>
+    <table class="mod-form-table">
+      <tr>
+        <th>URI</th>
+        <td><input type="text" name="uri" value={@params["uri"]} /></td>
+      </tr>
+      <tr>
+        <th>Title</th>
+        <td><input type="text" name="title" value={@params["title"]} /></td>
+      </tr>
+      <tr>
+        <th>Subtitle</th>
+        <td><input type="text" name="subtitle" value={@params["subtitle"]} /></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td><input type="submit" value="Create board" /></td>
+      </tr>
+    </table>
   </form>
-</section>
+</fieldset>

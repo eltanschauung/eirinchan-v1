@@ -120,10 +120,8 @@ defmodule EirinchanWeb.BoardController do
     "8chan vichan #{moderator_class} theme-catalog active-catalog"
   end
 
-  defp board_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
   defp board_data_stylesheet(_board), do: "yotsuba.css"
 
-  defp board_primary_stylesheet(%{uri: "bant"}), do: "/stylesheets/christmas.css"
   defp board_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
 
   defp board_extra_stylesheets(%{uri: "bant"}), do: []

@@ -1,117 +1,162 @@
-<.flash_group flash={@flash} />
 <header>
   <h1>Eirinchan</h1>
-  <div class="subtitle">Eirinchan Setup</div>
+  <div class="subtitle">Installation</div>
 </header>
 
-<section class="installer-copy">
-  <p>Install Eirinchan.</p>
-  <p>Configure PostgreSQL and create the initial administrator.</p>
-</section>
+<div class="banner">Initial setup</div>
+<div class="blotter">Configure PostgreSQL and create the first administrator.</div>
 
-<p :if={Map.has_key?(@errors, "setup")} class="error"><%= @errors["setup"] %></p>
+<p :if={Map.has_key?(@errors, "setup")} class="error installer-error"><%= @errors["setup"] %></p>
 
 <form action={~p"/setup"} method="post" autocomplete="off" class="installer-form">
   <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
 
   <fieldset>
     <legend>Database (PostgreSQL)</legend>
-
-    <label for="database_hostname">Server:</label>
-    <input
-      id="database_hostname"
-      type="text"
-      name="database_hostname"
-      value={@params["database_hostname"]}
-    />
-    <small :if={@errors["database_hostname"]}><%= @errors["database_hostname"] %></small>
-
-    <label for="database_port">Port:</label>
-    <input id="database_port" type="text" name="database_port" value={@params["database_port"]} />
-    <small :if={@errors["database_port"]}><%= @errors["database_port"] %></small>
-
-    <label for="database_name">Database:</label>
-    <input id="database_name" type="text" name="database_name" value={@params["database_name"]} />
-    <small :if={@errors["database_name"]}><%= @errors["database_name"] %></small>
-
-    <label for="database_username">Username:</label>
-    <input
-      id="database_username"
-      type="text"
-      name="database_username"
-      value={@params["database_username"]}
-    />
-    <small :if={@errors["database_username"]}><%= @errors["database_username"] %></small>
-
-    <label for="database_password">Password:</label>
-    <input
-      id="database_password"
-      type="text"
-      name="database_password"
-      value={@params["database_password"]}
-    />
-
-    <label for="database_maintenance">Maintenance database:</label>
-    <input
-      id="database_maintenance"
-      type="text"
-      name="database_maintenance"
-      value={@params["database_maintenance"]}
-    />
-
-    <label for="database_maintenance_username">Maintenance username:</label>
-    <input
-      id="database_maintenance_username"
-      type="text"
-      name="database_maintenance_username"
-      value={@params["database_maintenance_username"]}
-    />
-
-    <label for="database_maintenance_password">Maintenance password:</label>
-    <input
-      id="database_maintenance_password"
-      type="text"
-      name="database_maintenance_password"
-      value={@params["database_maintenance_password"]}
-    />
+    <table class="mod-form-table">
+      <tr>
+        <th><label for="database_hostname">Server</label></th>
+        <td>
+          <input
+            id="database_hostname"
+            type="text"
+            name="database_hostname"
+            value={@params["database_hostname"]}
+          />
+          <small :if={@errors["database_hostname"]}><%= @errors["database_hostname"] %></small>
+        </td>
+      </tr>
+      <tr>
+        <th><label for="database_port">Port</label></th>
+        <td>
+          <input
+            id="database_port"
+            type="text"
+            name="database_port"
+            value={@params["database_port"]}
+          />
+          <small :if={@errors["database_port"]}><%= @errors["database_port"] %></small>
+        </td>
+      </tr>
+      <tr>
+        <th><label for="database_name">Database</label></th>
+        <td>
+          <input
+            id="database_name"
+            type="text"
+            name="database_name"
+            value={@params["database_name"]}
+          />
+          <small :if={@errors["database_name"]}><%= @errors["database_name"] %></small>
+        </td>
+      </tr>
+      <tr>
+        <th><label for="database_username">Username</label></th>
+        <td>
+          <input
+            id="database_username"
+            type="text"
+            name="database_username"
+            value={@params["database_username"]}
+          />
+          <small :if={@errors["database_username"]}><%= @errors["database_username"] %></small>
+        </td>
+      </tr>
+      <tr>
+        <th><label for="database_password">Password</label></th>
+        <td>
+          <input
+            id="database_password"
+            type="text"
+            name="database_password"
+            value={@params["database_password"]}
+          />
+        </td>
+      </tr>
+      <tr>
+        <th><label for="database_maintenance">Maintenance DB</label></th>
+        <td>
+          <input
+            id="database_maintenance"
+            type="text"
+            name="database_maintenance"
+            value={@params["database_maintenance"]}
+          />
+        </td>
+      </tr>
+      <tr>
+        <th><label for="database_maintenance_username">Maintenance User</label></th>
+        <td>
+          <input
+            id="database_maintenance_username"
+            type="text"
+            name="database_maintenance_username"
+            value={@params["database_maintenance_username"]}
+          />
+        </td>
+      </tr>
+      <tr>
+        <th><label for="database_maintenance_password">Maintenance Pass</label></th>
+        <td>
+          <input
+            id="database_maintenance_password"
+            type="text"
+            name="database_maintenance_password"
+            value={@params["database_maintenance_password"]}
+          />
+        </td>
+      </tr>
+    </table>
   </fieldset>
 
   <fieldset>
     <legend>Administrator</legend>
-
-    <label for="admin_username">Username:</label>
-    <input
-      id="admin_username"
-      type="text"
-      name="admin_username"
-      value={@params["admin_username"]}
-    />
-    <small :if={@errors["admin_username"]}><%= @errors["admin_username"] %></small>
-
-    <label for="admin_password">Password:</label>
-    <input
-      id="admin_password"
-      type="text"
-      name="admin_password"
-      value={@params["admin_password"]}
-    />
-    <small :if={@errors["admin_password"]}><%= @errors["admin_password"] %></small>
-
-    <label for="admin_password_confirmation">Confirm password:</label>
-    <input
-      id="admin_password_confirmation"
-      type="text"
-      name="admin_password_confirmation"
-      value={@params["admin_password_confirmation"]}
-    />
-    <small :if={@errors["admin_password_confirmation"]}>
-      <%= @errors["admin_password_confirmation"] %>
-    </small>
-
-    <small :if={@errors["admin"]}><%= @errors["admin"] %></small>
+    <table class="mod-form-table">
+      <tr>
+        <th><label for="admin_username">Username</label></th>
+        <td>
+          <input
+            id="admin_username"
+            type="text"
+            name="admin_username"
+            value={@params["admin_username"]}
+          />
+          <small :if={@errors["admin_username"]}><%= @errors["admin_username"] %></small>
+        </td>
+      </tr>
+      <tr>
+        <th><label for="admin_password">Password</label></th>
+        <td>
+          <input
+            id="admin_password"
+            type="text"
+            name="admin_password"
+            value={@params["admin_password"]}
+          />
+          <small :if={@errors["admin_password"]}><%= @errors["admin_password"] %></small>
+        </td>
+      </tr>
+      <tr>
+        <th><label for="admin_password_confirmation">Confirm</label></th>
+        <td>
+          <input
+            id="admin_password_confirmation"
+            type="text"
+            name="admin_password_confirmation"
+            value={@params["admin_password_confirmation"]}
+          />
+          <small :if={@errors["admin_password_confirmation"]}>
+            <%= @errors["admin_password_confirmation"] %>
+          </small>
+          <small :if={@errors["admin"]}><%= @errors["admin"] %></small>
+        </td>
+      </tr>
+      <tr>
+        <td></td>
+        <td>
+          <input type="submit" value="Install Eirinchan" />
+        </td>
+      </tr>
+    </table>
   </fieldset>
-
-  <p class="installer-submit">
-    <input type="submit" value="Install Eirinchan" />
-  </p>
 </form>

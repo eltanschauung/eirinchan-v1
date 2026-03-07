@@ -15,6 +15,8 @@ defmodule EirinchanWeb.ManagePageController do
   alias EirinchanWeb.ManageSecurity
   alias EirinchanWeb.ThemeRegistry
 
+  plug :assign_manage_shell
+
   def login(conn, _params) do
     cond do
       Installation.setup_required?() ->
@@ -240,6 +242,17 @@ defmodule EirinchanWeb.ManagePageController do
           :unprocessable_entity
         )
     end
+  end
+
+  defp assign_manage_shell(conn, _opts) do
+    conn
+    |> assign(:base_stylesheet, "/stylesheets/style.css")
+    |> assign(:primary_stylesheet, "/stylesheets/yotsuba.css")
+    |> assign(:primary_stylesheet_id, "stylesheet")
+    |> assign(:body_class, "8chan vichan is-not-moderator mod-page")
+    |> assign(:body_data_stylesheet, "yotsuba.css")
+    |> assign(:skip_app_stylesheet, true)
+    |> assign(:hide_theme_switcher, true)
   end
 
   def update_theme(conn, %{"name" => _name, "default_theme" => default_theme}) do

@@ -1,30 +1,20 @@
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) - 1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
 </script>
 
+<img
+  :if={@primary_board && @primary_board.uri == "bant"}
+  class="board_image"
+  src="/b.php"
+  style="width:300px;height:100px"
+  alt=""
+/>
+
 <header>
-  <img
-    :if={@primary_board && @primary_board.uri == "bant"}
-    class="board_image"
-    style="margin-bottom:1em;width:300px;height:100px"
-    src="/b.php"
-    alt=""
-  />
   <h1>Eirinchan</h1>
   <div class="subtitle"><%= @board_chrome.subtitle || "Board index" %></div>
 </header>
@@ -66,7 +56,7 @@
   <% end %>
 </div>
 
-<section class="news-panel">
+<section class="public-panel news-panel">
   <h2>News</h2>
   <%= if @news_entries == [] do %>
     <p>No news yet.</p>
