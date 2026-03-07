@@ -27,8 +27,8 @@
 <div class="pages top">
   [<a href={~p"/"}>Home</a>]
   [<a href={~p"/news"}>News</a>]
-  [<a href={~p"/catalog"}>Catalog</a>]
-  [<a href={~p"/recent"}>Recent</a>]
+  <span :if={Eirinchan.Themes.page_theme_enabled?("catalog")}>[<a href={~p"/catalog"}>Catalog</a>]</span>
+  <span :if={Eirinchan.Themes.page_theme_enabled?("recent")}>[<a href={~p"/recent"}>Recent</a>]</span>
   <%= for page <- @custom_pages do %>
     [<a href={"/pages/#{page.slug}"}><%= page.title %></a>]
   <% end %>

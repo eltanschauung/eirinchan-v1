@@ -1,6 +1,20 @@
 defmodule EirinchanWeb.PageControllerTest do
   use EirinchanWeb.ConnCase
 
+  setup do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+    path = Path.join(System.tmp_dir!(), "eirinchan-page-themes-#{System.unique_integer([:positive])}.json")
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    :ok
+  end
+
   test "GET /", %{conn: conn} do
     moderator_fixture()
     _board = board_fixture(%{uri: "tech", title: "Technology"})
@@ -37,11 +51,11 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "Maintenance"
     assert page =~ "Rules"
     assert page =~ ~s(action="/search")
-    assert page =~ ~s(href="/stylesheets/style.css")
-    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
+    assert page =~ ~s(href="/stylesheets/style.css)
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css)
     assert page =~ ~s(data-stylesheet="yotsuba.css")
     assert page =~ ~s(var active_page = "index", board_name = null;)
-    assert page =~ ~s(src="/main.js")
+    assert page =~ ~s(src="/main.js)
     assert page =~ "<strong>Read this</strong>: Global notice"
     assert page =~ "Powered by Eirinchan."
   end
@@ -105,6 +119,7 @@ defmodule EirinchanWeb.PageControllerTest do
   end
 
   test "GET /catalog renders a global catalog across boards", %{conn: conn} do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     moderator_fixture()
     board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
 
@@ -157,6 +172,7 @@ defmodule EirinchanWeb.PageControllerTest do
   end
 
   test "GET /sitemap.xml renders board and thread urls", %{conn: conn} do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     moderator_fixture()
     board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
     thread = thread_fixture(board, %{subject: "Mapped", body: "XML body"})

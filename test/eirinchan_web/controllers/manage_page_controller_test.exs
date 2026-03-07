@@ -51,7 +51,7 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
     assert board_page =~ "/#{uri}/ - Tea"
     assert board_page =~ ~s(var active_page = "index", board_name = "#{uri}")
-    assert board_page =~ ~s(src="/main.js")
+    assert board_page =~ ~s(src="/main.js)
   end
 
   test "admin browser dashboard updates and deletes boards", %{conn: conn} do

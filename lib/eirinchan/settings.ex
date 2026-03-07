@@ -5,6 +5,8 @@ defmodule Eirinchan.Settings do
 
   alias Eirinchan.Runtime.Config
 
+  @default_page_enabled_themes ["ukko", "recent", "sitemap"]
+
   @spec current_instance_config() :: map()
   def current_instance_config do
     persisted_instance_config() || %{}
@@ -27,6 +29,41 @@ defmodule Eirinchan.Settings do
     |> case do
       value when is_binary(value) -> String.trim(value)
       _ -> nil
+    end
+  end
+
+  @spec set_page_theme_enabled(binary(), boolean()) :: :ok | {:error, term()}
+  def set_page_theme_enabled(name, enabled) when is_binary(name) and is_boolean(enabled) do
+    normalized_name = String.trim(name)
+    config = current_instance_config()
+    themes = Map.get(config, :themes, %{})
+
+    current_enabled =
+      case Map.fetch(themes, :page_enabled) do
+        {:ok, list} when is_list(list) ->
+          list
+          |> Enum.map(&to_string/1)
+          |> Enum.map(&String.trim/1)
+          |> Enum.reject(&(&1 == ""))
+          |> Enum.uniq()
+
+        _ ->
+          @default_page_enabled_themes
+      end
+
+    updated_enabled =
+      if enabled do
+        Enum.uniq(current_enabled ++ [normalized_name])
+      else
+        Enum.reject(current_enabled, &(&1 == normalized_name))
+      end
+
+    new_config =
+      Map.put(config, :themes, Map.put(themes, :page_enabled, updated_enabled))
+
+    case persist_instance_config(new_config |> bump_asset_version()) do
+      :ok -> :ok
+      {:error, reason} -> {:error, reason}
     end
   end
 

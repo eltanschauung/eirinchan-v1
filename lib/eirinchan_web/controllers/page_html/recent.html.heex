@@ -21,8 +21,8 @@
 
 <div class="pages top">
   [<a href={~p"/"}>Home</a>]
-  [<a href={~p"/catalog"}>Catalog</a>]
-  [<a href={~p"/ukko"}>Ukko</a>]
+  <span :if={Eirinchan.Themes.page_theme_enabled?("catalog")}>[<a href={~p"/catalog"}>Catalog</a>]</span>
+  <span :if={Eirinchan.Themes.page_theme_enabled?("ukko")}>[<a href={~p"/ukko"}>Ukko</a>]</span>
 </div>
 
 <section class="public-panel">

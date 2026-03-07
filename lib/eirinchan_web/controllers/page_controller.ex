@@ -10,6 +10,7 @@ defmodule EirinchanWeb.PageController do
   alias Eirinchan.Posts
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
+  alias Eirinchan.Themes
   alias EirinchanWeb.BoardChrome
   alias EirinchanWeb.PublicShell
 
@@ -49,15 +50,19 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(
-        conn,
-        :catalog,
-        Keyword.merge(
-          public_page_assigns(conn, "active-catalog", "catalog"),
-          layout: false,
-          threads: global_catalog_threads()
+      if Themes.page_theme_enabled?("catalog") do
+        render(
+          conn,
+          :catalog,
+          Keyword.merge(
+            public_page_assigns(conn, "active-catalog", "catalog"),
+            layout: false,
+            threads: global_catalog_threads()
+          )
         )
-      )
+      else
+        send_resp(conn, :not_found, "Page not found")
+      end
     end
   end
 
@@ -65,15 +70,19 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(
-        conn,
-        :ukko,
-        Keyword.merge(
-          public_page_assigns(conn, "active-page", "ukko"),
-          layout: false,
-          threads: ukko_threads()
+      if Themes.page_theme_enabled?("ukko") do
+        render(
+          conn,
+          :ukko,
+          Keyword.merge(
+            public_page_assigns(conn, "active-page", "ukko"),
+            layout: false,
+            threads: ukko_threads()
+          )
         )
-      )
+      else
+        send_resp(conn, :not_found, "Page not found")
+      end
     end
   end
 
@@ -81,15 +90,19 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(
-        conn,
-        :recent,
-        Keyword.merge(
-          public_page_assigns(conn, "active-page", "recent"),
-          layout: false,
-          posts: Posts.list_recent_posts(limit: 50)
+      if Themes.page_theme_enabled?("recent") do
+        render(
+          conn,
+          :recent,
+          Keyword.merge(
+            public_page_assigns(conn, "active-page", "recent"),
+            layout: false,
+            posts: Posts.list_recent_posts(limit: 50)
+          )
         )
-      )
+      else
+        send_resp(conn, :not_found, "Page not found")
+      end
     end
   end
 
@@ -97,21 +110,22 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      xml =
-        [
-          "/",
-          "/news",
-          "/catalog",
-          "/ukko",
-          "/recent"
-          | sitemap_paths()
-        ]
-        |> Enum.uniq()
-        |> render_sitemap()
+      if Themes.page_theme_enabled?("sitemap") do
+        xml =
+          [
+            "/",
+            "/news"
+            | themed_global_paths() ++ sitemap_paths()
+          ]
+          |> Enum.uniq()
+          |> render_sitemap()
 
-      conn
-      |> put_resp_content_type("application/xml")
-      |> send_resp(200, xml)
+        conn
+        |> put_resp_content_type("application/xml")
+        |> send_resp(200, xml)
+      else
+        send_resp(conn, :not_found, "Page not found")
+      end
     end
   end
 
@@ -223,7 +237,12 @@ defmodule EirinchanWeb.PageController do
           |> Enum.uniq()
           |> Enum.map(&"/#{board.uri}/res/#{&1}.html")
 
-        ["/#{board.uri}", "/#{board.uri}/catalog.html" | thread_paths]
+        catalog_paths =
+          if Themes.page_theme_enabled?("catalog"),
+            do: ["/#{board.uri}/catalog.html"],
+            else: []
+
+        ["/#{board.uri}" | catalog_paths ++ thread_paths]
       end)
 
     page_paths = Enum.map(CustomPages.list_pages(), &"/pages/#{&1.slug}")
@@ -239,6 +258,16 @@ defmodule EirinchanWeb.PageController do
 
     ~s(<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">#{entries}</urlset>)
   end
+
+  defp themed_global_paths do
+    []
+    |> maybe_add_path(Themes.page_theme_enabled?("catalog"), "/catalog")
+    |> maybe_add_path(Themes.page_theme_enabled?("ukko"), "/ukko")
+    |> maybe_add_path(Themes.page_theme_enabled?("recent"), "/recent")
+  end
+
+  defp maybe_add_path(paths, true, path), do: paths ++ [path]
+  defp maybe_add_path(paths, false, _path), do: paths
 
   defp board_config(%BoardRecord{} = board) do
     Config.compose(nil, Settings.current_instance_config(), board.config_overrides || %{},

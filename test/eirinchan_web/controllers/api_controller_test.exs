@@ -1,9 +1,24 @@
 defmodule EirinchanWeb.ApiControllerTest do
-  use EirinchanWeb.ConnCase, async: true
+  use EirinchanWeb.ConnCase, async: false
 
   alias Eirinchan.Posts
 
+  setup do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+    path = Path.join(System.tmp_dir!(), "eirinchan-api-themes-#{System.unique_integer([:positive])}.json")
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    :ok
+  end
+
   test "board api endpoints expose page, catalog, threads, and thread json", %{conn: conn} do
+    :ok = Eirinchan.Themes.enable_page_theme("catalog")
     board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
     upload = upload_fixture("thread.png", "thread")
     upload_size = File.stat!(upload.path).size
