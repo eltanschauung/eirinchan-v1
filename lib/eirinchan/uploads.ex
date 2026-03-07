@@ -80,7 +80,14 @@ defmodule Eirinchan.Uploads do
       :ok ->
         with :ok <- normalize_stored_upload(destination, config, metadata),
              {:ok, stored_metadata} <- refresh_stored_metadata(destination, metadata),
-             :ok <- generate_thumbnail(destination, thumb_destination, config, stored_metadata) do
+             :ok <-
+               generate_thumbnail(
+                 destination,
+                 thumb_destination,
+                 config,
+                 stored_metadata,
+                 is_nil(post.thread_id)
+               ) do
           {:ok,
            Map.merge(stored_metadata, %{
              file_path: "/#{board.uri}/#{config.dir.img}#{storage_name}",
@@ -429,27 +436,27 @@ defmodule Eirinchan.Uploads do
     end
   end
 
-  defp generate_thumbnail(source, destination, config, metadata) do
+  defp generate_thumbnail(source, destination, config, metadata, op?) do
     cond do
       Map.get(metadata, :spoiler) ->
         generate_spoiler_thumbnail(destination, config)
 
       image?(metadata) ->
-        generate_image_thumbnail(source, destination, config)
+        generate_image_thumbnail(source, destination, config, op?)
 
       true ->
         generate_placeholder_thumbnail(destination, config, metadata)
     end
   end
 
-  defp generate_image_thumbnail(source, destination, config) do
+  defp generate_image_thumbnail(source, destination, config, op?) do
     if minimum_copy_resize?(source, config) do
       case File.cp(source, destination) do
         :ok -> :ok
         {:error, _reason} -> {:error, :upload_failed}
       end
     else
-      geometry = "#{config.thumb_width}x#{config.thumb_height}"
+      geometry = image_thumbnail_geometry(config, op?)
 
       case System.cmd(
              "convert",
@@ -461,6 +468,12 @@ defmodule Eirinchan.Uploads do
       end
     end
   end
+
+  defp image_thumbnail_geometry(config, true),
+    do: "#{config.thumb_op_width}x#{config.thumb_op_height}"
+
+  defp image_thumbnail_geometry(config, false),
+    do: "#{config.thumb_width}x#{config.thumb_height}"
 
   defp minimum_copy_resize?(source, config) do
     config.minimum_copy_resize and
