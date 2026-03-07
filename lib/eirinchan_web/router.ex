@@ -57,6 +57,9 @@ defmodule EirinchanWeb.Router do
     post "/login/browser", ManagePageController, :create_session
     get "/", ManagePageController, :dashboard
     post "/boards/browser", ManagePageController, :create_board
+    patch "/boards/:uri/browser", ManagePageController, :update_board
+    delete "/boards/:uri/browser", ManagePageController, :delete_board
+    post "/boards/:uri/browser/rebuild", ManagePageController, :rebuild_board
     delete "/logout/browser", ManagePageController, :delete_session
   end
 
