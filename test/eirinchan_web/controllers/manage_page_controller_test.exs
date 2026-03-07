@@ -32,6 +32,14 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert redirected_to(conn) == "/setup"
   end
 
+  test "browser dashboard redirects to login when admin exists but session is missing", %{conn: conn} do
+    _moderator = moderator_fixture(%{role: "admin"})
+
+    conn = get(conn, "/manage")
+
+    assert redirected_to(conn) == "/manage/login"
+  end
+
   test "admin browser dashboard creates boards", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
     uri = "tea#{System.unique_integer([:positive])}"
