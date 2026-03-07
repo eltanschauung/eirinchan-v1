@@ -233,7 +233,7 @@ div.post.reply {
 }
 
 div.post div.body {
-  color: #000;
+  color: inherit;
   line-height: 1.35;
   margin: 0.5em 0 0.2em;
   overflow-wrap: anywhere;

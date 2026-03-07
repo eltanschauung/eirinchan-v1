@@ -299,7 +299,7 @@
                   do: raw(", " <> PostView.file_dimensions(file)) %>, <span
                   class="postfilename"
                   title={PostView.original_file_name(file)}
-                ><%= PostView.original_file_name(file) %></span>)
+                ><%= PostView.display_file_name(file, @config) %></span>)
               </span>
             </p>
             <a href={file.file_path}>
@@ -440,7 +440,7 @@
                       do: raw(", " <> PostView.file_dimensions(file)) %>, <span
                       class="postfilename"
                       title={PostView.original_file_name(file)}
-                    ><%= PostView.original_file_name(file) %></span>)
+                    ><%= PostView.display_file_name(file, @config) %></span>)
                   </span>
                 </p>
                 <a href={file.file_path}>

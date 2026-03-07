@@ -236,6 +236,26 @@ defmodule EirinchanWeb.PostView do
     file_display_name(file)
   end
 
+  def display_file_name(file, config) do
+    original = original_file_name(file)
+    limit = max(Map.get(config, :max_filename_display_length, 30), 1)
+
+    cond do
+      original in [nil, ""] ->
+        original
+
+      String.length(original) <= limit ->
+        original
+
+      true ->
+        ext = Path.extname(original)
+        base = Path.rootname(original, ext)
+        suffix = "…" <> ext
+        keep = max(limit - String.length(suffix), 1)
+        String.slice(base, 0, keep) <> suffix
+    end
+  end
+
   def file_info(file) do
     info =
       [human_file_size(file.file_size), dimensions(file)]
@@ -390,7 +410,7 @@ defmodule EirinchanWeb.PostView do
   defp original_file_name_detail(file, config) do
     original = original_file_name(file)
     stored = stored_file_name(file)
-    limit = max(Map.get(config, :max_filename_display_length, 64), 1)
+    limit = max(Map.get(config, :max_filename_display_length, 30), 1)
 
     cond do
       original in [nil, "", stored] ->
