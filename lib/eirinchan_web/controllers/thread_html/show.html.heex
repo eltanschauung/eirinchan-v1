@@ -61,6 +61,10 @@
   <p :if={@summary.thread.name || @summary.thread.tripcode}>
     <%= @summary.thread.name %> <%= @summary.thread.tripcode %>
   </p>
+  <p class="post-links">
+    <a href={"#p#{@summary.thread.id}"}>No.<%= @summary.thread.id %></a>
+    <a href="#reply-form" data-quote-to={@summary.thread.id}>&gt;&gt;<%= @summary.thread.id %></a>
+  </p>
   <p :if={@config.fileboard && PostView.show_fileboard_summary?(@summary.thread)}>
     Fileboard: <%= PostView.fileboard_summary(@summary.thread) %>
   </p>
@@ -86,7 +90,13 @@
 
 <section>
   <h2>Reply</h2>
-  <form action={~p"/#{@board.uri}/post"} method="post" enctype="multipart/form-data">
+  <form
+    id="reply-form"
+    action={~p"/#{@board.uri}/post"}
+    method="post"
+    enctype="multipart/form-data"
+    data-thread-reply-form
+  >
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="hidden" name="thread" value={@summary.thread.id} />
     <input :if={!@config.field_disable_name} type="text" name="name" placeholder="Name" />
@@ -159,7 +169,7 @@
     <input :if={@config.max_images > 1} type="file" name="files[]" multiple />
     <input :if={@config.max_images <= 1} type="file" name="file" />
     <label><input type="checkbox" name="spoiler" value="1" /> Spoiler</label>
-    <textarea name="body" placeholder="Reply"></textarea>
+    <textarea name="body" placeholder="Reply" data-post-body></textarea>
     <button type="submit" name="post" value={@config.button_reply}>
       <%= @config.button_reply %>
     </button>
@@ -182,6 +192,10 @@
           ) %>
         </h3>
         <p :if={reply.name || reply.tripcode}><%= reply.name %> <%= reply.tripcode %></p>
+        <p class="post-links">
+          <a href={"#p#{reply.id}"}>No.<%= reply.id %></a>
+          <a href="#reply-form" data-quote-to={reply.id}>&gt;&gt;<%= reply.id %></a>
+        </p>
         <%= if reply.file_path do %>
           <figure>
             <a href={reply.file_path}>

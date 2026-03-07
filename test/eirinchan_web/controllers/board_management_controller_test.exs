@@ -253,6 +253,28 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert Floki.find(document, ~s(input[name="no_country"][type="checkbox"])) != []
   end
 
+  test "board page renders quick reply hooks and hidden reply forms for thread cites", %{
+    conn: conn
+  } do
+    board = board_fixture()
+    thread = thread_fixture(board, %{body: "Thread body"})
+    _reply = reply_fixture(board, thread, %{body: "Reply body"})
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(a[data-quick-reply-thread="#{thread.id}"][data-quote-to])) !=
+             []
+
+    assert Floki.find(document, ~s(section[data-quick-reply-panel][hidden])) != []
+    assert Floki.find(document, ~s(form[data-quick-reply-form="#{thread.id}"])) != []
+    assert Floki.find(document, ~s(textarea[data-post-body])) != []
+  end
+
   test "board page renders allowed OP tag choices", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{allowed_tags: %{"A" => "Anime", "M" => "Music"}}})
 

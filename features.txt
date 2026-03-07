@@ -237,15 +237,15 @@ logging backends parity (error_log/file/stderr/syslog): incomplete
 [API and Client Compatibility]
 4chan-style JSON field compatibility: partial
 extra_files compatibility in API responses: partial
-country fields in API responses from modifiers: incomplete
-poster ID API field parity: incomplete
+country fields in API responses from modifiers: partial
+poster ID API field parity: partial
 semantic_url API slug field parity: partial
 boards.json API parity: partial
 catalog.json and threads.json API parity: partial
 
 [Frontend Behavior and UX]
 post form field disable toggles parity (name/email/subject/password): partial
-quick-reply and cite insertion behavior parity: incomplete
+quick-reply and cite insertion behavior parity: partial
 rememberStuff local/session storage behavior parity: incomplete
 post success draft clearing cookie behavior parity: incomplete
 file selector multi-upload UX parity: partial
