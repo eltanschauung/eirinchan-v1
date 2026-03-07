@@ -18,11 +18,39 @@
   <%= if @boards == [] do %>
     <p>No boards yet.</p>
   <% else %>
-    <ul>
-      <%= for board <- @boards do %>
-        <li><a href={"/#{board.uri}"}>/ <%= board.uri %> / - <%= board.title %></a></li>
-      <% end %>
-    </ul>
+    <%= for board <- @boards do %>
+      <article>
+        <h3><a href={"/#{board.uri}"}>/ <%= board.uri %> / - <%= board.title %></a></h3>
+        <p :if={board.subtitle}><%= board.subtitle %></p>
+        <form action={"/manage/boards/#{board.uri}/browser/rebuild"} method="post">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <button type="submit">Rebuild Board</button>
+        </form>
+
+        <section :if={@moderator.role == "admin"}>
+          <h4>Edit Board</h4>
+          <form action={"/manage/boards/#{board.uri}/browser"} method="post">
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+            <input type="hidden" name="_method" value="patch" />
+            <label>
+              <span>Title</span>
+              <input type="text" name="title" value={board.title} />
+            </label>
+            <label>
+              <span>Subtitle</span>
+              <input type="text" name="subtitle" value={board.subtitle} />
+            </label>
+            <button type="submit">Update Board</button>
+          </form>
+
+          <form action={"/manage/boards/#{board.uri}/browser"} method="post">
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+            <input type="hidden" name="_method" value="delete" />
+            <button type="submit">Delete Board</button>
+          </form>
+        </section>
+      </article>
+    <% end %>
   <% end %>
 </section>
 

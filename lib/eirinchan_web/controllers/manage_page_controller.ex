@@ -2,8 +2,10 @@ defmodule EirinchanWeb.ManagePageController do
   use EirinchanWeb, :controller
 
   alias Eirinchan.Boards
+  alias Eirinchan.Build
   alias Eirinchan.Installation
   alias Eirinchan.Moderation
+  alias Eirinchan.Runtime.Config
   alias EirinchanWeb.ManageSecurity
 
   def login(conn, _params) do
@@ -79,6 +81,74 @@ defmodule EirinchanWeb.ManagePageController do
     end
   end
 
+  def update_board(conn, %{"uri" => uri} = params) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         board when not is_nil(board) <- Boards.get_board_by_uri(uri),
+         {:ok, _board} <- Boards.update_board(board, Map.take(params, ["title", "subtitle"])) do
+      conn
+      |> put_flash(:info, "Board updated.")
+      |> redirect(to: ~p"/manage")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", params)
+
+      nil ->
+        render_dashboard_error(conn, "Board not found.", params, :not_found)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_dashboard_error(conn, format_changeset(changeset), params, :unprocessable_entity)
+    end
+  end
+
+  def delete_board(conn, %{"uri" => uri}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         board when not is_nil(board) <- Boards.get_board_by_uri(uri),
+         {:ok, _board} <- Boards.delete_board(board) do
+      conn
+      |> put_flash(:info, "Board deleted.")
+      |> redirect(to: ~p"/manage")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      nil ->
+        render_dashboard_error(conn, "Board not found.", %{}, :not_found)
+    end
+  end
+
+  def rebuild_board(conn, %{"uri" => uri}) do
+    with {:ok, moderator} <- ensure_moderator(conn),
+         board when not is_nil(board) <- Boards.get_board_by_uri(uri),
+         true <- Moderation.board_access?(moderator, board) or moderator.role == "admin" do
+      config = board_config(board, conn.host)
+
+      _result =
+        case config.generation_strategy do
+          "defer" -> Build.process_pending(board: board, config: config)
+          _ -> Build.rebuild_board(board, config: config)
+        end
+
+      conn
+      |> put_flash(:info, "Board rebuilt.")
+      |> redirect(to: ~p"/manage")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      false ->
+        render_dashboard_error(conn, "Board access required.", %{}, :forbidden)
+
+      nil ->
+        render_dashboard_error(conn, "Board not found.", %{}, :not_found)
+    end
+  end
+
   def delete_session(conn, _params) do
     conn
     |> configure_session(drop: true)
@@ -99,8 +169,26 @@ defmodule EirinchanWeb.ManagePageController do
 
   defp stringify(params), do: Enum.into(params, %{}, fn {k, v} -> {to_string(k), v} end)
 
+  defp render_dashboard_error(conn, message, params, status \\ :forbidden) do
+    conn
+    |> put_status(status)
+    |> render(:dashboard,
+      moderator: conn.assigns[:current_moderator],
+      boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
+      error: message,
+      params: Map.take(stringify(params), ["uri", "title", "subtitle"])
+    )
+  end
+
   defp format_changeset(changeset) do
     changeset.errors
     |> Enum.map_join(", ", fn {field, {message, _opts}} -> "#{field} #{message}" end)
+  end
+
+  defp board_config(board_record, request_host) do
+    Config.compose(nil, %{}, board_record.config_overrides || %{},
+      board: Eirinchan.Boards.BoardRecord.to_board(board_record),
+      request_host: request_host
+    )
   end
 end
