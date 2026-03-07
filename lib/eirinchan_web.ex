@@ -17,7 +17,20 @@ defmodule EirinchanWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths,
+    do: ~w(
+        assets
+        fonts
+        images
+        js
+        main.js
+        static
+        stylesheets
+        background_christmas.jpg
+        christmas_alice.png
+        favicon.ico
+        robots.txt
+      )
 
   def router do
     quote do
