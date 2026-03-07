@@ -154,8 +154,8 @@ lock/unlock thread moderation parity: partial
 sticky/unsticky moderation parity: partial
 cycle/uncycle moderation parity: partial
 bumplock/unbumplock moderation parity: partial
-move thread workflow parity: incomplete
-move reply workflow parity: incomplete
+move thread workflow parity: partial
+move reply workflow parity: partial
 noticeboard/news moderation pages parity: incomplete
 moderator PM inbox/reply flow parity: incomplete
 

@@ -29,6 +29,7 @@ defmodule Eirinchan.PostsTest do
   use Eirinchan.DataCase, async: true
 
   alias Eirinchan.Antispam
+  alias Eirinchan.Build
   alias Eirinchan.Posts
   alias Eirinchan.Posts.Post
   alias Eirinchan.Runtime.Config
@@ -2139,5 +2140,123 @@ defmodule Eirinchan.PostsTest do
                request: request,
                repo: Repo
              )
+  end
+
+  test "move_thread moves posts, files, and rebuilds both boards" do
+    source_board = board_fixture()
+    target_board = board_fixture()
+    source_config = post_config(source_board.config_overrides)
+    target_config = post_config(target_board.config_overrides)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               source_board,
+               %{
+                 "body" => "Thread body",
+                 "file" => upload_fixture("thread.png", geometry: "32x32"),
+                 "post" => "New Topic"
+               },
+               config: source_config,
+               request: post_request(source_board.uri)
+             )
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               source_board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "file" => upload_fixture("reply.png", geometry: "32x32"),
+                 "post" => "New Reply"
+               },
+               config: source_config,
+               request: post_request(source_board.uri)
+             )
+
+    old_thread_file = thread.file_path
+    old_reply_file = reply.file_path
+
+    source_thread_output =
+      Path.join([Build.board_root(), source_board.uri, "res", "#{thread.id}.html"])
+
+    target_thread_output =
+      Path.join([Build.board_root(), target_board.uri, "res", "#{thread.id}.html"])
+
+    assert {:ok, moved_thread} =
+             Posts.move_thread(
+               source_board,
+               thread.id,
+               target_board,
+               source_config: source_config,
+               target_config: target_config
+             )
+
+    assert moved_thread.board_id == target_board.id
+    assert moved_thread.file_path == "/#{target_board.uri}/src/#{thread.id}.png"
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(old_thread_file))
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(old_reply_file))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(moved_thread.file_path))
+    assert File.exists?(target_thread_output)
+    refute File.exists?(source_thread_output)
+    assert {:error, :not_found} = Posts.get_thread(source_board, thread.id)
+
+    assert {:ok, [reloaded_thread, moved_reply]} = Posts.get_thread(target_board, thread.id)
+    assert reloaded_thread.board_id == target_board.id
+    assert moved_reply.board_id == target_board.id
+    assert moved_reply.thread_id == thread.id
+    assert moved_reply.file_path == "/#{target_board.uri}/src/#{reply.id}.png"
+  end
+
+  test "move_reply moves a reply between threads and boards" do
+    source_board = board_fixture()
+    target_board = board_fixture()
+    source_config = post_config(source_board.config_overrides)
+    target_config = post_config(target_board.config_overrides)
+    source_thread = thread_fixture(source_board)
+    target_thread = thread_fixture(target_board)
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               source_board,
+               %{
+                 "thread" => Integer.to_string(source_thread.id),
+                 "body" => "Movable reply",
+                 "file" => upload_fixture("move-reply.png", geometry: "32x32"),
+                 "post" => "New Reply"
+               },
+               config: source_config,
+               request: post_request(source_board.uri)
+             )
+
+    old_file = reply.file_path
+
+    assert {:ok, moved_reply} =
+             Posts.move_reply(
+               source_board,
+               reply.id,
+               target_board,
+               target_thread.id,
+               source_config: source_config,
+               target_config: target_config
+             )
+
+    assert moved_reply.board_id == target_board.id
+    assert moved_reply.thread_id == target_thread.id
+    assert moved_reply.file_path == "/#{target_board.uri}/src/#{reply.id}.png"
+    refute File.exists?(Eirinchan.Uploads.filesystem_path(old_file))
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(moved_reply.file_path))
+
+    assert {:ok, [reloaded_source_thread]} = Posts.get_thread(source_board, source_thread.id)
+    assert reloaded_source_thread.id == source_thread.id
+
+    assert {:ok, [_target_thread, moved_reply_from_target]} =
+             Posts.get_thread(target_board, target_thread.id)
+
+    assert moved_reply_from_target.id == reply.id
+
+    assert File.read!(
+             Path.join([Build.board_root(), target_board.uri, "res", "#{target_thread.id}.html"])
+           ) =~
+             "Movable reply"
   end
 end

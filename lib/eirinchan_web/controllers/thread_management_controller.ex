@@ -37,6 +37,26 @@ defmodule EirinchanWeb.ThreadManagementController do
     end
   end
 
+  def move(conn, %{"uri" => uri, "thread_id" => thread_id, "target_board_uri" => target_uri}) do
+    with source_board when not is_nil(source_board) <- Boards.get_board_by_uri(uri),
+         target_board when not is_nil(target_board) <- Boards.get_board_by_uri(target_uri),
+         :ok <- authorize_board(conn, source_board),
+         :ok <- authorize_board(conn, target_board),
+         {:ok, thread} <-
+           Posts.move_thread(
+             source_board,
+             thread_id,
+             target_board,
+             source_config: board_config(source_board, conn.host),
+             target_config: board_config(target_board, conn.host)
+           ) do
+      render(conn, :show, thread: thread)
+    else
+      nil -> {:error, :not_found}
+      error -> error
+    end
+  end
+
   defp authorize_board(conn, board) do
     if Moderation.board_access?(conn.assigns.current_moderator, board) do
       :ok

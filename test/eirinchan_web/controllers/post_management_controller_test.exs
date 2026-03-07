@@ -109,4 +109,40 @@ defmodule EirinchanWeb.PostManagementControllerTest do
 
     assert %{"error" => "forbidden"} = json_response(conn, 403)
   end
+
+  test "moves replies between boards and threads", %{conn: conn} do
+    source_board = board_fixture()
+    target_board = board_fixture()
+    source_thread = thread_fixture(source_board)
+    target_thread = thread_fixture(target_board)
+    reply = reply_fixture(source_board, source_thread, %{body: "Move reply body"})
+
+    moderator =
+      moderator_fixture(%{role: "mod"})
+      |> grant_board_access_fixture(source_board)
+      |> grant_board_access_fixture(target_board)
+
+    conn =
+      conn
+      |> login_moderator(moderator)
+      |> put_secure_manage_token()
+      |> put_req_header("accept", "application/json")
+      |> patch("/manage/boards/#{source_board.uri}/posts/#{reply.id}/move", %{
+        "target_board_uri" => target_board.uri,
+        "target_thread_id" => Integer.to_string(target_thread.id)
+      })
+
+    assert %{
+             "data" => %{
+               "id" => reply_id,
+               "board_id" => target_board_id,
+               "thread_id" => target_thread_id,
+               "body" => "Move reply body"
+             }
+           } = json_response(conn, 200)
+
+    assert reply_id == reply.id
+    assert target_board_id == target_board.id
+    assert target_thread_id == target_thread.id
+  end
 end

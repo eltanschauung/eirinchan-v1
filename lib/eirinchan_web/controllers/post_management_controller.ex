@@ -73,6 +73,35 @@ defmodule EirinchanWeb.PostManagementController do
     end
   end
 
+  def move(
+        conn,
+        %{
+          "uri" => uri,
+          "post_id" => post_id,
+          "target_board_uri" => target_uri,
+          "target_thread_id" => target_thread_id
+        }
+      ) do
+    with source_board when not is_nil(source_board) <- Boards.get_board_by_uri(uri),
+         target_board when not is_nil(target_board) <- Boards.get_board_by_uri(target_uri),
+         :ok <- authorize_board(conn, source_board),
+         :ok <- authorize_board(conn, target_board),
+         {:ok, post} <-
+           Posts.move_reply(
+             source_board,
+             post_id,
+             target_board,
+             target_thread_id,
+             source_config: board_config(source_board, conn.host),
+             target_config: board_config(target_board, conn.host)
+           ) do
+      render(conn, :show, post: post)
+    else
+      nil -> {:error, :not_found}
+      error -> error
+    end
+  end
+
   defp authorize_board(conn, board) do
     if Moderation.board_access?(conn.assigns.current_moderator, board) do
       :ok

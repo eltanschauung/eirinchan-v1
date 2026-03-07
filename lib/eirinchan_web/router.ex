@@ -121,11 +121,13 @@ defmodule EirinchanWeb.Router do
     delete "/feedback/:id", FeedbackManagementController, :delete
     delete "/ip/:ip/posts", IpManagementController, :delete_posts
     post "/boards/:uri/rebuild", BuildManagementController, :create
+    patch "/boards/:uri/threads/:thread_id/move", ThreadManagementController, :move
     patch "/boards/:uri/threads/:thread_id", ThreadManagementController, :update
     post "/boards/:uri/ip/:ip/notes", IpManagementController, :create_note
     patch "/boards/:uri/ip/:ip/notes/:id", IpManagementController, :update_note
     delete "/boards/:uri/ip/:ip/notes/:id", IpManagementController, :delete_note
     delete "/boards/:uri/ip/:ip/posts", IpManagementController, :delete_board_posts
+    patch "/boards/:uri/posts/:post_id/move", PostManagementController, :move
     patch "/boards/:uri/posts/:post_id", PostManagementController, :update
     delete "/boards/:uri/posts/:post_id", PostManagementController, :delete
     delete "/boards/:uri/posts/:post_id/file", PostManagementController, :delete_file
