@@ -277,6 +277,55 @@ defmodule EirinchanWeb.PostControllerTest do
     assert %{"error" => "File type not allowed."} = json_response(response_conn, 422)
   end
 
+  test "posting fetches remote uploads from file_url when enabled", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{upload_by_url_enabled: true}})
+    source_upload = upload_fixture("remote.png", "remote-image")
+    server = serve_upload_fixture(File.read!(source_upload.path), "remote.png")
+    on_exit(server.stop)
+
+    response_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file_url" => server.url,
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => id} = json_response(response_conn, 200)
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ "/#{board.uri}/thumb/#{id}s.png"
+  end
+
+  test "posting times out remote uploads according to config", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{upload_by_url_enabled: true, upload_by_url_timeout_ms: 50}
+      })
+
+    server = serve_stalled_upload("slow.png", delay_ms: 250)
+    on_exit(server.stop)
+
+    response_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file_url" => server.url,
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => "Upload failed."} = json_response(response_conn, 500)
+  end
+
   test "posting enforces required image uploads and file validation errors", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
 

@@ -63,6 +63,8 @@ defmodule Eirinchan.Runtime.Config do
     max_image_height: 0,
     strip_exif: false,
     auto_orient_images: false,
+    upload_by_url_enabled: false,
+    upload_by_url_timeout_ms: 5_000,
     allowed_ext_files_op: nil,
     allowed_ext_files: [".png", ".jpg", ".jpeg", ".gif"],
     api: %{enabled: false},

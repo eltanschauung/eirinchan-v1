@@ -68,7 +68,7 @@ strip_combining_chars logic parity: incomplete
 
 [Media Upload and Processing]
 multi-file upload parsing parity (split/each methods): partial
-upload-by-url ingestion and timeout logic: incomplete
+upload-by-url ingestion and timeout logic: partial
 extension allowlist enforcement (board/OP distinctions): partial
 file size checks (single/max/combined modes): partial
 duplicate file rejection global scope: partial
