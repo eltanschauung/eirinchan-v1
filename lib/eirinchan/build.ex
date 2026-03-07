@@ -304,8 +304,9 @@ defmodule Eirinchan.Build do
     case File.stat(path, time: :posix) do
       {:ok, stat} ->
         file_time = DateTime.from_unix!(stat.mtime)
+        source_time = DateTime.truncate(modified_at, :second)
         age_ok = ttl <= 0 or DateTime.diff(DateTime.utc_now(), file_time) <= ttl
-        DateTime.compare(file_time, modified_at) != :lt and age_ok
+        DateTime.compare(file_time, source_time) != :lt and age_ok
 
       _ ->
         false
