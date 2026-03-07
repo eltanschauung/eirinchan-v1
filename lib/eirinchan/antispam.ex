@@ -60,28 +60,23 @@ defmodule Eirinchan.Antispam do
     repo = Keyword.get(opts, :repo, Repo)
     board_id = Keyword.get(opts, :board_id)
     ip_subnet = request_ip(request)
+    normalized_query = normalize_query(query)
 
-    if is_nil(ip_subnet) or config.search_query_limit_count <= 0 do
-      false
-    else
-      cutoff = DateTime.add(DateTime.utc_now(), -config.search_query_limit_window, :second)
-
-      base_query =
-        from(entry in SearchQuery,
-          where:
-            entry.ip_subnet == ^ip_subnet and entry.query == ^normalize_query(query) and
-              entry.inserted_at >= ^cutoff
-        )
-
-      scoped_query =
-        case board_id do
-          nil -> base_query
-          _ -> from(entry in base_query, where: entry.board_id == ^board_id)
-        end
-
-      count = repo.aggregate(scoped_query, :count, :id)
-      count >= config.search_query_limit_count
-    end
+    per_ip_search_rate_limited?(
+      repo,
+      normalized_query,
+      ip_subnet,
+      board_id,
+      config.search_query_limit_window,
+      config.search_query_limit_count
+    ) or
+      global_search_rate_limited?(
+        repo,
+        normalized_query,
+        board_id,
+        config.search_query_global_limit_window,
+        config.search_query_global_limit_count
+      )
   end
 
   def list_flood_entries(ip_subnet, opts \\ []) do
@@ -102,6 +97,59 @@ defmodule Eirinchan.Antispam do
       order_by: [asc: entry.inserted_at]
     )
     |> repo.all()
+  end
+
+  defp per_ip_search_rate_limited?(_repo, _query, nil, _board_id, _window, _count), do: false
+  defp per_ip_search_rate_limited?(_repo, nil, _ip_subnet, _board_id, _window, _count), do: false
+
+  defp per_ip_search_rate_limited?(_repo, _query, _ip_subnet, _board_id, _window, count)
+       when count <= 0,
+       do: false
+
+  defp per_ip_search_rate_limited?(repo, query, ip_subnet, board_id, window, count) do
+    cutoff = DateTime.add(DateTime.utc_now(), -window, :second)
+
+    SearchQuery
+    |> query_by_query(query)
+    |> query_by_ip(ip_subnet)
+    |> query_since(cutoff)
+    |> maybe_scope_search_query(board_id)
+    |> repo.aggregate(:count, :id)
+    |> Kernel.>=(count)
+  end
+
+  defp global_search_rate_limited?(_repo, nil, _board_id, _window, _count), do: false
+
+  defp global_search_rate_limited?(_repo, _query, _board_id, _window, count) when count <= 0,
+    do: false
+
+  defp global_search_rate_limited?(repo, query, board_id, window, count) do
+    cutoff = DateTime.add(DateTime.utc_now(), -window, :second)
+
+    SearchQuery
+    |> query_by_query(query)
+    |> query_since(cutoff)
+    |> maybe_scope_search_query(board_id)
+    |> repo.aggregate(:count, :id)
+    |> Kernel.>=(count)
+  end
+
+  defp query_by_query(queryable, query) do
+    from(entry in queryable, where: entry.query == ^query)
+  end
+
+  defp query_by_ip(queryable, ip_subnet) do
+    from(entry in queryable, where: entry.ip_subnet == ^ip_subnet)
+  end
+
+  defp query_since(queryable, cutoff) do
+    from(entry in queryable, where: entry.inserted_at >= ^cutoff)
+  end
+
+  defp maybe_scope_search_query(queryable, nil), do: queryable
+
+  defp maybe_scope_search_query(queryable, board_id) do
+    from(entry in queryable, where: entry.board_id == ^board_id)
   end
 
   defp recent_ip_post?(repo, board_id, ip_subnet, now, window_seconds) do

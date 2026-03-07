@@ -71,9 +71,8 @@ defmodule EirinchanWeb.SearchController do
   defp search_config(nil, instance_overrides), do: Config.compose(nil, instance_overrides, %{})
 
   defp search_config(board_record, instance_overrides) do
-    Config.compose(nil, instance_overrides, board_record.config_overrides || %{},
-      board: Eirinchan.Boards.BoardRecord.to_board(board_record)
-    )
+    board = Eirinchan.Boards.BoardRecord.to_board(board_record)
+    Config.compose(nil, instance_overrides, board.config_overrides || %{}, board: board)
   end
 
   defp searchable_boards(instance_overrides) do

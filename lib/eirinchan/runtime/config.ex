@@ -49,6 +49,8 @@ defmodule Eirinchan.Runtime.Config do
     search_disallowed_boards: [],
     search_query_limit_window: 60,
     search_query_limit_count: 0,
+    search_query_global_limit_window: 60,
+    search_query_global_limit_count: 0,
     force_body: true,
     force_body_op: true,
     force_image_op: false,

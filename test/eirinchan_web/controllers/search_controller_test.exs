@@ -34,14 +34,19 @@ defmodule EirinchanWeb.SearchControllerTest do
     refute page =~ "meta tea"
   end
 
-  test "public search logs queries", %{conn: conn} do
+  test "public search logs queries", %{conn: _conn} do
     board =
       board_fixture(%{
         uri: "tea#{System.unique_integer([:positive])}",
-        config_overrides: %{search_query_limit_window: 60, search_query_limit_count: 1}
+        config_overrides: %{
+          search_query_limit_window: 60,
+          search_query_limit_count: 1,
+          search_query_global_limit_window: 60,
+          search_query_global_limit_count: 0
+        }
       })
 
-    conn = %{conn | remote_ip: {198, 51, 100, 99}}
+    conn = %{build_conn() | remote_ip: {198, 51, 100, 99}}
 
     first_page =
       conn
@@ -54,6 +59,30 @@ defmodule EirinchanWeb.SearchControllerTest do
              Eirinchan.Antispam.list_search_queries("198.51.100.99", repo: Eirinchan.Repo),
              &(&1.query == "tripcode" and &1.board_id == board.id)
            )
+  end
+
+  test "public search applies global query throttles across IPs", %{conn: _conn} do
+    board =
+      board_fixture(%{
+        uri: "rate#{System.unique_integer([:positive])}",
+        config_overrides: %{
+          search_query_limit_window: 60,
+          search_query_limit_count: 0,
+          search_query_global_limit_window: 60,
+          search_query_global_limit_count: 1
+        }
+      })
+
+    first_conn = %{build_conn() | remote_ip: {198, 51, 100, 10}}
+    second_conn = %{build_conn() | remote_ip: {198, 51, 100, 11}}
+
+    assert first_conn
+           |> get("/search", %{"q" => "tripcode", "board" => board.uri})
+           |> html_response(200) =~ "No results."
+
+    assert second_conn
+           |> get("/search", %{"q" => "tripcode", "board" => board.uri})
+           |> html_response(200) =~ "Search rate limit exceeded."
   end
 
   test "public search supports id, thread, subject, and name filters", %{conn: conn} do
