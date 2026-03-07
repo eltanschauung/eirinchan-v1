@@ -72,7 +72,7 @@ defmodule EirinchanWeb.ManagePageController do
   end
 
   def update_config(conn, %{"config_json" => config_json}) do
-    with {:ok, moderator} <- ensure_admin(conn),
+    with {:ok, _moderator} <- ensure_admin(conn),
          {:ok, _config} <- Settings.update_instance_config_from_json(config_json) do
       conn
       |> put_flash(:info, "Instance config updated.")
@@ -116,7 +116,7 @@ defmodule EirinchanWeb.ManagePageController do
   end
 
   def update_board_config(conn, %{"uri" => uri, "config_json" => config_json}) do
-    with {:ok, moderator} <- ensure_admin(conn),
+    with {:ok, _moderator} <- ensure_admin(conn),
          board when not is_nil(board) <- Boards.get_board_by_uri(uri),
          {:ok, overrides} <- parse_config_json(config_json),
          {:ok, _board} <- Boards.update_board(board, %{"config_overrides" => overrides}) do
