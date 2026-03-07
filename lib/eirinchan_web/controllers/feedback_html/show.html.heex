@@ -21,6 +21,7 @@
 
 <section class="feedback-panel">
   <form action={~p"/feedback"} method="post" class="feedback-form">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="text" name="name" placeholder="Name" value={get_in(assigns, [:params, "name"])} />
     <input
       type="text"

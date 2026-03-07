@@ -17,6 +17,7 @@
 <section>
   <h2>Post</h2>
   <form action={~p"/#{@board.uri}/post"} method="post" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input :if={!@config.field_disable_name} type="text" name="name" placeholder="Name" />
     <input :if={!@config.field_disable_email} type="text" name="email" placeholder="Email" />
     <input :if={!@config.field_disable_subject} type="text" name="subject" placeholder="Subject" />
@@ -173,6 +174,7 @@
             else: summary.thread.tag %>
         </p>
         <form action={~p"/#{@board.uri}/post"} method="post">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
           <input type="hidden" name="delete_post_id" value={summary.thread.id} />
           <input type="password" name="password" placeholder="Password" />
           <button type="submit">Delete</button>
@@ -230,6 +232,7 @@
             <p :if={reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
             <p :if={reply.capcode}>Capcode: <%= reply.capcode %></p>
             <form action={~p"/#{@board.uri}/post"} method="post">
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
               <input type="hidden" name="delete_post_id" value={reply.id} />
               <input type="password" name="password" placeholder="Password" />
               <button type="submit">Delete</button>

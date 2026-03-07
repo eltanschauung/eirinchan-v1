@@ -9,6 +9,7 @@
 </section>
 
 <form action={~p"/setup"} method="post">
+  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
   <fieldset>
     <legend>Database</legend>
     <label>
@@ -33,7 +34,7 @@
     </label>
     <label>
       <span>Password</span>
-      <input type="password" name="database_password" value={@params["database_password"]} />
+      <input type="text" name="database_password" value={@params["database_password"]} />
     </label>
     <label>
       <span>Maintenance Database</span>
@@ -50,7 +51,7 @@
     <label>
       <span>Maintenance Password</span>
       <input
-        type="password"
+        type="text"
         name="database_maintenance_password"
         value={@params["database_maintenance_password"]}
       />
@@ -66,13 +67,13 @@
     </label>
     <label>
       <span>Password</span>
-      <input type="password" name="admin_password" value={@params["admin_password"]} />
+      <input type="text" name="admin_password" value={@params["admin_password"]} />
       <small :if={@errors["admin_password"]}><%= @errors["admin_password"] %></small>
     </label>
     <label>
       <span>Confirm Password</span>
       <input
-        type="password"
+        type="text"
         name="admin_password_confirmation"
         value={@params["admin_password_confirmation"]}
       />

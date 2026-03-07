@@ -74,6 +74,7 @@
           </p>
           <p :if={PostView.show_body?(summary.thread, @config)}><%= summary.thread.body %></p>
           <form action={~p"/#{@board.uri}/post"} method="post">
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
             <input type="hidden" name="delete_post_id" value={summary.thread.id} />
             <input type="password" name="password" placeholder="Password" />
             <button type="submit">Delete</button>

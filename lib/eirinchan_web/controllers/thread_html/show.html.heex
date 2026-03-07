@@ -77,6 +77,7 @@
       else: @summary.thread.tag %>
   </p>
   <form action={~p"/#{@board.uri}/post"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="hidden" name="delete_post_id" value={@summary.thread.id} />
     <input type="password" name="password" placeholder="Password" />
     <button type="submit">Delete</button>
@@ -86,6 +87,7 @@
 <section>
   <h2>Reply</h2>
   <form action={~p"/#{@board.uri}/post"} method="post" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input type="hidden" name="thread" value={@summary.thread.id} />
     <input :if={!@config.field_disable_name} type="text" name="name" placeholder="Name" />
     <input :if={!@config.field_disable_email} type="text" name="email" placeholder="Email" />
@@ -224,6 +226,7 @@
             else: reply.tag %>
         </p>
         <form action={~p"/#{@board.uri}/post"} method="post">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
           <input type="hidden" name="delete_post_id" value={reply.id} />
           <input type="password" name="password" placeholder="Password" />
           <button type="submit">Delete</button>
