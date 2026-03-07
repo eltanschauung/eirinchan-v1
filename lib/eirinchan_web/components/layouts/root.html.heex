@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang={if assigns[:public_shell], do: nil, else: "en"}>
   <head>
     <meta charset="utf-8" />
     <%= if assigns[:head_html] do %>
@@ -11,7 +11,6 @@
       content={assigns[:viewport_content] || "width=device-width, initial-scale=1"}
     />
     <meta :if={!assigns[:public_shell]} name="csrf-token" content={get_csrf_token()} />
-    <title><%= assigns[:page_title] || "Eirinchan" %></title>
     <link
       :if={assigns[:base_stylesheet]}
       rel="stylesheet"
@@ -20,13 +19,13 @@
     />
     <link
       :if={!assigns[:skip_app_stylesheet]}
-      phx-track-static
+      phx-track-static={!assigns[:public_shell]}
       rel="stylesheet"
       href={versioned_asset(~p"/assets/app.css", assigns[:asset_version])}
     />
     <link
       :if={assigns[:primary_stylesheet]}
-      phx-track-static
+      phx-track-static={!assigns[:public_shell]}
       rel="stylesheet"
       id={assigns[:primary_stylesheet_id]}
       href={versioned_asset(assigns[:primary_stylesheet], assigns[:asset_version])}
@@ -39,7 +38,7 @@
     />
     <link
       :for={stylesheet <- assigns[:extra_stylesheets] || []}
-      phx-track-static
+      phx-track-static={!assigns[:public_shell]}
       rel="stylesheet"
       href={versioned_asset(stylesheet, assigns[:asset_version])}
     />
@@ -58,18 +57,16 @@
     >
     </script>
     <script
-      :if={assigns[:public_shell]}
-      type="text/javascript"
-      src={versioned_asset(~p"/assets/app.js", assigns[:asset_version])}
-    >
-    </script>
-    <script
       :for={script_url <- assigns[:custom_javascript_urls] || []}
       defer
       type="text/javascript"
       src={versioned_asset(script_url, assigns[:asset_version])}
     >
     </script>
+    <%= if assigns[:head_after_assets_html] do %>
+      <%= Phoenix.HTML.raw(assigns[:head_after_assets_html]) %>
+    <% end %>
+    <title><%= assigns[:page_title] || "Eirinchan" %></title>
   </head>
   <body
     class={assigns[:body_class] || "8chan vichan"}

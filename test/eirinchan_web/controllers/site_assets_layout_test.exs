@@ -43,10 +43,10 @@ defmodule EirinchanWeb.SiteAssetsLayoutTest do
       |> html_response(200)
 
     assert page =~ ~s(/stylesheets/style.css?v=build-42)
-    assert page =~ ~s(/assets/app.js?v=build-42)
     assert page =~ ~s(/js/custom-a.js?v=build-42)
     assert page =~ ~s(/js/custom-b.js?v=build-42)
     assert page =~ ~s(/js/custom-c.js?v=build-42)
+    refute page =~ ~s(/assets/app.js?v=build-42)
   end
 
   test "root layout includes configured analytics hooks from instance config", %{conn: conn} do

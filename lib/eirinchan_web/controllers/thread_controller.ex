@@ -33,6 +33,8 @@ defmodule EirinchanWeb.ThreadController do
             layout: false,
             board: board,
             board_title: board.title,
+            page_title:
+              "/#{board.uri}/ - #{summary.thread.subject || summary.thread.body || summary.thread.id}",
             announcement: Announcement.current(),
             summary: summary,
             config: config,
@@ -46,7 +48,8 @@ defmodule EirinchanWeb.ThreadController do
             body_data_stylesheet: board_data_stylesheet(board),
             head_html:
               PublicShell.head_html("thread", board_name: board.uri, thread_id: summary.thread.id),
-            javascript_urls: PublicShell.javascript_urls(),
+            head_after_assets_html: PublicShell.thread_meta_html(board, summary.thread, config),
+            javascript_urls: PublicShell.javascript_urls(:thread),
             body_end_html: PublicShell.body_end_html(),
             primary_stylesheet: board_primary_stylesheet(board),
             primary_stylesheet_id: "stylesheet",
