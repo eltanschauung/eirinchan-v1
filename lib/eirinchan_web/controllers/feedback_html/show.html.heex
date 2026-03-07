@@ -1,0 +1,27 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Feedback</h1>
+  <p>Send feedback to the site administrators.</p>
+</section>
+
+<%= if assigns[:errors] do %>
+  <section>
+    <%= for {field, messages} <- @errors do %>
+      <p><%= field %>: <%= Enum.join(messages, ", ") %></p>
+    <% end %>
+  </section>
+<% end %>
+
+<section>
+  <form action={~p"/feedback"} method="post">
+    <input type="text" name="name" placeholder="Name" value={get_in(assigns, [:params, "name"])} />
+    <input
+      type="text"
+      name="email"
+      placeholder="Email"
+      value={get_in(assigns, [:params, "email"])}
+    />
+    <textarea name="body" placeholder="Feedback"><%= get_in(assigns, [:params, "body"]) %></textarea>
+    <button type="submit">Send Feedback</button>
+  </form>
+</section>

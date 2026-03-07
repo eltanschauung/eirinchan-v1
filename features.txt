@@ -97,8 +97,8 @@ per-board post storage model parity or compatible replacement: partial
 post files JSON payload compatibility layer: incomplete
 cites table behavior parity: incomplete
 reports table behavior parity: partial
-feedback table behavior parity: incomplete
-feedback_comments table behavior parity: incomplete
+feedback table behavior parity: partial
+feedback_comments table behavior parity: partial
 bans table behavior parity: incomplete
 mod users/modlogs/pms table behavior parity: incomplete
 search_queries rate-limiting table behavior parity: incomplete
@@ -137,10 +137,10 @@ moderator dashboard parity (counts and quick links): incomplete
 recent posts moderation view parity: incomplete
 reports queue parity: partial
 report dismiss variants (single/post/ip) parity: partial
-feedback queue parity in mod panel: incomplete
-feedback delete action parity: incomplete
-feedback mark-as-read action parity: incomplete
-feedback add note/comment action parity: incomplete
+feedback queue parity in mod panel: partial
+feedback delete action parity: partial
+feedback mark-as-read action parity: partial
+feedback add note/comment action parity: partial
 ban creation/edit/list pipeline parity: incomplete
 ban appeals moderation workflow parity: incomplete
 IP notes and IP history moderation view parity: incomplete
@@ -160,16 +160,16 @@ noticeboard/news moderation pages parity: incomplete
 moderator PM inbox/reply flow parity: incomplete
 
 [Feedback System (Custom Bantculture fork Features)]
-public /feedback submission endpoint parity: incomplete
+public /feedback submission endpoint parity: partial
 feedback theme-generated public UI parity: incomplete
 feedback textarea UI parity with current style: incomplete
-feedback_store_ip boolean behavior (real range vs 0.0.0.0): incomplete
-IPv4 subnet capture to /16 behavior parity: incomplete
-IPv6 subnet capture to /48 behavior parity: incomplete
-feedback entries stored in DB (not txt file) parity: incomplete
+feedback_store_ip boolean behavior (real range vs 0.0.0.0): partial
+IPv4 subnet capture to /16 behavior parity: partial
+IPv6 subnet capture to /48 behavior parity: partial
+feedback entries stored in DB (not txt file) parity: partial
 feedback admin unread badge counting parity: incomplete
-feedback queue mirrored design relative to report queue parity: incomplete
-feedback admin notes rendered under entries parity: incomplete
+feedback queue mirrored design relative to report queue parity: partial
+feedback admin notes rendered under entries parity: partial
 feedback moderation action labels (Delete/Mark as Read/Add Note): incomplete
 feedback transfer/import tooling from legacy feedback.txt: incomplete
 

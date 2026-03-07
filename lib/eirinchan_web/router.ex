@@ -17,6 +17,10 @@ defmodule EirinchanWeb.Router do
   scope "/manage", EirinchanWeb do
     pipe_through :api
 
+    get "/feedback", FeedbackManagementController, :index
+    patch "/feedback/:id/read", FeedbackManagementController, :mark_read
+    post "/feedback/:id/comments", FeedbackManagementController, :create_comment
+    delete "/feedback/:id", FeedbackManagementController, :delete
     get "/boards", BoardManagementController, :index
     post "/boards", BoardManagementController, :create
     get "/boards/:uri", BoardManagementController, :show
@@ -42,6 +46,8 @@ defmodule EirinchanWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/feedback", FeedbackController, :show
+    post "/feedback", FeedbackController, :create
     get "/:board/catalog.html", BoardController, :catalog
     get "/:board/:page_num_html", BoardController, :show_page
     get "/:board", BoardController, :show
