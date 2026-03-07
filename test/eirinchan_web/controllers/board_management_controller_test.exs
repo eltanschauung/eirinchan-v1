@@ -204,7 +204,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert catalog_page =~ ~s(name="delete_post_id")
   end
 
-  test "bant catalog page renders the custom chrome shell", %{conn: conn} do
+  test "catalog page renders the distribution chrome shell", %{conn: conn} do
     board = board_fixture(%{uri: "bant", title: "International Random"})
     thread_fixture(board, %{body: "First body", subject: "First thread"})
 
@@ -218,10 +218,9 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ ~s(href="/stylesheets/style.css")
     assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
     assert page =~ "Return to Index"
-    assert page =~ "View News - 02/14/26"
     assert page =~ "Sort by:"
     assert page =~ ~s(id="Grid")
-    assert page =~ "We witches are not whale lol."
+    assert page =~ "Powered by Eirinchan."
   end
 
   test "catalog page renders formatted body excerpts", %{conn: conn} do

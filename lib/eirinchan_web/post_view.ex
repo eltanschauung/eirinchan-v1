@@ -132,7 +132,7 @@ defmodule EirinchanWeb.PostView do
         ""
       end
 
-    ~s(<div class="pages">#{previous_html}  #{page_links}#{if next_html != "", do: "  " <> next_html, else: ""} | <a href="/#{board_uri}/catalog.html">Orin</a></div>)
+    ~s(<div class="pages">#{previous_html}  #{page_links}#{if next_html != "", do: "  " <> next_html, else: ""} | <a href="/#{board_uri}/catalog.html">Catalog</a></div>)
   end
 
   def post_flags(post, config) do

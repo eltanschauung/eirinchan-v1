@@ -95,7 +95,7 @@ defmodule EirinchanWeb.PublicShell do
     meta_subject = thread.subject || strip_html(thread.body || "")
     meta_description = strip_html(thread.body || "")
     image_url = thread_thumb_url(board, thread, config)
-    thread_url = "https://bantculture.com/#{board.uri}/res/#{thread.id}.html"
+    thread_url = "/#{board.uri}/res/#{thread.id}.html"
 
     [
       ~s(<meta name="description" content="#{escape(board_heading(board) <> " - " <> meta_subject)}" />),
@@ -122,13 +122,13 @@ defmodule EirinchanWeb.PublicShell do
   defp thread_thumb_url(board, thread, config) do
     case thread.thumb_path do
       nil ->
-        nil
+      nil
 
       thumb ->
         if String.starts_with?(thumb, "/") do
-          "https://bantculture.com" <> thumb
+          thumb
         else
-          "https://bantculture.com/#{board.uri}/#{config.dir.thumb}#{thumb}"
+          "/#{board.uri}/#{config.dir.thumb}#{thumb}"
         end
     end
   end
