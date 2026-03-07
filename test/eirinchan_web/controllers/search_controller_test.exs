@@ -128,6 +128,52 @@ defmodule EirinchanWeb.SearchControllerTest do
            |> html_response(200) =~ "green leaf"
   end
 
+  test "public search supports wildcard and phrase search semantics", %{conn: conn} do
+    board = board_fixture(%{uri: "phrase#{System.unique_integer([:positive])}", title: "Phrase"})
+
+    {:ok, _thread, _meta} =
+      Eirinchan.Posts.create_post(
+        board,
+        %{
+          "name" => "Alice",
+          "subject" => "Green Tea Topic",
+          "body" => "green tea leaf piles only",
+          "post" => "New Topic"
+        },
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{referer: "http://example.test/#{board.uri}/index.html"}
+      )
+
+    {:ok, _thread, _meta} =
+      Eirinchan.Posts.create_post(
+        board,
+        %{
+          "name" => "Bob",
+          "subject" => "Black Tea Topic",
+          "body" => "black tea dust only",
+          "post" => "New Topic"
+        },
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{referer: "http://example.test/#{board.uri}/index.html"}
+      )
+
+    phrase_page =
+      conn
+      |> get("/search", %{"q" => "\"green tea\" leaf*", "board" => board.uri})
+      |> html_response(200)
+
+    assert phrase_page =~ "green tea leaf piles only"
+    refute phrase_page =~ "black tea dust only"
+
+    subject_page =
+      conn
+      |> get("/search", %{"q" => "subject:\"Green Tea\" top*", "board" => board.uri})
+      |> html_response(200)
+
+    assert subject_page =~ "Green Tea Topic"
+    refute subject_page =~ "Black Tea Topic"
+  end
+
   test "public search can be disabled globally", %{conn: conn} do
     previous = Application.get_env(:eirinchan, :search_overrides, %{})
     Application.put_env(:eirinchan, :search_overrides, %{search_enabled: false})

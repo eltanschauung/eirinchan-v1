@@ -210,7 +210,7 @@ public search endpoint parity: partial
 search enable/disable and board whitelist/blacklist behavior: partial
 search query rate limiting (per-IP and global) parity: partial
 search syntax filters (id/thread/subject/name) parity: partial
-search wildcard/phrase semantics parity: incomplete
+search wildcard/phrase semantics parity: partial
 search result rendering parity (Post/Thread objects): incomplete
 
 [Themes and Extension Framework]
