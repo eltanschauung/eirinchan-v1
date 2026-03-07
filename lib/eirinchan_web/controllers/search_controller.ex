@@ -19,7 +19,7 @@ defmodule EirinchanWeb.SearchController do
   plug :assign_search_shell
 
   def show(conn, params) do
-    query = String.trim(params["q"] || "")
+    query = String.trim(params["q"] || params["search"] || "")
     board = board_from_param(params["board"])
 
     instance_overrides =

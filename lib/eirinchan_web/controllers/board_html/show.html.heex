@@ -1,5 +1,10 @@
 <%= raw(
-  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+  PostView.boardlist_html(
+    EirinchanWeb.BoardChrome.boardlist_groups(
+      @boards,
+      @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)
+    )
+  )
 ) %>
 
 <script type="text/javascript">
@@ -31,11 +36,11 @@
 
 <form
   name="post"
-  id="new-thread-form"
   onsubmit="return dopost(this);"
   enctype="multipart/form-data"
-  action={~p"/#{@board.uri}/post"}
+  action="/post.php"
   method="post"
+  id="new-thread-form"
   data-remember-stuff
   data-board-uri={@board.uri}
   data-draft-key="new"
@@ -63,9 +68,38 @@
       </td>
     </tr>
     <tr :if={!@config.field_disable_email}>
-      <th>Email</th>
+      <th>
+        <%= if Map.get(@config, :field_email_selectbox, false) ||
+                 Map.get(@config, :hide_email, false),
+               do: "Options",
+               else: "Email" %>
+      </th>
       <td>
-        <input type="text" name="email" size="25" maxlength="40" autocomplete="off" />
+        <select
+          :if={
+            Map.get(@config, :field_email_selectbox, false) ||
+              Map.get(@config, :hide_email, false)
+          }
+          name="email"
+          id="email_selectbox"
+          autocomplete="off"
+        >
+          <option value=""></option>
+          <option value="sage">sage</option>
+          <option :if={!@config.always_noko} value="noko">noko</option>
+          <option :if={@config.always_noko} value="nonoko">nonoko</option>
+        </select>
+        <input
+          :if={
+            !(Map.get(@config, :field_email_selectbox, false) ||
+                Map.get(@config, :hide_email, false))
+          }
+          type="text"
+          name="email"
+          size="25"
+          maxlength="40"
+          autocomplete="off"
+        />
       </td>
     </tr>
     <tr :if={!@config.field_disable_subject}>
@@ -232,25 +266,21 @@
 <% end %>
 
 <hr />
-
-<form style="display:inline;" action={~p"/search"} method="get">
+<!-- Start Search Form -->
+<form style="display:inline;" action="/search" method="get">
   <p style="margin: 8px;">
-    <input type="text" style="max-width:40%;" name="q" placeholder="Search" />
+    <input type="text" style="max-width:40%;" name="search" placeholder="Search" />
     <input type="hidden" name="board" value={@board.uri} />
     <input type="submit" value="Search" style="margin-right:4px;" />
-    <%= if @board_chrome.search_links do %>
-      <%= for link <- @board_chrome.search_links do %>
-        <a style="text-decoration:none;" href={link.href}><%= link.label %></a>
-      <% end %>
-    <% else %>
-      <a style="text-decoration:none;" href={"/#{@board.uri}/catalog.html"}>[Orin]</a>
+    <%= for link <- EirinchanWeb.BoardChrome.search_links(@board.uri) do %>
+      <a style="text-decoration:none;" href={link.href}><%= link.label %></a>
     <% end %>
   </p>
 </form>
-
+<!-- End Search Form -->
 <p :if={@page_data.threads == []} class="unimportant">No threads yet.</p>
 
-<form name="postcontrols" action={~p"/#{@board.uri}/post"} method="post">
+<form name="postcontrols" action="/post.php" method="post">
   <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
   <input type="hidden" name="board" value={@board.uri} />
 
@@ -469,7 +499,10 @@
 <a name="bottom"></a>
 <%= raw(
   PostView.boardlist_html(
-    @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards),
+    EirinchanWeb.BoardChrome.boardlist_groups(
+      @boards,
+      @board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)
+    ),
     "boardlist bottom"
   )
 ) %>

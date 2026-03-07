@@ -1,6 +1,9 @@
 <%= raw(
   EirinchanWeb.PostView.boardlist_html(
-    @board_chrome.boardlist_groups || EirinchanWeb.PostView.boardlist_groups(@boards)
+    EirinchanWeb.BoardChrome.boardlist_groups(
+      @boards,
+      @board_chrome.boardlist_groups || EirinchanWeb.PostView.boardlist_groups(@boards)
+    )
   )
 ) %>
 
@@ -32,7 +35,7 @@
 </div>
 
 <section class="public-panel search-panel">
-  <form action={~p"/search"} method="get" class="search-form">
+  <form action="/search.php" method="get" class="search-form">
     <p>
       <select name="board">
         <option value="">All boards</option>
@@ -42,7 +45,7 @@
           </option>
         <% end %>
       </select>
-      <input type="text" name="q" value={@query} placeholder="Search query" />
+      <input type="text" name="search" value={@query} placeholder="Search query" />
       <input type="submit" value="Search" />
     </p>
   </form>

@@ -111,6 +111,8 @@ defmodule EirinchanWeb.Router do
     pipe_through :browser
 
     get "/b.php", BannerController, :show
+    get "/search.php", SearchController, :show
+    post "/post.php", PostController, :create
     post "/theme", ThemeController, :update
     get "/auth", IpAccessAuthController, :show
     post "/auth", IpAccessAuthController, :create
