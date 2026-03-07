@@ -64,9 +64,12 @@ defmodule Eirinchan.BuildTest do
 
     assert File.read!(index_path) =~ "Opening subject"
     assert File.read!(index_path) =~ "Reply body"
+    assert File.read!(index_path) =~ ~s(name="delete_post_id")
     assert File.read!(page_two_path) =~ "Second thread subject"
     assert File.read!(catalog_html_path) =~ "Second thread subject"
+    assert File.read!(catalog_html_path) =~ ~s(name="delete_post_id")
     assert File.read!(thread_path) =~ "Reply body"
+    assert File.read!(thread_path) =~ ~s(name="delete_post_id")
     assert Jason.decode!(File.read!(thread_json_path))["posts"] |> length() == 2
 
     assert Jason.decode!(File.read!(page_zero_json_path))["threads"]
@@ -145,5 +148,58 @@ defmodule Eirinchan.BuildTest do
     assert File.read!(index_path) =~ "[Locked]"
     assert File.read!(thread_path) =~ "[Sticky]"
     assert File.read!(thread_path) =~ "[Locked]"
+  end
+
+  test "deleting posts updates static thread and board outputs" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture(%{config_overrides: %{slugify: true}})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+    request = %{referer: "http://example.test/#{board.uri}/index.html"}
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "subject" => "Delete subject",
+                 "password" => "threadpw",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "password" => "replypw",
+                 "post" => config.button_reply
+               },
+               config: config,
+               request: request
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    canonical_thread_path =
+      Path.join([board_dir, config.dir.res, "#{thread.id}-delete-subject.html"])
+
+    assert File.read!(thread_path) =~ "Reply body"
+
+    assert {:ok, %{thread_deleted: false}} =
+             Posts.delete_post(board, reply.id, "replypw", config: config)
+
+    refute File.read!(thread_path) =~ "Reply body"
+
+    assert {:ok, %{thread_deleted: true}} =
+             Posts.delete_post(board, thread.id, "threadpw", config: config)
+
+    refute File.exists?(thread_path)
+    refute File.exists?(canonical_thread_path)
   end
 end

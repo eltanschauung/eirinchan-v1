@@ -52,5 +52,6 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     assert page =~ ~s(href="/#{board.uri}/2.html")
     assert page =~ "Older body"
+    assert page =~ ~s(name="delete_post_id")
   end
 end

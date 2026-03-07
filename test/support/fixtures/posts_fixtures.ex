@@ -16,4 +16,21 @@ defmodule Eirinchan.PostsFixtures do
 
     thread
   end
+
+  def reply_fixture(board, thread, attrs \\ %{}) do
+    {:ok, reply, _meta} =
+      Posts.create_post(
+        board,
+        attrs
+        |> Enum.into(%{
+          thread: Integer.to_string(thread.id),
+          body: "Reply body",
+          post: "New Reply"
+        }),
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{referer: "http://example.test/#{board.uri}/index.html"}
+      )
+
+    reply
+  end
 end

@@ -17,6 +17,11 @@
     <%= if @summary.thread.sage, do: " [Bumplocked]" %>
   </p>
   <p><%= @summary.thread.body %></p>
+  <form action={~p"/#{@board.uri}/post"} method="post">
+    <input type="hidden" name="delete_post_id" value={@summary.thread.id} />
+    <input type="password" name="password" placeholder="Password" />
+    <button type="submit">Delete</button>
+  </form>
 </section>
 
 <section>
@@ -41,6 +46,11 @@
       <article id={"p#{reply.id}"}>
         <h3><%= reply.subject || "Reply ##{reply.id}" %></h3>
         <p><%= reply.body %></p>
+        <form action={~p"/#{@board.uri}/post"} method="post">
+          <input type="hidden" name="delete_post_id" value={reply.id} />
+          <input type="password" name="password" placeholder="Password" />
+          <button type="submit">Delete</button>
+        </form>
       </article>
     <% end %>
   <% end %>

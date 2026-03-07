@@ -26,6 +26,18 @@ defmodule EirinchanWeb.PostController do
             respond_error(conn, :unprocessable_entity, error_message(changeset))
         end
 
+      :delete ->
+        case Posts.delete_post(board, params["delete_post_id"], params["password"], config: config) do
+          {:ok, result} ->
+            respond_deleted(conn, board, result, params)
+
+          {:error, reason} when is_atom(reason) ->
+            respond_error(conn, error_status(reason), error_message(reason, config))
+
+          {:error, %Ecto.Changeset{} = changeset} ->
+            respond_error(conn, :unprocessable_entity, error_message(changeset))
+        end
+
       :post ->
         case Posts.create_post(board, params, config: config, request: request) do
           {:ok, post, meta} ->
@@ -98,8 +110,34 @@ defmodule EirinchanWeb.PostController do
     end
   end
 
+  defp respond_deleted(conn, board, result, params) do
+    config = conn.assigns.current_board_config
+
+    redirect_path =
+      if result.thread_deleted do
+        "/#{board.uri}"
+      else
+        thread_redirect_or_board(board, result.thread_id, params, config)
+      end
+
+    if params["json_response"] == "1" do
+      json(conn, %{
+        deleted_post_id: result.deleted_post_id,
+        thread_id: result.thread_id,
+        thread_deleted: result.thread_deleted,
+        redirect: redirect_path
+      })
+    else
+      redirect(conn, to: redirect_path)
+    end
+  end
+
   defp branch(params) do
-    if Map.has_key?(params, "report_post_id"), do: :report, else: :post
+    cond do
+      Map.has_key?(params, "report_post_id") -> :report
+      Map.has_key?(params, "delete_post_id") -> :delete
+      true -> :post
+    end
   end
 
   defp thread_redirect_or_board(board, nil, _params, _config), do: "/#{board.uri}"
@@ -117,6 +155,7 @@ defmodule EirinchanWeb.PostController do
 
   defp error_status(:thread_not_found), do: :not_found
   defp error_status(:post_not_found), do: :not_found
+  defp error_status(:invalid_password), do: :forbidden
   defp error_status(:thread_locked), do: :forbidden
   defp error_status(:invalid_referer), do: :forbidden
   defp error_status(:invalid_post_mode), do: :forbidden
@@ -126,6 +165,7 @@ defmodule EirinchanWeb.PostController do
 
   defp error_message(:thread_not_found, _config), do: "Thread not found"
   defp error_message(:post_not_found, _config), do: "Post not found"
+  defp error_message(:invalid_password, config), do: config.error.password
   defp error_message(:thread_locked, config), do: config.error.locked
   defp error_message(:invalid_referer, config), do: config.error.referer
   defp error_message(:invalid_post_mode, config), do: config.error.bot

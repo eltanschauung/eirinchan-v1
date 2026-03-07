@@ -32,6 +32,25 @@ defmodule Eirinchan.Build do
     end
   end
 
+  @spec rebuild_after_delete(BoardRecord.t(), tuple(), keyword()) :: :ok | {:error, term()}
+  def rebuild_after_delete(%BoardRecord{} = board, {:thread, thread}, opts) do
+    config = Keyword.fetch!(opts, :config)
+    repo = Keyword.get(opts, :repo)
+
+    remove_thread_outputs(board, thread, config)
+    build_indexes(board, config: config, repo: repo)
+  end
+
+  def rebuild_after_delete(%BoardRecord{} = board, {:reply, thread_id}, opts) do
+    config = Keyword.fetch!(opts, :config)
+    repo = Keyword.get(opts, :repo)
+
+    with :ok <- build_thread(board, thread_id, config: config, repo: repo),
+         :ok <- build_indexes(board, config: config, repo: repo) do
+      :ok
+    end
+  end
+
   @spec build_thread(BoardRecord.t(), integer(), keyword()) :: :ok | {:error, term()}
   def build_thread(%BoardRecord{} = board, thread_id, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
@@ -184,8 +203,9 @@ defmodule Eirinchan.Build do
         omitted = render_omitted(summary)
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
         badges = render_thread_badges(summary.thread)
+        delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p>#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p>#{delete_form}#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -209,7 +229,8 @@ defmodule Eirinchan.Build do
       Enum.map_join(summary.replies, "\n", fn reply ->
         subject = html_escape(reply.subject || "Reply ##{reply.id}")
         body = html_escape(reply.body || "")
-        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3><p>#{body}</p></article>)
+        delete_form = render_delete_form(board, reply.id)
+        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3><p>#{body}</p>#{delete_form}</article>)
       end)
 
     """
@@ -221,6 +242,7 @@ defmodule Eirinchan.Build do
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</h1>
     #{render_thread_badges(summary.thread)}
     <p>#{html_escape(summary.thread.body || "")}</p>
+    #{render_delete_form(board, summary.thread.id)}
     </article>
     #{replies_html}
     </body>
@@ -237,8 +259,9 @@ defmodule Eirinchan.Build do
         body = html_escape(summary.thread.body || "")
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
         badges = render_thread_badges(summary.thread)
+        delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p><p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}<p>#{body}</p>#{delete_form}<p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -260,6 +283,17 @@ defmodule Eirinchan.Build do
     Enum.uniq([canonical, legacy])
   end
 
+  defp remove_thread_outputs(board, thread, config) do
+    thread
+    |> thread_output_filenames(config)
+    |> Enum.each(fn filename ->
+      _ = File.rm(Path.join([board_root(), board.uri, config.dir.res, filename]))
+    end)
+
+    _ = File.rm(Path.join([board_root(), board.uri, config.dir.res, "#{thread.id}.json"]))
+    :ok
+  end
+
   defp render_thread_badges(thread) do
     labels =
       []
@@ -276,6 +310,10 @@ defmodule Eirinchan.Build do
 
   defp maybe_add_badge(labels, true, label), do: labels ++ ["[#{label}]"]
   defp maybe_add_badge(labels, _enabled, _label), do: labels
+
+  defp render_delete_form(board, post_id) do
+    ~s(<form class="delete-form" action="/#{board.uri}/post" method="post"><input type="hidden" name="delete_post_id" value="#{post_id}" /><input type="password" name="password" placeholder="Password" /><button type="submit">Delete</button></form>)
+  end
 
   defp render_preview_replies(replies) do
     Enum.map_join(replies, "\n", fn reply ->

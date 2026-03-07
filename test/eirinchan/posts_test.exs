@@ -303,6 +303,89 @@ defmodule Eirinchan.PostsTest do
     refute Enum.any?(replies, &(&1.id == first_reply.id))
   end
 
+  test "delete_post removes replies when the password matches" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "subject" => "Opening",
+                 "password" => "threadpw",
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "password" => "replypw",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:error, :invalid_password} =
+             Posts.delete_post(board, reply.id, "wrong", config: config)
+
+    assert {:ok, %{deleted_post_id: deleted_post_id, thread_id: thread_id, thread_deleted: false}} =
+             Posts.delete_post(board, reply.id, "replypw", config: config)
+
+    assert deleted_post_id == reply.id
+    assert thread_id == thread.id
+    assert {:ok, [reloaded_thread]} = Posts.get_thread(board, thread.id, config: config)
+    assert reloaded_thread.id == thread.id
+  end
+
+  test "delete_post removes threads and cascades replies when the password matches" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "subject" => "Opening",
+                 "password" => "threadpw",
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "password" => "replypw",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, %{deleted_post_id: deleted_post_id, thread_id: thread_id, thread_deleted: true}} =
+             Posts.delete_post(board, thread.id, "threadpw", config: config)
+
+    assert deleted_post_id == thread.id
+    assert thread_id == thread.id
+    assert {:error, :not_found} = Posts.get_thread(board, thread.id, config: config)
+    assert Posts.list_threads(board, config: config) == []
+  end
+
   test "list_threads_page returns previews, omitted counts, and page metadata" do
     board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
     config = post_config(board.config_overrides)
