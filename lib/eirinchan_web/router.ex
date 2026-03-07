@@ -59,6 +59,8 @@ defmodule EirinchanWeb.Router do
   scope "/manage", EirinchanWeb do
     pipe_through :manage_api
 
+    get "/dashboard", ModDashboardController, :show
+    get "/recent-posts", ModDashboardController, :recent
     get "/boards/:uri/threads/:thread_id", ThreadManagementController, :show
     get "/boards/:uri/reports", ReportManagementController, :index
     get "/feedback", FeedbackManagementController, :index

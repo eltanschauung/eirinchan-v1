@@ -136,6 +136,26 @@ defmodule Eirinchan.Posts do
     Enum.map(page_data.threads, & &1.thread)
   end
 
+  @spec list_recent_posts(keyword()) :: [Post.t()]
+  def list_recent_posts(opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    limit = Keyword.get(opts, :limit, 25)
+    board_ids = Keyword.get(opts, :board_ids)
+
+    query =
+      from post in Post,
+        order_by: [desc: post.inserted_at, desc: post.id],
+        limit: ^limit
+
+    query =
+      case board_ids do
+        ids when is_list(ids) -> from post in query, where: post.board_id in ^ids
+        _ -> query
+      end
+
+    repo.all(query)
+  end
+
   @spec list_page_data(BoardRecord.t(), keyword()) :: {:ok, [map()]} | {:error, :not_found}
   def list_page_data(%BoardRecord{} = board, opts \\ []) do
     repo = Keyword.get(opts, :repo, Repo)

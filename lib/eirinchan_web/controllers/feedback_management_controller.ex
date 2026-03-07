@@ -6,7 +6,7 @@ defmodule EirinchanWeb.FeedbackManagementController do
   action_fallback EirinchanWeb.FallbackController
 
   def index(conn, _params) do
-    render(conn, :index, feedback: Feedback.list_feedback())
+    render(conn, :index, feedback: Feedback.list_feedback(), unread_count: Feedback.unread_count())
   end
 
   def mark_read(conn, %{"id" => id}) do
