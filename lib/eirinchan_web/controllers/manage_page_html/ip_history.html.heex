@@ -15,6 +15,51 @@
         <h3>#<%= post.id %> on /<%= post.board_id %>/</h3>
         <p :if={post.subject}><strong><%= post.subject %></strong></p>
         <p :if={post.body}><%= post.body %></p>
+
+        <section :if={@moderator.role in ["admin", "mod"]}>
+          <h4>Move</h4>
+          <%= if is_nil(post.thread_id) and @board do %>
+            <form
+              action={"/manage/boards/#{@board.uri}/threads/#{post.id}/browser/move"}
+              method="post"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <input type="hidden" name="_method" value="patch" />
+              <label>
+                <span>Target Board</span>
+                <select name="target_board_uri">
+                  <%= for board <- @boards do %>
+                    <option value={board.uri}>/<%= board.uri %>/</option>
+                  <% end %>
+                </select>
+              </label>
+              <button type="submit">Move Thread</button>
+            </form>
+          <% end %>
+
+          <%= if !is_nil(post.thread_id) and @board do %>
+            <form
+              action={"/manage/boards/#{@board.uri}/posts/#{post.id}/browser/move"}
+              method="post"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <input type="hidden" name="_method" value="patch" />
+              <label>
+                <span>Target Board</span>
+                <select name="target_board_uri">
+                  <%= for board <- @boards do %>
+                    <option value={board.uri}>/<%= board.uri %>/</option>
+                  <% end %>
+                </select>
+              </label>
+              <label>
+                <span>Target Thread ID</span>
+                <input type="text" name="target_thread_id" />
+              </label>
+              <button type="submit">Move Reply</button>
+            </form>
+          <% end %>
+        </section>
       </article>
     <% end %>
   <% end %>
