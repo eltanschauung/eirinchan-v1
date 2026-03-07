@@ -21,7 +21,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :home,
         Keyword.merge(
-          public_page_assigns("active-page", "index"),
+          public_page_assigns(conn, "active-page", "index"),
           layout: false,
           news_entries: News.list_entries(limit: 5)
         )
@@ -37,7 +37,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :news,
         Keyword.merge(
-          public_page_assigns("active-page", "news"),
+          public_page_assigns(conn, "active-page", "news"),
           layout: false,
           news_entries: News.list_entries()
         )
@@ -53,7 +53,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :catalog,
         Keyword.merge(
-          public_page_assigns("active-catalog", "catalog"),
+          public_page_assigns(conn, "active-catalog", "catalog"),
           layout: false,
           threads: global_catalog_threads()
         )
@@ -69,7 +69,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :ukko,
         Keyword.merge(
-          public_page_assigns("active-page", "ukko"),
+          public_page_assigns(conn, "active-page", "ukko"),
           layout: false,
           threads: ukko_threads()
         )
@@ -85,7 +85,7 @@ defmodule EirinchanWeb.PageController do
         conn,
         :recent,
         Keyword.merge(
-          public_page_assigns("active-page", "recent"),
+          public_page_assigns(conn, "active-page", "recent"),
           layout: false,
           posts: Posts.list_recent_posts(limit: 50)
         )
@@ -128,7 +128,7 @@ defmodule EirinchanWeb.PageController do
             conn,
             :page,
             Keyword.merge(
-              public_page_assigns("active-page", "page"),
+              public_page_assigns(conn, "active-page", "page"),
               layout: false,
               page: page
             )
@@ -137,7 +137,7 @@ defmodule EirinchanWeb.PageController do
     end
   end
 
-  defp public_page_assigns(page_kind, active_page) do
+  defp public_page_assigns(conn, page_kind, active_page) do
     boards = Boards.list_boards()
     primary_board = Enum.find(boards, &(&1.uri == "bant")) || %{uri: "bant"}
     chrome = BoardChrome.for_board(primary_board)
@@ -152,11 +152,11 @@ defmodule EirinchanWeb.PageController do
       viewport_content: "width=device-width, initial-scale=1, user-scalable=yes",
       base_stylesheet: "/stylesheets/style.css",
       body_class: public_body_class(page_kind),
-      body_data_stylesheet: public_data_stylesheet(primary_board),
+      body_data_stylesheet: public_data_stylesheet(conn),
       head_html: PublicShell.head_html(active_page),
       javascript_urls: PublicShell.javascript_urls(active_page),
       body_end_html: PublicShell.body_end_html(),
-      primary_stylesheet: public_primary_stylesheet(primary_board),
+      primary_stylesheet: public_primary_stylesheet(conn),
       primary_stylesheet_id: "stylesheet",
       extra_stylesheets: public_extra_stylesheets(primary_board),
       hide_theme_switcher: true,
@@ -169,9 +169,13 @@ defmodule EirinchanWeb.PageController do
 
   defp public_body_class(page_kind), do: "8chan vichan is-not-moderator #{page_kind}"
 
-  defp public_data_stylesheet(_board), do: "yotsuba.css"
+  defp public_data_stylesheet(conn) do
+    public_primary_stylesheet(conn)
+    |> Path.basename()
+  end
 
-  defp public_primary_stylesheet(_board), do: "/stylesheets/yotsuba.css"
+  defp public_primary_stylesheet(conn),
+    do: conn.assigns[:theme_stylesheet] || "/stylesheets/yotsuba.css"
 
   defp public_extra_stylesheets(_board),
     do: ["/stylesheets/eirinchan-public.css", "/stylesheets/eirinchan-bant.css"]
