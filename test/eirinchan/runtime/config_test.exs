@@ -145,4 +145,20 @@ defmodule Eirinchan.Runtime.ConfigTest do
     assert config.captcha.mode == "reply"
     assert config.captcha.refresh_on_error
   end
+
+  test "provides search gating defaults" do
+    config =
+      Config.compose(
+        %{
+          root: "/",
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    assert config.search_enabled
+    assert config.search_allowed_boards == nil
+    assert config.search_disallowed_boards == []
+  end
 end

@@ -1,5 +1,5 @@
 defmodule EirinchanWeb.SearchControllerTest do
-  use EirinchanWeb.ConnCase, async: true
+  use EirinchanWeb.ConnCase, async: false
 
   test "public search returns matching posts and respects board filters", %{conn: conn} do
     board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
@@ -97,5 +97,70 @@ defmodule EirinchanWeb.SearchControllerTest do
 
     assert get(conn, "/search", %{"q" => "name:Alice", "board" => board.uri})
            |> html_response(200) =~ "green leaf"
+  end
+
+  test "public search can be disabled globally", %{conn: conn} do
+    previous = Application.get_env(:eirinchan, :search_overrides, %{})
+    Application.put_env(:eirinchan, :search_overrides, %{search_enabled: false})
+    on_exit(fn -> Application.put_env(:eirinchan, :search_overrides, previous) end)
+
+    page =
+      conn
+      |> get("/search", %{"q" => "leaf"})
+      |> html_response(200)
+
+    assert page =~ "Search disabled."
+    refute page =~ "Search rate limit exceeded."
+  end
+
+  test "public search respects board allowlists and denylists", %{conn: conn} do
+    allowed_board =
+      board_fixture(%{uri: "allow#{System.unique_integer([:positive])}", title: "Allow"})
+
+    blocked_board =
+      board_fixture(%{uri: "block#{System.unique_integer([:positive])}", title: "Block"})
+
+    {:ok, _thread, _meta} =
+      Eirinchan.Posts.create_post(
+        allowed_board,
+        %{"body" => "allowed search result", "post" => "New Topic"},
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, allowed_board.config_overrides),
+        request: %{referer: "http://example.test/#{allowed_board.uri}/index.html"}
+      )
+
+    {:ok, _thread, _meta} =
+      Eirinchan.Posts.create_post(
+        blocked_board,
+        %{"body" => "blocked search result", "post" => "New Topic"},
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, blocked_board.config_overrides),
+        request: %{referer: "http://example.test/#{blocked_board.uri}/index.html"}
+      )
+
+    previous = Application.get_env(:eirinchan, :search_overrides, %{})
+
+    Application.put_env(:eirinchan, :search_overrides, %{
+      search_allowed_boards: [allowed_board.uri],
+      search_disallowed_boards: [blocked_board.uri]
+    })
+
+    on_exit(fn -> Application.put_env(:eirinchan, :search_overrides, previous) end)
+
+    page =
+      conn
+      |> get("/search", %{"q" => "search result"})
+      |> html_response(200)
+
+    assert page =~ "allowed search result"
+    refute page =~ "blocked search result"
+    assert page =~ ~s(value="#{allowed_board.uri}")
+    refute page =~ ~s(value="#{blocked_board.uri}")
+
+    blocked_page =
+      conn
+      |> get("/search", %{"q" => "search result", "board" => blocked_board.uri})
+      |> html_response(200)
+
+    assert blocked_page =~ "Search not available for this board."
+    refute blocked_page =~ "blocked search result"
   end
 end
