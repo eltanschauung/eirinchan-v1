@@ -24,10 +24,20 @@ defmodule EirinchanWeb.Router do
     delete "/boards/:uri", BoardManagementController, :delete
   end
 
+  scope "/api", EirinchanWeb do
+    pipe_through :api
+
+    get "/:board/catalog.json", ApiController, :catalog
+    get "/:board/threads.json", ApiController, :threads
+    get "/:board/res/:thread_id", ApiController, :thread
+    get "/:board/pages/:page_num", ApiController, :page
+  end
+
   scope "/", EirinchanWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/:board/:page_num_html", BoardController, :show_page
     get "/:board", BoardController, :show
     post "/:board/post", PostController, :create
     get "/:board/res/:thread_id", ThreadController, :show

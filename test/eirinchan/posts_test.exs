@@ -125,4 +125,63 @@ defmodule Eirinchan.PostsTest do
                request: post_request(board.uri)
              )
   end
+
+  test "list_threads_page returns previews, omitted counts, and page metadata" do
+    board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, older_thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Older body", "subject" => "Older", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(older_thread.id),
+                 "body" => "Reply one",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(older_thread.id),
+                 "body" => "Reply two",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _newer_thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Newer body", "subject" => "Newer", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    assert {:ok, first_page} = Posts.list_threads_page(board, 1, config: config)
+    assert first_page.page == 1
+    assert first_page.total_pages == 2
+    assert Enum.map(first_page.pages, & &1.num) == [1, 2]
+    assert hd(first_page.threads).thread.subject == "Newer"
+
+    assert {:ok, second_page} = Posts.list_threads_page(board, 2, config: config)
+    summary = hd(second_page.threads)
+    assert summary.thread.id == older_thread.id
+    assert summary.reply_count == 2
+    assert summary.omitted_posts == 1
+    assert Enum.map(summary.replies, & &1.body) == ["Reply two"]
+  end
 end

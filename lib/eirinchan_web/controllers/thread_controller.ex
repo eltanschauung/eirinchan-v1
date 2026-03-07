@@ -9,9 +9,9 @@ defmodule EirinchanWeb.ThreadController do
     board = conn.assigns.current_board
     config = conn.assigns.current_board_config
 
-    case Posts.get_thread(board, thread_id) do
-      {:ok, [thread | replies]} ->
-        render(conn, :show, board: board, thread: thread, replies: replies, config: config)
+    case Posts.get_thread_view(board, thread_id) do
+      {:ok, summary} ->
+        render(conn, :show, board: board, summary: summary, config: config)
 
       {:error, :not_found} ->
         send_resp(conn, :not_found, "Thread not found")

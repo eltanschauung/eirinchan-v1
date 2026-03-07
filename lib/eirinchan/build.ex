@@ -3,6 +3,7 @@ defmodule Eirinchan.Build do
   Minimal filesystem build pipeline for board index and thread pages.
   """
 
+  alias Eirinchan.Api
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Posts
 
@@ -14,7 +15,7 @@ defmodule Eirinchan.Build do
     thread_id = post.thread_id || post.id
 
     with :ok <- build_thread(board, thread_id, config: config, repo: repo),
-         :ok <- build_index(board, config: config, repo: repo) do
+         :ok <- build_indexes(board, config: config, repo: repo) do
       :ok
     end
   end
@@ -24,26 +25,43 @@ defmodule Eirinchan.Build do
     config = Keyword.fetch!(opts, :config)
     repo = Keyword.get(opts, :repo)
 
-    case Posts.get_thread(board, thread_id, repo: repo) do
-      {:ok, [thread | replies]} ->
-        html = render_thread(board, thread, replies)
-        output = Path.join([board_root(), board.uri, config.dir.res, "#{thread.id}.html"])
-        write_file(output, html)
+    case Posts.get_thread_view(board, thread_id, repo: repo) do
+      {:ok, summary} ->
+        html = render_thread(board, summary)
+        output = Path.join([board_root(), board.uri, config.dir.res, "#{summary.thread.id}.html"])
+
+        with :ok <- write_file(output, html) do
+          if get_in(config, [:api, :enabled]) do
+            json_output =
+              Path.join([board_root(), board.uri, config.dir.res, "#{summary.thread.id}.json"])
+
+            write_file(json_output, Jason.encode!(Api.thread_json(summary)))
+          else
+            :ok
+          end
+        end
 
       {:error, :not_found} ->
         {:error, :not_found}
     end
   end
 
-  @spec build_index(BoardRecord.t(), keyword()) :: :ok | {:error, term()}
-  def build_index(%BoardRecord{} = board, opts \\ []) do
+  @spec build_indexes(BoardRecord.t(), keyword()) :: :ok | {:error, term()}
+  def build_indexes(%BoardRecord{} = board, opts \\ []) do
     config = Keyword.fetch!(opts, :config)
     repo = Keyword.get(opts, :repo)
-    threads = Posts.list_threads(board, repo: repo)
+    {:ok, first_page} = Posts.list_threads_page(board, 1, config: config, repo: repo)
 
-    html = render_index(board, threads)
-    output = Path.join([board_root(), board.uri, config.file_index])
-    write_file(output, html)
+    page_data_list =
+      Enum.map(1..first_page.total_pages, fn page ->
+        {:ok, page_data} = Posts.list_threads_page(board, page, config: config, repo: repo)
+        page_data
+      end)
+
+    with :ok <- write_index_pages(board, page_data_list, config),
+         :ok <- write_api_pages(board, page_data_list, config) do
+      remove_stale_index_pages(board, first_page.total_pages, config)
+    end
   end
 
   @spec board_root() :: String.t()
@@ -62,14 +80,86 @@ defmodule Eirinchan.Build do
     end
   end
 
-  defp render_index(board, threads) do
-    items =
-      Enum.map_join(threads, "\n", fn thread ->
-        title = html_escape(thread.subject || "Thread ##{thread.id}")
-        body = html_escape(thread.body || "")
+  defp write_index_pages(board, page_data_list, config) do
+    Enum.reduce_while(page_data_list, :ok, fn page_data, :ok ->
+      filename =
+        if page_data.page == 1 do
+          config.file_index
+        else
+          String.replace(config.file_page, "%d", Integer.to_string(page_data.page))
+        end
 
-        ~s(<article id="p#{thread.id}"><h2><a href="/#{board.uri}/res/#{thread.id}.html">#{title}</a></h2><p>#{body}</p></article>)
+      html = render_index(board, page_data)
+      output = Path.join([board_root(), board.uri, filename])
+
+      case write_file(output, html) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp write_api_pages(_board, _page_data_list, %{api: %{enabled: false}}), do: :ok
+
+  defp write_api_pages(board, page_data_list, _config) do
+    per_page_results =
+      Enum.reduce_while(page_data_list, :ok, fn page_data, :ok ->
+        json_path = Path.join([board_root(), board.uri, "#{page_data.page - 1}.json"])
+        payload = Jason.encode!(Api.page_json(page_data))
+
+        case write_file(json_path, payload) do
+          :ok -> {:cont, :ok}
+          error -> {:halt, error}
+        end
       end)
+
+    with :ok <- per_page_results,
+         :ok <-
+           write_file(
+             Path.join([board_root(), board.uri, "catalog.json"]),
+             Jason.encode!(Api.catalog_json(page_data_list))
+           ) do
+      write_file(
+        Path.join([board_root(), board.uri, "threads.json"]),
+        Jason.encode!(Api.catalog_json(page_data_list, threads_page: true))
+      )
+    end
+  end
+
+  defp remove_stale_index_pages(board, total_pages, config) do
+    if total_pages < config.max_pages do
+      Enum.each((total_pages + 1)..config.max_pages, fn page ->
+        filename =
+          Path.join([
+            board_root(),
+            board.uri,
+            String.replace(config.file_page, "%d", Integer.to_string(page))
+          ])
+
+        json_filename = Path.join([board_root(), board.uri, "#{page - 1}.json"])
+        _ = File.rm(filename)
+
+        if get_in(config, [:api, :enabled]) do
+          _ = File.rm(json_filename)
+        end
+      end)
+    end
+
+    :ok
+  end
+
+  defp render_index(board, page_data) do
+    items =
+      Enum.map_join(page_data.threads, "\n", fn summary ->
+        title = html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")
+        body = html_escape(summary.thread.body || "")
+        replies = render_preview_replies(summary.replies)
+        omitted = render_omitted(summary)
+
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="/#{board.uri}/res/#{summary.thread.id}.html">#{title}</a></h2><p>#{body}</p>#{omitted}#{replies}</article>)
+      end)
+
+    nav = render_pages(page_data.pages, page_data.page)
 
     """
     <!doctype html>
@@ -77,15 +167,17 @@ defmodule Eirinchan.Build do
     <head><meta charset="utf-8"><title>/#{html_escape(board.uri)}/ - #{html_escape(board.title)}</title></head>
     <body>
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(board.title)}</h1>
+    #{nav}
     #{items}
+    #{nav}
     </body>
     </html>
     """
   end
 
-  defp render_thread(board, thread, replies) do
+  defp render_thread(board, summary) do
     replies_html =
-      Enum.map_join(replies, "\n", fn reply ->
+      Enum.map_join(summary.replies, "\n", fn reply ->
         subject = html_escape(reply.subject || "Reply ##{reply.id}")
         body = html_escape(reply.body || "")
         ~s(<article id="p#{reply.id}"><h3>#{subject}</h3><p>#{body}</p></article>)
@@ -94,16 +186,50 @@ defmodule Eirinchan.Build do
     """
     <!doctype html>
     <html>
-    <head><meta charset="utf-8"><title>/#{html_escape(board.uri)}/ - #{html_escape(thread.subject || "Thread ##{thread.id}")}</title></head>
+    <head><meta charset="utf-8"><title>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</title></head>
     <body>
-    <article id="p#{thread.id}">
-    <h1>/#{html_escape(board.uri)}/ - #{html_escape(thread.subject || "Thread ##{thread.id}")}</h1>
-    <p>#{html_escape(thread.body || "")}</p>
+    <article id="p#{summary.thread.id}">
+    <h1>/#{html_escape(board.uri)}/ - #{html_escape(summary.thread.subject || "Thread ##{summary.thread.id}")}</h1>
+    <p>#{html_escape(summary.thread.body || "")}</p>
     </article>
     #{replies_html}
     </body>
     </html>
     """
+  end
+
+  defp render_preview_replies(replies) do
+    Enum.map_join(replies, "\n", fn reply ->
+      body = html_escape(reply.body || "")
+      ~s(<div class="reply-preview" id="p#{reply.id}"><p>#{body}</p></div>)
+    end)
+  end
+
+  defp render_omitted(%{omitted_posts: omitted_posts, omitted_images: omitted_images})
+       when omitted_posts > 0 do
+    suffix =
+      if omitted_images > 0 do
+        " and #{omitted_images} image replies"
+      else
+        ""
+      end
+
+    ~s(<p class="omitted">#{omitted_posts} posts#{suffix} omitted. Click Reply to view.</p>)
+  end
+
+  defp render_omitted(_summary), do: ""
+
+  defp render_pages(pages, current_page) do
+    links =
+      Enum.map_join(pages, " ", fn page ->
+        if page.num == current_page do
+          ~s(<strong>#{page.num}</strong>)
+        else
+          ~s(<a href="#{page.link}">#{page.num}</a>)
+        end
+      end)
+
+    ~s(<nav class="pages">#{links}</nav>)
   end
 
   defp html_escape(nil), do: ""

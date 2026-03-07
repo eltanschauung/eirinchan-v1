@@ -4,12 +4,31 @@ defmodule EirinchanWeb.BoardController do
   alias Eirinchan.Posts
 
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show]
+  plug EirinchanWeb.Plugs.LoadBoard when action in [:show_page]
 
   def show(conn, _params) do
+    render_page(conn, 1)
+  end
+
+  def show_page(conn, %{"page_num_html" => page_num_html}) do
+    page_num =
+      page_num_html
+      |> String.replace_suffix(".html", "")
+      |> String.to_integer()
+
+    render_page(conn, page_num)
+  end
+
+  defp render_page(conn, page) do
     board = conn.assigns.current_board
-    threads = Posts.list_threads(board)
     config = conn.assigns.current_board_config
 
-    render(conn, :show, board: board, threads: threads, config: config)
+    case Posts.list_threads_page(board, page, config: config) do
+      {:ok, page_data} ->
+        render(conn, :show, board: board, page_data: page_data, config: config)
+
+      {:error, :not_found} ->
+        send_resp(conn, :not_found, "Page not found")
+    end
   end
 end
