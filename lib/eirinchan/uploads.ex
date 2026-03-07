@@ -29,7 +29,8 @@ defmodule Eirinchan.Uploads do
          file_type: file_type,
          file_md5: :crypto.hash(:md5, binary) |> Base.encode64(),
          image_width: image_metadata.width,
-         image_height: image_metadata.height
+         image_height: image_metadata.height,
+         spoiler: false
        }}
     else
       {:error, _reason} -> {:error, :upload_failed}
@@ -152,10 +153,15 @@ defmodule Eirinchan.Uploads do
   end
 
   defp generate_thumbnail(source, destination, config, metadata) do
-    if image?(metadata) do
-      generate_image_thumbnail(source, destination, config)
-    else
-      generate_placeholder_thumbnail(destination, config, metadata)
+    cond do
+      Map.get(metadata, :spoiler) ->
+        generate_spoiler_thumbnail(destination, config)
+
+      image?(metadata) ->
+        generate_image_thumbnail(source, destination, config)
+
+      true ->
+        generate_placeholder_thumbnail(destination, config, metadata)
     end
   end
 
@@ -200,6 +206,33 @@ defmodule Eirinchan.Uploads do
              "-annotate",
              "0",
              label,
+             destination
+           ],
+           stderr_to_stdout: true
+         ) do
+      {_output, 0} -> :ok
+      _ -> {:error, :upload_failed}
+    end
+  end
+
+  defp generate_spoiler_thumbnail(destination, config) do
+    size = "#{config.thumb_width}x#{config.thumb_height}"
+
+    case System.cmd(
+           "convert",
+           [
+             "-size",
+             size,
+             "xc:#202020",
+             "-fill",
+             "#f0f0f0",
+             "-gravity",
+             "center",
+             "-pointsize",
+             "26",
+             "-annotate",
+             "0",
+             "SPOILER",
              destination
            ],
            stderr_to_stdout: true

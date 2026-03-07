@@ -200,6 +200,41 @@ defmodule Eirinchan.BuildTest do
     assert hd(op["extra_files"])["ext"] == ".gif"
   end
 
+  test "spoiler uploads build spoiler thumbs and expose spoiler flags in api" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture(%{config_overrides: %{api: %{enabled: true}}})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening post body",
+                 "files" => [
+                   upload_fixture("first.png", "first"),
+                   upload_fixture("second.gif", "second")
+                 ],
+                 "spoiler" => "1",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    [extra] = thread.extra_files
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_json_path = Path.join([board_dir, config.dir.res, "#{thread.id}.json"])
+
+    assert File.read!(index_path) =~ thread.thumb_path
+    assert File.read!(index_path) =~ extra.thumb_path
+
+    assert %{"posts" => [op]} = Jason.decode!(File.read!(thread_json_path))
+    assert op["spoiler"] == 1
+    assert hd(op["extra_files"])["spoiler"] == 1
+  end
+
   test "slugified threads build canonical and legacy html files" do
     File.rm_rf!(Build.board_root())
 

@@ -182,6 +182,46 @@ defmodule EirinchanWeb.PostControllerTest do
     assert length(op["extra_files"]) == 1
   end
 
+  test "posting accepts spoiler uploads and exposes spoiler metadata", %{conn: conn} do
+    board = board_fixture()
+
+    create_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "files" => [
+          upload_fixture("first.png", "first"),
+          upload_fixture("second.gif", "second")
+        ],
+        "spoiler" => "1",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => id} = json_response(create_conn, 200)
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ "/#{board.uri}/thumb/#{id}s.png"
+    assert page =~ "/#{board.uri}/thumb/#{id}-1s.png"
+
+    thread_json =
+      conn
+      |> recycle()
+      |> put_req_header("accept", "application/json")
+      |> get("/api/#{board.uri}/res/#{id}")
+      |> json_response(200)
+
+    assert [op | _] = thread_json["posts"]
+    assert op["spoiler"] == 1
+    assert hd(op["extra_files"])["spoiler"] == 1
+  end
+
   test "posting applies OP-specific extension allowlists", %{conn: conn} do
     board =
       board_fixture(%{

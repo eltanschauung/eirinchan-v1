@@ -163,4 +163,29 @@ defmodule EirinchanWeb.ApiControllerTest do
     assert length(op["extra_files"]) == 1
     assert hd(op["extra_files"])["ext"] == ".gif"
   end
+
+  test "thread api exposes spoiler flags for primary and extra files", %{conn: conn} do
+    board = board_fixture()
+
+    thread =
+      thread_fixture(board, %{
+        body: "Thread body",
+        subject: "Thread subject",
+        files: [
+          upload_fixture("first.png", "first"),
+          upload_fixture("second.gif", "second")
+        ],
+        spoiler: "1"
+      })
+
+    thread_json =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> get("/api/#{board.uri}/res/#{thread.id}")
+      |> json_response(200)
+
+    assert [op | _] = thread_json["posts"]
+    assert op["spoiler"] == 1
+    assert hd(op["extra_files"])["spoiler"] == 1
+  end
 end

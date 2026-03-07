@@ -15,6 +15,7 @@
     <input type="text" name="subject" placeholder="Subject" />
     <input type="password" name="password" placeholder="Password" />
     <input type="file" name="files[]" multiple />
+    <label><input type="checkbox" name="spoiler" value="1" /> Spoiler</label>
     <textarea name="body" placeholder="Comment"></textarea>
     <button type="submit" name="post" value={@config.button_newtopic}>
       <%= @config.button_newtopic %>

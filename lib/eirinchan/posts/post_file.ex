@@ -12,6 +12,7 @@ defmodule Eirinchan.Posts.PostFile do
     field :file_md5, :string
     field :image_width, :integer
     field :image_height, :integer
+    field :spoiler, :boolean, default: false
 
     belongs_to :post, Eirinchan.Posts.Post
 
@@ -30,7 +31,8 @@ defmodule Eirinchan.Posts.PostFile do
       :file_type,
       :file_md5,
       :image_width,
-      :image_height
+      :image_height,
+      :spoiler
     ])
     |> validate_required([:post_id, :position, :file_name, :file_path, :file_type, :file_md5])
     |> foreign_key_constraint(:post_id)

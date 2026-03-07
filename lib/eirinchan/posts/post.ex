@@ -16,6 +16,7 @@ defmodule Eirinchan.Posts.Post do
     field :file_md5, :string
     field :image_width, :integer
     field :image_height, :integer
+    field :spoiler, :boolean, default: false
     field :bump_at, :utc_datetime_usec
     field :sticky, :boolean, default: false
     field :locked, :boolean, default: false
@@ -48,6 +49,7 @@ defmodule Eirinchan.Posts.Post do
       :file_md5,
       :image_width,
       :image_height,
+      :spoiler,
       :bump_at,
       :sticky,
       :locked,
