@@ -227,6 +227,64 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert Eirinchan.Announcement.current() == nil
   end
 
+  test "browser custom page management creates, updates, and deletes pages", %{conn: conn} do
+    moderator = moderator_fixture(%{role: "admin"})
+
+    create_conn =
+      conn
+      |> login_moderator(moderator)
+      |> post("/manage/pages/browser", %{
+        "slug" => "rules",
+        "title" => "Rules",
+        "body" => "Be civil"
+      })
+
+    assert redirected_to(create_conn) == "/manage/pages/browser"
+
+    pages_page =
+      create_conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> get("/manage/pages/browser")
+      |> html_response(200)
+
+    assert pages_page =~ "Manage Custom Pages"
+    assert pages_page =~ "Rules"
+    assert pages_page =~ "Be civil"
+
+    [page] = Eirinchan.CustomPages.list_pages()
+
+    update_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> patch("/manage/pages/browser/#{page.id}", %{
+        "slug" => "rules",
+        "title" => "Board Rules",
+        "body" => "Still be civil"
+      })
+
+    assert redirected_to(update_conn) == "/manage/pages/browser"
+
+    public_page =
+      update_conn
+      |> recycle()
+      |> get("/pages/rules")
+      |> html_response(200)
+
+    assert public_page =~ "Board Rules"
+    assert public_page =~ "Still be civil"
+
+    delete_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> delete("/manage/pages/browser/#{page.id}")
+
+    assert redirected_to(delete_conn) == "/manage/pages/browser"
+    assert Eirinchan.CustomPages.list_pages() == []
+  end
+
   test "browser recent posts page filters by board, query, and ip", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
     board = board_fixture(%{uri: "tea", title: "Tea"})

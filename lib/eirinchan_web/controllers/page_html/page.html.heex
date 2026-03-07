@@ -1,5 +1,5 @@
 <section>
-  <h1>News</h1>
+  <h1><%= @page.title %></h1>
   <p><a href={~p"/"}>Home</a></p>
   <nav>
     <%= for page <- @custom_pages do %>
@@ -17,15 +17,8 @@
 </section>
 
 <section>
-  <%= if @news_entries == [] do %>
-    <p>No news entries yet.</p>
-  <% else %>
-    <%= for entry <- @news_entries do %>
-      <article>
-        <h2><%= entry.title %></h2>
-        <p><%= entry.body %></p>
-        <p :if={entry.mod_user}>Posted by <%= entry.mod_user.username %></p>
-      </article>
-    <% end %>
-  <% end %>
+  <article>
+    <p><%= @page.body %></p>
+    <p :if={@page.mod_user}>Updated by <%= @page.mod_user.username %></p>
+  </article>
 </section>

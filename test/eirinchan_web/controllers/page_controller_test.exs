@@ -5,12 +5,21 @@ defmodule EirinchanWeb.PageControllerTest do
     moderator_fixture()
     _board = board_fixture(%{uri: "tech", title: "Technology"})
     author = moderator_fixture(%{username: "announce-admin"})
+    page_author = moderator_fixture(%{username: "pageadmin"})
 
     {:ok, _announcement} =
       Eirinchan.Announcement.upsert(%{
         title: "Read this",
         body: "Global notice",
         mod_user_id: author.id
+      })
+
+    {:ok, _page} =
+      Eirinchan.CustomPages.create_page(%{
+        slug: "rules",
+        title: "Rules",
+        body: "House rules",
+        mod_user_id: page_author.id
       })
 
     {:ok, _entry} =
@@ -29,6 +38,7 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "Read this"
     assert page =~ "Global notice"
     assert page =~ "Maintenance"
+    assert page =~ "Rules"
   end
 
   test "GET / redirects to setup when no admin exists", %{conn: conn} do
@@ -39,12 +49,21 @@ defmodule EirinchanWeb.PageControllerTest do
   test "GET /news renders public news entries", %{conn: conn} do
     author = moderator_fixture(%{username: "editor"})
     announce_author = moderator_fixture(%{username: "announcer"})
+    page_author = moderator_fixture(%{username: "pageeditor"})
 
     {:ok, _announcement} =
       Eirinchan.Announcement.upsert(%{
         title: "System notice",
         body: "Read first",
         mod_user_id: announce_author.id
+      })
+
+    {:ok, _page} =
+      Eirinchan.CustomPages.create_page(%{
+        slug: "faq",
+        title: "FAQ",
+        body: "Questions",
+        mod_user_id: page_author.id
       })
 
     {:ok, _entry} =
@@ -58,5 +77,24 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "Launch"
     assert page =~ "Board online"
     assert page =~ "editor"
+    assert page =~ "FAQ"
+  end
+
+  test "GET /pages/:slug renders a custom page", %{conn: conn} do
+    author = moderator_fixture(%{username: "pagewriter"})
+
+    {:ok, _page} =
+      Eirinchan.CustomPages.create_page(%{
+        slug: "help",
+        title: "Help",
+        body: "How to post",
+        mod_user_id: author.id
+      })
+
+    conn = get(conn, "/pages/help")
+    page = html_response(conn, 200)
+    assert page =~ "Help"
+    assert page =~ "How to post"
+    assert page =~ "pagewriter"
   end
 end

@@ -202,7 +202,7 @@ board title/subtitle configuration parity: partial
 board URL and abbreviation formatting parity: partial
 board search box behavior parity: incomplete
 global announcement/blotter behavior parity: partial
-custom pages CRUD parity: incomplete
+custom pages CRUD parity: partial
 news pages parity: partial
 
 [Search]

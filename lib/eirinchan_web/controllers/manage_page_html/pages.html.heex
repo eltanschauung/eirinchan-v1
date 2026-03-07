@@ -1,0 +1,66 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Manage Custom Pages</h1>
+  <p><a href={~p"/manage"}>Back to dashboard</a></p>
+  <p :if={@error}><%= @error %></p>
+</section>
+
+<section>
+  <h2>Create Page</h2>
+  <form action={~p"/manage/pages/browser"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+    <label>
+      <span>Slug</span>
+      <input type="text" name="slug" />
+    </label>
+    <label>
+      <span>Title</span>
+      <input type="text" name="title" />
+    </label>
+    <label>
+      <span>Body</span>
+      <textarea name="body" rows="5"></textarea>
+    </label>
+    <button type="submit">Create Page</button>
+  </form>
+</section>
+
+<section>
+  <h2>Pages</h2>
+  <%= if @pages == [] do %>
+    <p>No custom pages yet.</p>
+  <% else %>
+    <%= for page <- @pages do %>
+      <article>
+        <h3><a href={"/pages/#{page.slug}"}><%= page.title %></a></h3>
+        <p>Slug: <%= page.slug %></p>
+        <p><%= page.body %></p>
+        <p :if={page.mod_user}>Updated by <%= page.mod_user.username %></p>
+
+        <form action={"/manage/pages/browser/#{page.id}"} method="post">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="_method" value="patch" />
+          <label>
+            <span>Slug</span>
+            <input type="text" name="slug" value={page.slug} />
+          </label>
+          <label>
+            <span>Title</span>
+            <input type="text" name="title" value={page.title} />
+          </label>
+          <label>
+            <span>Body</span>
+            <textarea name="body" rows="5"><%= page.body %></textarea>
+          </label>
+          <button type="submit">Update Page</button>
+        </form>
+
+        <form action={"/manage/pages/browser/#{page.id}"} method="post">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="_method" value="delete" />
+          <button type="submit">Delete Page</button>
+        </form>
+      </article>
+    <% end %>
+  <% end %>
+</section>
