@@ -328,6 +328,171 @@ defmodule Eirinchan.Posts do
     end
   end
 
+  @spec move_thread(
+          BoardRecord.t(),
+          String.t() | integer(),
+          BoardRecord.t(),
+          keyword()
+        ) :: {:ok, Post.t()} | {:error, :not_found | :upload_failed | Ecto.Changeset.t()}
+  def move_thread(
+        %BoardRecord{} = source_board,
+        thread_id,
+        %BoardRecord{} = target_board,
+        opts \\ []
+      ) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    source_config =
+      Keyword.get(opts, :source_config, Keyword.get(opts, :config, Config.compose()))
+
+    target_config = Keyword.get(opts, :target_config, source_config)
+
+    with {:ok, [thread | replies]} <- get_thread(source_board, thread_id, repo: repo) do
+      posts = [thread | replies]
+      file_moves = move_file_operations(posts, source_board, target_board)
+
+      case apply_file_moves(file_moves) do
+        :ok ->
+          case repo.transaction(fn ->
+                 updated_posts =
+                   Enum.reduce_while(posts, [], fn post, acc ->
+                     attrs = %{
+                       board_id: target_board.id,
+                       file_path: remap_board_path(post.file_path, source_board, target_board),
+                       thumb_path: remap_board_path(post.thumb_path, source_board, target_board)
+                     }
+
+                     with {:ok, updated_post} <-
+                            post |> Post.create_changeset(attrs) |> repo.update(),
+                          :ok <- move_extra_files(post, source_board, target_board, repo) do
+                       {:cont, [updated_post | acc]}
+                     else
+                       {:error, reason} ->
+                         {:halt, repo.rollback(reason)}
+                     end
+                   end)
+
+                 Enum.each(updated_posts, fn updated_post ->
+                   case replace_citations(target_board, updated_post, repo) do
+                     :ok -> :ok
+                     {:error, reason} -> repo.rollback(reason)
+                   end
+                 end)
+
+                 Enum.find(updated_posts, &is_nil(&1.thread_id))
+               end) do
+            {:ok, moved_thread} ->
+              _ =
+                Build.rebuild_after_delete(
+                  source_board,
+                  {:thread, thread},
+                  config: source_config,
+                  repo: repo
+                )
+
+              _ =
+                Build.rebuild_after_post(target_board, moved_thread,
+                  config: target_config,
+                  repo: repo
+                )
+
+              {:ok, repo.preload(moved_thread, :extra_files, force: true)}
+
+            {:error, reason} ->
+              _ = reverse_file_moves(file_moves)
+              {:error, reason}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    end
+  end
+
+  @spec move_reply(
+          BoardRecord.t(),
+          String.t() | integer(),
+          BoardRecord.t(),
+          String.t() | integer(),
+          keyword()
+        ) :: {:ok, Post.t()} | {:error, :not_found | :upload_failed | Ecto.Changeset.t()}
+  def move_reply(
+        %BoardRecord{} = source_board,
+        post_id,
+        %BoardRecord{} = target_board,
+        target_thread_id,
+        opts \\ []
+      ) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    source_config =
+      Keyword.get(opts, :source_config, Keyword.get(opts, :config, Config.compose()))
+
+    target_config = Keyword.get(opts, :target_config, source_config)
+
+    with {:ok, reply} <- get_post(source_board, post_id, repo: repo),
+         false <- is_nil(reply.thread_id),
+         {:ok, target_thread} <- fetch_thread(target_board, target_thread_id, repo) do
+      file_moves = move_file_operations([reply], source_board, target_board)
+
+      case apply_file_moves(file_moves) do
+        :ok ->
+          case repo.transaction(fn ->
+                 attrs = %{
+                   board_id: target_board.id,
+                   thread_id: target_thread.id,
+                   file_path: remap_board_path(reply.file_path, source_board, target_board),
+                   thumb_path: remap_board_path(reply.thumb_path, source_board, target_board)
+                 }
+
+                 with {:ok, updated_reply} <-
+                        reply |> Post.create_changeset(attrs) |> repo.update(),
+                      :ok <- move_extra_files(reply, source_board, target_board, repo),
+                      :ok <- replace_citations(target_board, updated_reply, repo) do
+                   updated_reply
+                 else
+                   {:error, reason} -> repo.rollback(reason)
+                 end
+               end) do
+            {:ok, moved_reply} ->
+              _ =
+                Build.rebuild_after_delete(
+                  source_board,
+                  {:reply, reply.thread_id},
+                  config: source_config,
+                  repo: repo
+                )
+
+              _ =
+                Build.rebuild_after_post(
+                  target_board,
+                  moved_reply,
+                  config: target_config,
+                  repo: repo
+                )
+
+              {:ok, repo.preload(moved_reply, :extra_files, force: true)}
+
+            {:error, reason} ->
+              _ = reverse_file_moves(file_moves)
+              {:error, reason}
+          end
+
+        {:error, reason} ->
+          {:error, reason}
+      end
+    else
+      true ->
+        {:error, :not_found}
+
+      {:error, :thread_not_found} ->
+        {:error, :not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   @spec list_threads(BoardRecord.t(), keyword()) :: [Post.t()]
   def list_threads(%BoardRecord{} = board, opts \\ []) do
     config = Keyword.get(opts, :config, Config.compose())
@@ -1892,6 +2057,80 @@ defmodule Eirinchan.Posts do
         ),
       last_modified: thread.bump_at || last_modified
     }
+  end
+
+  defp move_extra_files(post, source_board, target_board, repo) do
+    Enum.reduce_while(extra_files(post), :ok, fn post_file, :ok ->
+      attrs = %{
+        file_path: remap_board_path(post_file.file_path, source_board, target_board),
+        thumb_path: remap_board_path(post_file.thumb_path, source_board, target_board)
+      }
+
+      case post_file |> PostFile.create_changeset(attrs) |> repo.update() do
+        {:ok, _updated_post_file} -> {:cont, :ok}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  defp move_file_operations(posts, source_board, target_board) do
+    posts
+    |> Enum.flat_map(fn post ->
+      primary_moves = [
+        {post.file_path, remap_board_path(post.file_path, source_board, target_board)},
+        {post.thumb_path, remap_board_path(post.thumb_path, source_board, target_board)}
+      ]
+
+      extra_moves =
+        post
+        |> extra_files()
+        |> Enum.flat_map(fn post_file ->
+          [
+            {post_file.file_path,
+             remap_board_path(post_file.file_path, source_board, target_board)},
+            {post_file.thumb_path,
+             remap_board_path(post_file.thumb_path, source_board, target_board)}
+          ]
+        end)
+
+      primary_moves ++ extra_moves
+    end)
+    |> Enum.uniq()
+    |> Enum.reject(fn {source, destination} ->
+      is_nil(source) or is_nil(destination) or source == destination
+    end)
+  end
+
+  defp apply_file_moves(file_moves) do
+    Enum.reduce_while(file_moves, {:ok, []}, fn {source, destination}, {:ok, moved} ->
+      case Uploads.relocate(source, destination) do
+        :ok -> {:cont, {:ok, [{source, destination} | moved]}}
+        {:error, reason} -> {:halt, {:error, reason, moved}}
+      end
+    end)
+    |> case do
+      {:ok, _moved} ->
+        :ok
+
+      {:error, reason, moved} ->
+        _ = reverse_file_moves(moved)
+        {:error, reason}
+    end
+  end
+
+  defp reverse_file_moves(file_moves) do
+    Enum.each(file_moves, fn {source, destination} ->
+      _ = Uploads.relocate(destination, source)
+    end)
+
+    :ok
+  end
+
+  defp remap_board_path(nil, _source_board, _target_board), do: nil
+
+  defp remap_board_path(path, %BoardRecord{uri: source_uri}, %BoardRecord{uri: target_uri})
+       when is_binary(path) do
+    String.replace_prefix(path, "/#{source_uri}/", "/#{target_uri}/")
   end
 
   defp post_delete_file_paths(%Post{thread_id: nil, id: thread_id} = thread, repo) do

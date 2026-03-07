@@ -113,6 +113,30 @@ defmodule Eirinchan.Uploads do
     :ok
   end
 
+  @spec relocate(String.t() | nil, String.t() | nil) :: :ok | {:error, atom()}
+  def relocate(nil, nil), do: :ok
+  def relocate(path, path) when is_binary(path), do: :ok
+  def relocate(nil, _destination), do: :ok
+
+  def relocate(source_path, destination_path)
+      when is_binary(source_path) and is_binary(destination_path) do
+    source = filesystem_path(source_path)
+    destination = filesystem_path(destination_path)
+
+    if source == destination do
+      :ok
+    else
+      destination
+      |> Path.dirname()
+      |> File.mkdir_p!()
+
+      case move_to_destination(source, destination) do
+        :ok -> :ok
+        {:error, _reason} -> {:error, :upload_failed}
+      end
+    end
+  end
+
   @spec filesystem_path(String.t()) :: String.t()
   def filesystem_path(file_path) do
     sanitized =
