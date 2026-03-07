@@ -417,6 +417,7 @@ defmodule EirinchanWeb.PostControllerTest do
   test "posting rejects duplicate files when global duplicate mode is enabled", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{duplicate_file_mode: "global"}})
     upload = upload_fixture("first.png", "same-bytes")
+    duplicate_upload = duplicate_upload_fixture(upload, "second.png")
 
     first_conn =
       conn
@@ -436,7 +437,7 @@ defmodule EirinchanWeb.PostControllerTest do
       |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
       |> post(~p"/#{board.uri}/post", %{
         "body" => "second post",
-        "file" => duplicate_upload_fixture(upload, "second.png"),
+        "file" => duplicate_upload,
         "json_response" => "1",
         "post" => "New Topic"
       })

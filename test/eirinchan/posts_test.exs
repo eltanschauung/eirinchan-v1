@@ -126,6 +126,53 @@ defmodule Eirinchan.PostsTest do
            )
   end
 
+  test "create_post moves upload temp files into board storage" do
+    board = board_fixture()
+    upload = upload_fixture("moved.png", "move-me")
+    source_path = upload.path
+
+    assert File.exists?(source_path)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    refute File.exists?(source_path)
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+  end
+
+  test "create_post falls back to copy-delete when renaming upload temp files fails" do
+    board = board_fixture()
+    upload = upload_fixture("copied.png", "copy-me")
+    source_path = upload.path
+
+    Process.put(:eirinchan_force_rename_failure, true)
+    on_exit(fn -> Process.delete(:eirinchan_force_rename_failure) end)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "file" => upload,
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    refute File.exists?(source_path)
+    assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.file_path))
+  end
+
   test "create_post stores placeholder thumbnails for allowed non-image uploads" do
     board =
       board_fixture(%{
@@ -718,6 +765,7 @@ defmodule Eirinchan.PostsTest do
     config = post_config(board.config_overrides)
     request = post_request(board.uri)
     upload = upload_fixture("first.png", "same-bytes")
+    duplicate_upload = duplicate_upload_fixture(upload, "second.png")
 
     assert {:ok, _thread, _meta} =
              Posts.create_post(
@@ -736,7 +784,7 @@ defmodule Eirinchan.PostsTest do
                board,
                %{
                  "body" => "Second body",
-                 "file" => duplicate_upload_fixture(upload, "second.png"),
+                 "file" => duplicate_upload,
                  "post" => "New Topic"
                },
                config: config,
@@ -749,6 +797,8 @@ defmodule Eirinchan.PostsTest do
     config = post_config(board.config_overrides)
     request = post_request(board.uri)
     upload = upload_fixture("first.png", "thread-bytes")
+    reply_upload = duplicate_upload_fixture(upload, "reply.png")
+    other_upload = duplicate_upload_fixture(upload, "other.png")
 
     assert {:ok, thread, _meta} =
              Posts.create_post(
@@ -768,7 +818,7 @@ defmodule Eirinchan.PostsTest do
                %{
                  "thread" => Integer.to_string(thread.id),
                  "body" => "Reply body",
-                 "file" => duplicate_upload_fixture(upload, "reply.png"),
+                 "file" => reply_upload,
                  "post" => "New Reply"
                },
                config: config,
@@ -776,7 +826,6 @@ defmodule Eirinchan.PostsTest do
              )
 
     other_board = board_fixture(%{config_overrides: %{duplicate_file_mode: "thread"}})
-    other_upload = duplicate_upload_fixture(upload, "other.png")
 
     assert {:ok, _other_thread, _meta} =
              Posts.create_post(
