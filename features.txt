@@ -31,7 +31,7 @@ markup pre-processing and modifier escaping parity: incomplete
 raw HTML posting mode for authorized moderators: incomplete
 cite tracking extraction and persistence: incomplete
 flood table writes and repeat checks: incomplete
-thread bump logic and bump-limit behavior: incomplete
+thread bump logic and bump-limit behavior: partial
 reply_hard_limit/image_hard_limit enforcement: partial
 report creation branch inside post endpoint parity: incomplete
 post deletion branch inside post endpoint parity: incomplete
@@ -239,7 +239,7 @@ logging backends parity (error_log/file/stderr/syslog): incomplete
 extra_files compatibility in API responses: incomplete
 country fields in API responses from modifiers: incomplete
 poster ID API field parity: incomplete
-semantic_url API slug field parity: incomplete
+semantic_url API slug field parity: partial
 boards.json API parity: incomplete
 catalog.json and threads.json API parity: partial
 

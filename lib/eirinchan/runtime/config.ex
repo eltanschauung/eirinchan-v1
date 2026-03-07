@@ -40,8 +40,12 @@ defmodule Eirinchan.Runtime.Config do
     max_pages: 10,
     threads_preview: 5,
     threads_preview_sticky: 1,
+    reply_limit: 250,
     reply_hard_limit: 0,
+    cycle_limit: 250,
     always_noko: false,
+    slugify: false,
+    slug_max_size: 80,
     button_newtopic: "New Topic",
     button_reply: "New Reply",
     user_flag: false,
@@ -75,6 +79,7 @@ defmodule Eirinchan.Runtime.Config do
       tooshort_body: "Body too short.",
       locked: "Thread locked. You may not reply at this time.",
       reply_hard_limit: "Thread has reached its maximum reply limit.",
+      image_hard_limit: "Thread has reached its maximum image limit.",
       board_locked: "Board is locked."
     }
   }

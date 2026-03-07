@@ -18,6 +18,7 @@ defmodule Eirinchan.Posts do
              | :invalid_post_mode
              | :invalid_referer
              | :board_locked
+             | :thread_locked
              | :body_required
              | :reply_hard_limit}
           | {:error, Ecto.Changeset.t()}
@@ -31,14 +32,18 @@ defmodule Eirinchan.Posts do
     attrs = normalize_post_identity(attrs, config)
     noko = noko?(attrs["email"], config)
     attrs = normalize_noko_email(attrs)
+    now = DateTime.utc_now() |> DateTime.truncate(:microsecond)
 
     with :ok <- validate_post_button(op?, attrs, config),
          :ok <- validate_referer(request, config),
          :ok <- validate_board_lock(config),
          {:ok, thread} <- fetch_thread(board, thread_param, repo),
+         :ok <- validate_thread_lock(thread),
          :ok <- validate_body(op?, attrs, config),
          :ok <- validate_reply_limit(board, thread, config, repo),
-         {:ok, post} <- insert_post(board, thread, attrs, repo) do
+         {:ok, post} <- insert_post(board, thread, attrs, repo, config, now) do
+      maybe_bump_thread(thread, attrs, config, repo, now)
+      maybe_cycle_thread(board, thread, config, repo)
       _ = Build.rebuild_after_post(board, post, config: config, repo: repo)
       {:ok, post, %{noko: noko}}
     end
@@ -84,7 +89,7 @@ defmodule Eirinchan.Posts do
         repo.all(
           from post in Post,
             where: post.board_id == ^board.id and is_nil(post.thread_id),
-            order_by: [desc: post.inserted_at],
+            order_by: [desc: post.sticky, desc_nulls_last: post.bump_at, desc: post.inserted_at],
             limit: ^threads_per_page,
             offset: ^offset
         )
@@ -144,23 +149,29 @@ defmodule Eirinchan.Posts do
          image_count: 0,
          omitted_posts: 0,
          omitted_images: 0,
-         last_modified: List.last([thread | replies]).inserted_at
+         last_modified: thread.bump_at || thread.inserted_at
        }}
     end
   end
 
-  defp insert_post(board, nil, attrs, repo) do
+  defp insert_post(board, nil, attrs, repo, config, now) do
     attrs =
       attrs
       |> Map.put("board_id", board.id)
       |> Map.put("thread_id", nil)
+      |> Map.put("bump_at", now)
+      |> Map.put("sticky", false)
+      |> Map.put("locked", false)
+      |> Map.put("cycle", false)
+      |> Map.put("sage", false)
+      |> Map.put("slug", maybe_slugify(attrs, config))
 
     %Post{}
     |> Post.create_changeset(attrs)
     |> repo.insert()
   end
 
-  defp insert_post(board, thread, attrs, repo) do
+  defp insert_post(board, thread, attrs, repo, _config, _now) do
     attrs =
       attrs
       |> Map.put("board_id", board.id)
@@ -261,6 +272,10 @@ defmodule Eirinchan.Posts do
     if config.board_locked, do: {:error, :board_locked}, else: :ok
   end
 
+  defp validate_thread_lock(nil), do: :ok
+  defp validate_thread_lock(%Post{locked: true}), do: {:error, :thread_locked}
+  defp validate_thread_lock(%Post{}), do: :ok
+
   defp fetch_thread(_board, nil, _repo), do: {:ok, nil}
 
   defp fetch_thread(board, thread_param, repo) do
@@ -301,6 +316,56 @@ defmodule Eirinchan.Posts do
 
       if replies >= config.reply_hard_limit, do: {:error, :reply_hard_limit}, else: :ok
     end
+  end
+
+  defp maybe_bump_thread(nil, _attrs, _config, _repo, _now), do: :ok
+
+  defp maybe_bump_thread(thread, attrs, config, repo, now) do
+    email = String.downcase(attrs["email"] || "")
+    should_bump = email != "sage" and not thread.sage and bump_allowed?(thread, config, repo)
+
+    if should_bump do
+      repo.update_all(
+        from(post in Post, where: post.id == ^thread.id),
+        set: [bump_at: now]
+      )
+    else
+      {0, nil}
+    end
+
+    :ok
+  end
+
+  defp bump_allowed?(thread, config, repo) do
+    if config.reply_limit in [0, nil] do
+      true
+    else
+      replies =
+        repo.aggregate(from(post in Post, where: post.thread_id == ^thread.id), :count, :id)
+
+      replies + 1 < config.reply_limit
+    end
+  end
+
+  defp maybe_cycle_thread(_board, nil, _config, _repo), do: :ok
+
+  defp maybe_cycle_thread(_board, thread, config, repo) do
+    if thread.cycle and config.cycle_limit not in [0, nil] do
+      replies =
+        repo.all(
+          from post in Post,
+            where: post.thread_id == ^thread.id,
+            order_by: [desc: post.inserted_at],
+            offset: ^config.cycle_limit,
+            select: post.id
+        )
+
+      if replies != [] do
+        repo.delete_all(from post in Post, where: post.id in ^replies)
+      end
+    end
+
+    :ok
   end
 
   defp normalize_thread_id(value) when is_integer(value), do: value
@@ -345,7 +410,7 @@ defmodule Eirinchan.Posts do
       image_count: 0,
       omitted_posts: max(reply_count - length(replies), 0),
       omitted_images: 0,
-      last_modified: last_modified
+      last_modified: thread.bump_at || last_modified
     }
   end
 
@@ -360,6 +425,25 @@ defmodule Eirinchan.Posts do
             "/#{board.uri}/#{String.replace(config.file_page, "%d", Integer.to_string(num))}"
           end
       }
+    end
+  end
+
+  defp maybe_slugify(attrs, config) do
+    if config.slugify do
+      source = trim_to_nil(attrs["subject"]) || trim_to_nil(attrs["body"]) || ""
+
+      source
+      |> String.downcase()
+      |> String.replace(~r/<[^>]+>/, "")
+      |> String.replace(~r/[^a-z0-9]+/u, "-")
+      |> String.trim("-")
+      |> String.slice(0, config.slug_max_size)
+      |> case do
+        "" -> nil
+        slug -> slug
+      end
+    else
+      nil
     end
   end
 end

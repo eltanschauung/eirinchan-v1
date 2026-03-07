@@ -60,6 +60,7 @@ defmodule EirinchanWeb.PostController do
   end
 
   defp error_status(:thread_not_found), do: :not_found
+  defp error_status(:thread_locked), do: :forbidden
   defp error_status(:invalid_referer), do: :forbidden
   defp error_status(:invalid_post_mode), do: :forbidden
   defp error_status(:board_locked), do: :forbidden
@@ -67,6 +68,7 @@ defmodule EirinchanWeb.PostController do
   defp error_status(:body_required), do: :unprocessable_entity
 
   defp error_message(:thread_not_found, _config), do: "Thread not found"
+  defp error_message(:thread_locked, config), do: config.error.locked
   defp error_message(:invalid_referer, config), do: config.error.referer
   defp error_message(:invalid_post_mode, config), do: config.error.bot
   defp error_message(:board_locked, config), do: config.error.board_locked
