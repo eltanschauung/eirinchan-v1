@@ -258,6 +258,21 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert Floki.find(document, ~s(a[data-quote-to="#{reply.id}"])) != []
   end
 
+  test "thread pages render vichan-style body quote links", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board, %{body: "Opening body"})
+    reply = reply_fixture(board, thread, %{body: ">>#{thread.id}\n>quoted line"})
+
+    page =
+      conn
+      |> get("/#{board.uri}/res/#{thread.id}.html")
+      |> html_response(200)
+
+    assert page =~ ~s(href="/#{board.uri}/res/#{thread.id}.html##{thread.id}")
+    assert page =~ ~s(class="quote")
+    assert page =~ Integer.to_string(reply.id)
+  end
+
   test "thread pages trigger build-on-load thread generation when configured", %{conn: conn} do
     alias Eirinchan.Build
 

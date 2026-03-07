@@ -292,15 +292,7 @@
           class="post_no"
           id={"post_no_#{post.id}"}
           onclick={"highlightReply(#{post.id})"}
-          href={
-            PostView.reply_path(
-              template.board,
-              template.post,
-              template.post,
-              template.config,
-              :post
-            )
-          }
+          href={Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config) <> "##{post.id}"}
         >
           No.
         </a>
@@ -326,11 +318,7 @@
       </p>
 
       <div class="body">
-        <%= if post.raw_html do %>
-          <%= raw(post.body || "") %>
-        <% else %>
-          <%= post.body %>
-        <% end %>
+        <%= raw(PostView.body_html(post, @board, post, @config)) %>
         <span :if={post.tag} class="tag-line">
           Tag: <%= if is_map(@config.allowed_tags),
             do: Map.get(@config.allowed_tags, post.tag, post.tag),
@@ -373,7 +361,7 @@
             class="post_no"
             id={"post_no_#{reply.id}"}
             onclick={"highlightReply(#{reply.id})"}
-            href={PostView.reply_path(@board, post, reply, @config, :post)}
+            href={Eirinchan.ThreadPaths.thread_path(@board, post, @config) <> "##{reply.id}"}
           >
             No.
           </a>
@@ -422,11 +410,7 @@
           class="body"
           style={if length(PostView.all_files(reply)) > 1, do: "clear:both", else: nil}
         >
-          <%= if reply.raw_html do %>
-            <%= raw(reply.body || "") %>
-          <% else %>
-            <%= reply.body %>
-          <% end %>
+          <%= raw(PostView.body_html(reply, @board, post, @config)) %>
           <span :if={reply.tag} class="tag-line">
             Tag: <%= if is_map(@config.allowed_tags),
               do: Map.get(@config.allowed_tags, reply.tag, reply.tag),

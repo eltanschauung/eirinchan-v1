@@ -23,7 +23,7 @@ config :eirinchan, EirinchanWeb.Endpoint,
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {0, 0, 0, 0}, port: 4001],
   check_origin: false,
-  code_reloader: true,
+  code_reloader: false,
   debug_errors: true,
   secret_key_base: "YwZBgByq4lJ478ps6iqIic/cbKvKF9qTq/g6BdXTPVeAZmW8aJzCkD7nyazBoXYh",
   watchers: []
@@ -50,15 +50,6 @@ config :eirinchan, EirinchanWeb.Endpoint,
 # If desired, both `http:` and `https:` keys can be
 # configured to run both http and https servers on
 # different ports.
-
-# Watch static and templates for browser reloading.
-config :eirinchan, EirinchanWeb.Endpoint,
-  live_reload: [
-    patterns: [
-      ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"lib/eirinchan_web/(controllers|live|components)/.*(ex|heex)$"
-    ]
-  ]
 
 # Enable dev routes for dashboard and mailbox
 config :eirinchan, dev_routes: true
