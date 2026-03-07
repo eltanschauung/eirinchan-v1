@@ -4,7 +4,9 @@ defmodule EirinchanWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug :fetch_cookies
     plug EirinchanWeb.Plugs.FetchCurrentModerator
+    plug EirinchanWeb.Plugs.FetchTheme
     plug :fetch_live_flash
     plug :put_root_layout, html: {EirinchanWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -96,6 +98,7 @@ defmodule EirinchanWeb.Router do
   scope "/", EirinchanWeb do
     pipe_through :browser
 
+    post "/theme", ThemeController, :update
     get "/setup", SetupController, :show
     post "/setup", SetupController, :create
   end
