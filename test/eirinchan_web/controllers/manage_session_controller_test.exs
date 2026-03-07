@@ -56,4 +56,45 @@ defmodule EirinchanWeb.ManageSessionControllerTest do
 
     assert %{"error" => "invalid_credentials"} = json_response(conn, 401)
   end
+
+  test "role hierarchy gates read-only, moderator, and admin manage routes", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board)
+    janitor = moderator_fixture(%{role: "janitor"})
+    mod = moderator_fixture(%{role: "mod"})
+
+    janitor_conn =
+      conn
+      |> login_moderator(janitor)
+      |> put_req_header("accept", "application/json")
+
+    assert %{"data" => [_ | _]} =
+             janitor_conn
+             |> get("/manage/boards")
+             |> json_response(200)
+
+    assert %{"error" => "forbidden"} =
+             janitor_conn
+             |> recycle()
+             |> login_moderator(janitor)
+             |> put_req_header("accept", "application/json")
+             |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{"locked" => "true"})
+             |> json_response(403)
+
+    assert %{"data" => %{"locked" => true}} =
+             conn
+             |> recycle()
+             |> login_moderator(mod)
+             |> put_req_header("accept", "application/json")
+             |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{"locked" => "true"})
+             |> json_response(200)
+
+    assert %{"error" => "forbidden"} =
+             conn
+             |> recycle()
+             |> login_moderator(mod)
+             |> put_req_header("accept", "application/json")
+             |> post("/manage/boards", %{uri: "staff", title: "Staff"})
+             |> json_response(403)
+  end
 end

@@ -23,6 +23,30 @@ defmodule EirinchanWeb.Router do
     plug EirinchanWeb.Plugs.RequireModerator
   end
 
+  pipeline :manage_janitor do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug EirinchanWeb.Plugs.FetchCurrentModerator
+    plug EirinchanWeb.Plugs.RequireModerator
+    plug EirinchanWeb.Plugs.RequireModeratorRole, role: "janitor"
+  end
+
+  pipeline :manage_mod do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug EirinchanWeb.Plugs.FetchCurrentModerator
+    plug EirinchanWeb.Plugs.RequireModerator
+    plug EirinchanWeb.Plugs.RequireModeratorRole, role: "mod"
+  end
+
+  pipeline :manage_admin do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug EirinchanWeb.Plugs.FetchCurrentModerator
+    plug EirinchanWeb.Plugs.RequireModerator
+    plug EirinchanWeb.Plugs.RequireModeratorRole, role: "admin"
+  end
+
   scope "/manage", EirinchanWeb do
     pipe_through :api
 
@@ -34,20 +58,30 @@ defmodule EirinchanWeb.Router do
   scope "/manage", EirinchanWeb do
     pipe_through :manage_api
 
+    get "/boards/:uri/threads/:thread_id", ThreadManagementController, :show
+    get "/boards/:uri/reports", ReportManagementController, :index
     get "/feedback", FeedbackManagementController, :index
+    get "/boards", BoardManagementController, :index
+    get "/boards/:uri", BoardManagementController, :show
+  end
+
+  scope "/manage", EirinchanWeb do
+    pipe_through :manage_mod
+
     patch "/feedback/:id/read", FeedbackManagementController, :mark_read
     post "/feedback/:id/comments", FeedbackManagementController, :create_comment
     delete "/feedback/:id", FeedbackManagementController, :delete
-    get "/boards", BoardManagementController, :index
-    post "/boards", BoardManagementController, :create
-    get "/boards/:uri", BoardManagementController, :show
-    patch "/boards/:uri", BoardManagementController, :update
-    delete "/boards/:uri", BoardManagementController, :delete
-    get "/boards/:uri/threads/:thread_id", ThreadManagementController, :show
     patch "/boards/:uri/threads/:thread_id", ThreadManagementController, :update
-    get "/boards/:uri/reports", ReportManagementController, :index
     delete "/boards/:uri/reports/post/:post_id", ReportManagementController, :delete_post
     delete "/boards/:uri/reports/:id", ReportManagementController, :delete
+  end
+
+  scope "/manage", EirinchanWeb do
+    pipe_through :manage_admin
+
+    post "/boards", BoardManagementController, :create
+    patch "/boards/:uri", BoardManagementController, :update
+    delete "/boards/:uri", BoardManagementController, :delete
   end
 
   scope "/api", EirinchanWeb do
