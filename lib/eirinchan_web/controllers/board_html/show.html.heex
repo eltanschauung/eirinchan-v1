@@ -16,7 +16,12 @@
 
 <section>
   <h2>Post</h2>
-  <form action={~p"/#{@board.uri}/post"} method="post" enctype="multipart/form-data">
+  <form
+    id="new-thread-form"
+    action={~p"/#{@board.uri}/post"}
+    method="post"
+    enctype="multipart/form-data"
+  >
     <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
     <input :if={!@config.field_disable_name} type="text" name="name" placeholder="Name" />
     <input :if={!@config.field_disable_email} type="text" name="email" placeholder="Email" />
@@ -83,7 +88,7 @@
     <input :if={@config.max_images > 1} type="file" name="files[]" multiple />
     <input :if={@config.max_images <= 1} type="file" name="file" />
     <label><input type="checkbox" name="spoiler" value="1" /> Spoiler</label>
-    <textarea name="body" placeholder="Comment"></textarea>
+    <textarea name="body" placeholder="Comment" data-post-body></textarea>
     <button type="submit" name="post" value={@config.button_newtopic}>
       <%= @config.button_newtopic %>
     </button>
@@ -158,6 +163,16 @@
         <p :if={summary.thread.name || summary.thread.tripcode}>
           <%= summary.thread.name %> <%= summary.thread.tripcode %>
         </p>
+        <p class="post-links">
+          <a href={"#p#{summary.thread.id}"}>No.<%= summary.thread.id %></a>
+          <a
+            href={"#qr-#{summary.thread.id}"}
+            data-quote-to={summary.thread.id}
+            data-quick-reply-thread={summary.thread.id}
+          >
+            &gt;&gt;<%= summary.thread.id %>
+          </a>
+        </p>
         <p :if={@config.fileboard && PostView.show_fileboard_summary?(post)}>
           Fileboard: <%= PostView.fileboard_summary(post) %>
         </p>
@@ -179,6 +194,98 @@
           <input type="password" name="password" placeholder="Password" />
           <button type="submit">Delete</button>
         </form>
+        <section id={"qr-#{summary.thread.id}"} data-quick-reply-panel hidden>
+          <h4>Quick Reply</h4>
+          <form
+            action={~p"/#{@board.uri}/post"}
+            method="post"
+            enctype="multipart/form-data"
+            data-quick-reply-form={summary.thread.id}
+          >
+            <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+            <input type="hidden" name="thread" value={summary.thread.id} />
+            <input :if={!@config.field_disable_name} type="text" name="name" placeholder="Name" />
+            <input
+              :if={!@config.field_disable_email}
+              type="text"
+              name="email"
+              placeholder="Email"
+            />
+            <input
+              :if={!@config.field_disable_reply_subject}
+              type="text"
+              name="subject"
+              placeholder="Subject"
+            />
+            <input
+              :if={!@config.field_disable_password}
+              type="password"
+              name="password"
+              placeholder="Password"
+            />
+            <input
+              :if={@config.hidden_input_hash}
+              type="hidden"
+              name={@config.hidden_input_name}
+              value={@config.hidden_input_hash}
+            />
+            <label :if={reply_captcha_enabled?(@config) && @config.captcha.provider == "native"}>
+              <span>Captcha</span>
+              <input type="text" name="captcha" placeholder="Captcha" />
+            </label>
+            <input
+              :if={reply_captcha_enabled?(@config) && @config.captcha.provider == "recaptcha"}
+              type="text"
+              name="g-recaptcha-response"
+              placeholder="reCAPTCHA"
+            />
+            <input
+              :if={reply_captcha_enabled?(@config) && @config.captcha.provider == "hcaptcha"}
+              type="text"
+              name="h-captcha-response"
+              placeholder="hCaptcha"
+            />
+            <input :if={@current_moderator} type="text" name="capcode" placeholder="Capcode" />
+            <label :if={@current_moderator}>
+              <input type="checkbox" name="raw" value="1" /> Raw HTML
+            </label>
+            <label :if={@config.country_flags && @config.allow_no_country}>
+              <input type="checkbox" name="no_country" value="1" /> No country
+            </label>
+            <label :if={@config.antispam_question}>
+              <span><%= @config.antispam_question %></span>
+              <input type="text" name="antispam_answer" />
+            </label>
+            <select :if={is_map(@config.allowed_tags)} name="tag">
+              <option value="">None</option>
+              <%= for {tag, label} <- @config.allowed_tags do %>
+                <option value={tag}><%= label %></option>
+              <% end %>
+            </select>
+            <input
+              :if={@config.user_flag && @config.multiple_flags}
+              type="text"
+              name="user_flag"
+              value={@config.default_user_flag}
+              placeholder="Flags"
+            />
+            <select :if={@config.user_flag && !@config.multiple_flags} name="user_flag">
+              <option value="">None</option>
+              <%= for {flag, text} <- @config.user_flags do %>
+                <option value={flag} selected={@config.default_user_flag == flag}>
+                  <%= text %>
+                </option>
+              <% end %>
+            </select>
+            <input :if={@config.max_images > 1} type="file" name="files[]" multiple />
+            <input :if={@config.max_images <= 1} type="file" name="file" />
+            <label><input type="checkbox" name="spoiler" value="1" /> Spoiler</label>
+            <textarea name="body" placeholder="Reply" data-post-body></textarea>
+            <button type="submit" name="post" value={@config.button_reply}>
+              <%= @config.button_reply %>
+            </button>
+          </form>
+        </section>
         <%= if summary.omitted_posts > 0 do %>
           <p>
             <%= summary.omitted_posts %> posts
@@ -191,6 +298,16 @@
         <%= for reply <- summary.replies do %>
           <div id={"p#{reply.id}"}>
             <p :if={reply.name || reply.tripcode}><%= reply.name %> <%= reply.tripcode %></p>
+            <p class="post-links">
+              <a href={"#p#{reply.id}"}>No.<%= reply.id %></a>
+              <a
+                href={"#qr-#{summary.thread.id}"}
+                data-quote-to={reply.id}
+                data-quick-reply-thread={summary.thread.id}
+              >
+                &gt;&gt;<%= reply.id %>
+              </a>
+            </p>
             <%= if reply.file_path do %>
               <figure>
                 <a href={reply.file_path}>

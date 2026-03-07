@@ -212,6 +212,24 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ thread.tripcode
   end
 
+  test "thread page renders quote links and reply form hooks for cite insertion", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board, %{body: "Thread body"})
+    reply = reply_fixture(board, thread, %{body: "Reply body"})
+
+    page =
+      conn
+      |> get("/#{board.uri}/res/#{thread.id}.html")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(form#reply-form[data-thread-reply-form])) != []
+    assert Floki.find(document, ~s(textarea[data-post-body])) != []
+    assert Floki.find(document, ~s(a[data-quote-to="#{thread.id}"])) != []
+    assert Floki.find(document, ~s(a[data-quote-to="#{reply.id}"])) != []
+  end
+
   test "fileboard threads use filenames as page titles when subjects are absent", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{fileboard: true, force_body_op: false}})
 

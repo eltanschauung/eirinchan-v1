@@ -59,6 +59,8 @@ defmodule Eirinchan.Api do
     |> maybe_put(:sub, summary.thread.subject)
     |> maybe_put(:com, summary.thread.body)
     |> maybe_put(:name, summary.thread.name)
+    |> maybe_put_country(summary.thread)
+    |> maybe_put_poster_id(summary.thread)
     |> Map.put(:time, unix(summary.thread.inserted_at))
     |> Map.put(:replies, summary.reply_count)
     |> Map.put(:images, summary.image_count)
@@ -80,6 +82,8 @@ defmodule Eirinchan.Api do
     |> maybe_put(:sub, post.subject)
     |> maybe_put(:com, post.body)
     |> maybe_put(:name, post.name)
+    |> maybe_put_country(post)
+    |> maybe_put_poster_id(post)
     |> maybe_put_file(post)
     |> maybe_put_extra_files(post)
     |> Map.put(:time, unix(post.inserted_at))
@@ -100,6 +104,25 @@ defmodule Eirinchan.Api do
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, _key, ""), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp maybe_put_country(map, post) do
+    case country_flag(post) do
+      {code, name} ->
+        map
+        |> Map.put(:country, String.upcase(code))
+        |> Map.put(:country_name, name)
+
+      nil ->
+        map
+    end
+  end
+
+  defp maybe_put_poster_id(map, %{board_id: board_id, ip_subnet: ip_subnet})
+       when is_integer(board_id) and is_binary(ip_subnet) and ip_subnet != "" do
+    Map.put(map, :id, poster_id(board_id, ip_subnet))
+  end
+
+  defp maybe_put_poster_id(map, _post), do: map
 
   defp maybe_put_flag(map, _key, false), do: map
   defp maybe_put_flag(map, _key, nil), do: map
@@ -142,6 +165,27 @@ defmodule Eirinchan.Api do
     |> maybe_put(:h, file.image_height)
     |> maybe_put(:tim, file.id)
     |> maybe_put_flag(:spoiler, file.spoiler)
+  end
+
+  defp country_flag(%{flag_codes: flag_codes, flag_alts: flag_alts})
+       when is_list(flag_codes) and is_list(flag_alts) do
+    Enum.zip(flag_codes, flag_alts)
+    |> Enum.find(fn {code, _alt} -> country_code?(code) end)
+  end
+
+  defp country_flag(_post), do: nil
+
+  defp country_code?(code) when is_binary(code) do
+    String.match?(code, ~r/^[a-z]{2}$/)
+  end
+
+  defp country_code?(_code), do: false
+
+  defp poster_id(board_id, ip_subnet) do
+    :sha256
+    |> :crypto.hash("#{board_id}:#{ip_subnet}")
+    |> Base.encode16(case: :upper)
+    |> binary_part(0, 8)
   end
 
   defp positive_or_nil(value) when is_integer(value) and value > 0, do: value
