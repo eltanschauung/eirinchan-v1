@@ -26,8 +26,8 @@ name/email/subject/password normalization and defaults: partial
 tripcode generation parity: incomplete
 capcode parsing and permission rules: incomplete
 noko/nonoko/always_noko behavior: partial
-wordfilter pipeline integration: incomplete
-markup pre-processing and modifier escaping parity: incomplete
+wordfilter pipeline integration: partial
+markup pre-processing and modifier escaping parity: partial
 raw HTML posting mode for authorized moderators: incomplete
 cite tracking extraction and persistence: incomplete
 flood table writes and repeat checks: incomplete
@@ -64,7 +64,7 @@ ban check pipeline parity: incomplete
 robot9001 unoriginal-content detection: incomplete
 robot mute escalation and mute duration logic: incomplete
 spam filter hooks before and after OCR parity: skipped
-strip_combining_chars logic parity: incomplete
+strip_combining_chars logic parity: partial
 
 [Media Upload and Processing]
 multi-file upload parsing parity (split/each methods): partial

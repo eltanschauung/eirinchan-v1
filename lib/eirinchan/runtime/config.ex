@@ -34,6 +34,8 @@ defmodule Eirinchan.Runtime.Config do
     allow_roll: false,
     try_smarter: false,
     board_locked: false,
+    strip_combining_chars: false,
+    wordfilters: [],
     force_body: true,
     force_body_op: true,
     force_image_op: false,

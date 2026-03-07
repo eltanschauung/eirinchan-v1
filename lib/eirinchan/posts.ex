@@ -519,6 +519,7 @@ defmodule Eirinchan.Posts do
       attrs
       |> normalize_post_identity(config)
       |> normalize_noko_email()
+      |> normalize_post_text(config)
 
     with {:ok, attrs} <- normalize_country_flag(attrs, config, request),
          {:ok, attrs} <- normalize_user_flag(attrs, config, request),
@@ -789,6 +790,74 @@ defmodule Eirinchan.Posts do
   end
 
   defp normalize_ip(ip) when is_binary(ip), do: String.trim(ip)
+
+  defp normalize_post_text(attrs, config) do
+    attrs
+    |> maybe_strip_combining_chars(config)
+    |> apply_wordfilters(config)
+    |> escape_markup_modifiers()
+  end
+
+  defp maybe_strip_combining_chars(attrs, %{strip_combining_chars: true}) do
+    Enum.reduce(["name", "email", "subject", "body"], attrs, fn field, acc ->
+      Map.update(acc, field, nil, fn
+        nil -> nil
+        value -> String.replace(value, ~r/\p{M}+/u, "")
+      end)
+    end)
+  end
+
+  defp maybe_strip_combining_chars(attrs, _config), do: attrs
+
+  defp apply_wordfilters(attrs, %{wordfilters: filters}) when is_list(filters) do
+    Enum.reduce(filters, attrs, fn filter, acc ->
+      case normalize_wordfilter(filter) do
+        nil ->
+          acc
+
+        {pattern, replacement} ->
+          Enum.reduce(["name", "email", "subject", "body"], acc, fn field, field_acc ->
+            Map.update(field_acc, field, nil, fn
+              nil -> nil
+              value -> Regex.replace(pattern, value, replacement)
+            end)
+          end)
+      end
+    end)
+  end
+
+  defp apply_wordfilters(attrs, _config), do: attrs
+
+  defp normalize_wordfilter({pattern, replacement})
+       when is_binary(pattern) and is_binary(replacement) do
+    {Regex.compile!(pattern, "u"), replacement}
+  end
+
+  defp normalize_wordfilter(%{"pattern" => pattern, "replacement" => replacement})
+       when is_binary(pattern) and is_binary(replacement) do
+    normalize_wordfilter({pattern, replacement})
+  end
+
+  defp normalize_wordfilter(%{pattern: pattern, replacement: replacement})
+       when is_binary(pattern) and is_binary(replacement) do
+    normalize_wordfilter({pattern, replacement})
+  end
+
+  defp normalize_wordfilter(_filter), do: nil
+
+  defp escape_markup_modifiers(attrs) do
+    Enum.reduce(["body"], attrs, fn field, acc ->
+      Map.update(acc, field, nil, fn
+        nil ->
+          nil
+
+        value ->
+          value
+          |> String.replace("<tinyboard", "&lt;tinyboard")
+          |> String.replace("</tinyboard>", "&lt;/tinyboard&gt;")
+      end)
+    end)
+  end
 
   defp normalize_post_tag(attrs, %{allowed_tags: allowed_tags}, true) when is_map(allowed_tags) do
     case Map.get(attrs, "tag") do
