@@ -1,0 +1,35 @@
+<.flash_group flash={@flash} />
+<h1>DNSBL Configuration</h1>
+<p><a href={~p"/manage"}>Back to dashboard</a></p>
+<p :if={@error} class="error"><%= @error %></p>
+
+<p>
+  Configure DNSBL entries as JSON. Supported entry forms are strings, two-item arrays,
+  three-item arrays, or objects with <code>lookup</code>, <code>expectation</code>, and optional <code>display_name</code>.
+</p>
+
+<pre>Example:
+[
+  ["rbl.efnetrbl.org", 4],
+  ["dnsbl.sorbs.net", [2, 3, 4, 5, 6, 7, 8, 9]],
+  {
+    "lookup": "%.key.dnsbl.httpbl.org",
+    "expectation": {"type": "httpbl", "max_days": 14, "min_threat": 5},
+    "display_name": "dnsbl.httpbl.org"
+  }
+]</pre>
+
+<p>DNSBL exceptions are newline-separated IPs or CIDR ranges.</p>
+
+<form action={~p"/manage/dnsbl/browser"} method="post">
+  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+  <input type="hidden" name="_method" value="patch" />
+
+  <p><strong>DNSBL Entries</strong></p>
+  <textarea name="dnsbl_json" rows="16" style="width:100%"><%= @dnsbl_json %></textarea>
+
+  <p><strong>Exceptions</strong></p>
+  <textarea name="dnsbl_exceptions" rows="8" style="width:100%"><%= @dnsbl_exceptions %></textarea>
+
+  <p><input type="submit" value="Update DNSBL configuration" /></p>
+</form>

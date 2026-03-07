@@ -7,6 +7,7 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.Build
   alias Eirinchan.Bans
   alias Eirinchan.CustomPages
+  alias Eirinchan.DNSBLConfig
   alias Eirinchan.Installation
   alias Eirinchan.Moderation
   alias Eirinchan.News
@@ -92,6 +93,47 @@ defmodule EirinchanWeb.ManagePageController do
 
       {:error, :forbidden} ->
         render_boardlist_error(conn, "Administrator access required.")
+    end
+  end
+
+  def dnsbl(conn, _params) do
+    with {:ok, moderator} <- ensure_admin(conn) do
+      render(conn, :dnsbl,
+        moderator: moderator,
+        dnsbl_json: DNSBLConfig.encode_entries_for_edit(),
+        dnsbl_exceptions: DNSBLConfig.encode_exceptions_for_edit(),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dnsbl_error(conn, "Administrator access required.")
+    end
+  end
+
+  def update_dnsbl(conn, %{"dnsbl_json" => dnsbl_json, "dnsbl_exceptions" => dnsbl_exceptions}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         {:ok, _config} <- DNSBLConfig.update(dnsbl_json, dnsbl_exceptions) do
+      conn
+      |> put_flash(:info, "DNSBL configuration updated.")
+      |> redirect(to: ~p"/manage/dnsbl/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dnsbl_error(conn, "Administrator access required.")
+
+      {:error, :invalid_json} ->
+        render_dnsbl_error(
+          conn,
+          "DNSBL entries must be valid JSON.",
+          :unprocessable_entity,
+          dnsbl_json,
+          dnsbl_exceptions
+        )
     end
   end
 
@@ -1165,6 +1207,23 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:boardlist,
       moderator: conn.assigns[:current_moderator],
       boardlist_json: boardlist_json,
+      error: message
+    )
+  end
+
+  defp render_dnsbl_error(
+         conn,
+         message,
+         status \\ :forbidden,
+         dnsbl_json \\ "[]",
+         dnsbl_exceptions \\ ""
+       ) do
+    conn
+    |> put_status(status)
+    |> render(:dnsbl,
+      moderator: conn.assigns[:current_moderator],
+      dnsbl_json: dnsbl_json,
+      dnsbl_exceptions: dnsbl_exceptions,
       error: message
     )
   end
