@@ -7,6 +7,7 @@ defmodule Eirinchan.BuildQueue.Job do
     field :thread_id, :integer
     field :status, :string, default: "pending"
     field :finished_at, :utc_datetime_usec
+    field :driver_meta, :map, virtual: true
 
     belongs_to :board, Eirinchan.Boards.BoardRecord
 
