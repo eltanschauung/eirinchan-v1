@@ -1,6 +1,6 @@
 defmodule EirinchanWeb.FeedbackManagementJSON do
-  def index(%{feedback: feedback}) do
-    %{data: Enum.map(feedback, &feedback_data/1)}
+  def index(%{feedback: feedback, unread_count: unread_count}) do
+    %{data: Enum.map(feedback, &feedback_data/1), unread_count: unread_count}
   end
 
   def show(%{feedback: feedback}) do

@@ -16,7 +16,10 @@ defmodule EirinchanWeb.FeedbackManagementControllerTest do
       |> login_moderator(moderator)
       |> put_req_header("accept", "application/json")
 
-    assert %{"data" => [%{"id" => ^feedback_id, "body" => "Needs review", "read_at" => nil}]} =
+    assert %{
+             "data" => [%{"id" => ^feedback_id, "body" => "Needs review", "read_at" => nil}],
+             "unread_count" => 1
+           } =
              queue_conn
              |> get("/manage/feedback")
              |> json_response(200)

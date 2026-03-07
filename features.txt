@@ -133,8 +133,8 @@ CSRF enforcement for secure/secure_POST actions: incomplete
 mod logout/session destruction parity: partial
 
 [Moderation - Core Operations]
-moderator dashboard parity (counts and quick links): incomplete
-recent posts moderation view parity: incomplete
+moderator dashboard parity (counts and quick links): partial
+recent posts moderation view parity: partial
 reports queue parity: partial
 report dismiss variants (single/post/ip) parity: partial
 feedback queue parity in mod panel: partial
@@ -167,7 +167,7 @@ feedback_store_ip boolean behavior (real range vs 0.0.0.0): partial
 IPv4 subnet capture to /16 behavior parity: partial
 IPv6 subnet capture to /48 behavior parity: partial
 feedback entries stored in DB (not txt file) parity: partial
-feedback admin unread badge counting parity: incomplete
+feedback admin unread badge counting parity: partial
 feedback queue mirrored design relative to report queue parity: partial
 feedback admin notes rendered under entries parity: partial
 feedback moderation action labels (Delete/Mark as Read/Add Note): incomplete

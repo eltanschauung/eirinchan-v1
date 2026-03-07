@@ -34,6 +34,13 @@ defmodule Eirinchan.Feedback do
     )
   end
 
+  @spec unread_count(keyword()) :: non_neg_integer()
+  def unread_count(opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    repo.aggregate(from(feedback in Entry, where: is_nil(feedback.read_at)), :count, :id)
+  end
+
   @spec get_feedback(String.t() | integer(), keyword()) :: Entry.t() | nil
   def get_feedback(feedback_id, opts \\ []) do
     repo = Keyword.get(opts, :repo, Repo)
