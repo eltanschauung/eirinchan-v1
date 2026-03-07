@@ -104,7 +104,7 @@ defmodule Eirinchan.Runtime.Config do
     duplicate_file_mode: false,
     max_filesize: 5_000_000,
     multiimage_method: "split",
-    max_filename_display_length: 64,
+    max_filename_display_length: 30,
     thumb_width: 250,
     thumb_height: 250,
     thumb_op_width: 250,
