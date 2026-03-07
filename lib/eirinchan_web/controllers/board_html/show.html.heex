@@ -10,11 +10,17 @@
 <section>
   <h2>Post</h2>
   <form action={~p"/#{@board.uri}/post"} method="post" enctype="multipart/form-data">
-    <input type="text" name="name" placeholder="Name" />
-    <input type="text" name="email" placeholder="Email" />
-    <input type="text" name="subject" placeholder="Subject" />
-    <input type="password" name="password" placeholder="Password" />
-    <input type="file" name="files[]" multiple />
+    <input :if={!@config.field_disable_name} type="text" name="name" placeholder="Name" />
+    <input :if={!@config.field_disable_email} type="text" name="email" placeholder="Email" />
+    <input :if={!@config.field_disable_subject} type="text" name="subject" placeholder="Subject" />
+    <input
+      :if={!@config.field_disable_password}
+      type="password"
+      name="password"
+      placeholder="Password"
+    />
+    <input :if={@config.max_images > 1} type="file" name="files[]" multiple />
+    <input :if={@config.max_images <= 1} type="file" name="file" />
     <label><input type="checkbox" name="spoiler" value="1" /> Spoiler</label>
     <textarea name="body" placeholder="Comment"></textarea>
     <button type="submit" name="post" value={@config.button_newtopic}>

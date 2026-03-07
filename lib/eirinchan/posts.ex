@@ -23,6 +23,8 @@ defmodule Eirinchan.Posts do
              | :board_locked
              | :thread_locked
              | :body_required
+             | :body_too_long
+             | :too_many_lines
              | :reply_hard_limit
              | :image_hard_limit
              | :invalid_image
@@ -53,6 +55,7 @@ defmodule Eirinchan.Posts do
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
            :ok <- validate_thread_lock(thread),
            :ok <- validate_body(op?, attrs, config),
+           :ok <- validate_body_limits(attrs, config),
            :ok <- validate_upload(op?, attrs, config),
            :ok <- validate_image_dimensions(attrs, config),
            :ok <- validate_reply_limit(board, thread, config, repo),
@@ -586,6 +589,23 @@ defmodule Eirinchan.Posts do
       {:error, :body_required}
     else
       :ok
+    end
+  end
+
+  defp validate_body_limits(attrs, config) do
+    body = attrs["body"] || ""
+
+    cond do
+      is_integer(config.max_body) and config.max_body > 0 and
+          String.length(body) > config.max_body ->
+        {:error, :body_too_long}
+
+      is_integer(config.maximum_lines) and config.maximum_lines > 0 and
+          String.split(body, "\n") |> length() > config.maximum_lines ->
+        {:error, :too_many_lines}
+
+      true ->
+        :ok
     end
   end
 

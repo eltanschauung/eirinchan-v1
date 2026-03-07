@@ -54,4 +54,37 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ "Older body"
     assert page =~ ~s(name="delete_post_id")
   end
+
+  test "thread reply form respects reply field toggles and multi-file selector mode", %{
+    conn: conn
+  } do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          field_disable_name: true,
+          field_disable_email: true,
+          field_disable_reply_subject: true,
+          field_disable_password: true,
+          max_images: 2
+        }
+      })
+
+    thread = thread_fixture(board, %{body: "Thread body", subject: "Thread subject"})
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+    document = Floki.parse_document!(page)
+
+    reply_form =
+      document
+      |> Floki.find("form")
+      |> Enum.find(fn form ->
+        Floki.find(form, ~s(input[name="thread"][value="#{thread.id}"])) != []
+      end)
+
+    assert reply_form
+    assert Floki.find(reply_form, ~s(input[name="name"])) == []
+    assert Floki.find(reply_form, ~s(input[name="email"])) == []
+    assert Floki.find(reply_form, ~s(input[name="subject"])) == []
+    assert Floki.find(reply_form, ~s(input[name="password"])) == []
+    assert Floki.find(reply_form, ~s(input[name="files[]"][multiple])) != []
+  end
 end
