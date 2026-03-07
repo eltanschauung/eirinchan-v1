@@ -28,6 +28,7 @@ defmodule EirinchanWeb.ThreadController do
             end
 
           render(conn, :show,
+            layout: false,
             board: board,
             board_title: board.title,
             announcement: Announcement.current(),

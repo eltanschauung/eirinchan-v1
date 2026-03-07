@@ -1,104 +1,73 @@
 <.flash_group flash={@flash} />
-<section>
+<div class="boardlist top">
+  <span class="boardlist-links">
+    <%= for board <- @boards do %>
+      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
+    <% end %>
+  </span>
+</div>
+
+<header>
   <h1>/ <%= @board.uri %> / - <%= @board_title %></h1>
-  <p><a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>Return</a></p>
+  <div class="subtitle">
+    <a href={Eirinchan.ThreadPaths.board_page_path(@board, 1, @config)}>[Return]</a>
+  </div>
+</header>
+
+<section :if={@announcement} class="blotter">
+  <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
 </section>
 
-<nav class="boardlist">
-  <strong>Boards</strong>
-  <%= for board <- @boards do %>
-    <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
-  <% end %>
-</nav>
-
-<section :if={@announcement}>
-  <h2>Announcement</h2>
-  <article>
-    <h3><%= @announcement.title %></h3>
-    <p><%= @announcement.body %></p>
-  </article>
-</section>
-
-<section>
-  <h2>Search</h2>
-  <form action={~p"/search"} method="get">
+<form class="search-form compact-search" action={~p"/search"} method="get">
+  <p>
     <input type="hidden" name="board" value={@board.uri} />
-    <input type="text" name="q" placeholder={"Search /#{@board.uri}/"} />
-    <button type="submit">Search</button>
-  </form>
-</section>
+    <input type="text" name="q" placeholder={"#{@board.uri} search"} />
+    <input type="submit" value="Search" />
+  </p>
+</form>
 
-<section>
-  <h2>Catalog</h2>
+<h2 style="text-align:center">Catalog</h2>
+
+<div id="catalog">
   <%= if @threads == [] do %>
-    <p>No threads yet.</p>
+    <p class="unimportant">No threads yet.</p>
   <% else %>
-    <div id="catalog">
-      <%= for summary <- @threads do %>
-        <% post = summary.thread %>
-        <% template = PostView.template_assigns(@board, post, @config) %>
-        <article id={"catalog-#{summary.thread.id}"}>
-          <h3>
-            <a href={
-              Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)
-            }>
-              <%= PostView.post_title(template.board, template.post, template.config) %>
-            </a>
-          </h3>
-          <p :if={
-            summary.thread.sticky or summary.thread.locked or summary.thread.cycle or
-              summary.thread.sage
-          }>
-            <%= if summary.thread.sticky, do: "[Sticky]" %>
-            <%= if summary.thread.locked, do: " [Locked]" %>
-            <%= if summary.thread.cycle, do: " [Cyclical]" %>
-            <%= if summary.thread.sage, do: " [Bumplocked]" %>
-          </p>
-          <%= if summary.thread.file_path do %>
-            <figure>
-              <a href={summary.thread.file_path}>
-                <img
-                  src={summary.thread.thumb_path || summary.thread.file_path}
-                  alt={summary.thread.file_name || "upload"}
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                <a href={summary.thread.file_path}>
-                  <%= summary.thread.file_name || Path.basename(summary.thread.file_path) %>
-                </a>
-              </figcaption>
-            </figure>
-          <% end %>
-          <%= for file <- summary.thread.extra_files || [] do %>
-            <figure>
-              <a href={file.file_path}>
-                <img
-                  src={file.thumb_path || file.file_path}
-                  alt={file.file_name || "upload"}
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                <a href={file.file_path}>
-                  <%= file.file_name || Path.basename(file.file_path) %>
-                </a>
-              </figcaption>
-            </figure>
-          <% end %>
-          <p :if={@config.fileboard && PostView.show_fileboard_summary?(post)}>
-            Fileboard: <%= PostView.fileboard_summary(post) %>
-          </p>
-          <p :if={PostView.show_body?(summary.thread, @config)}><%= summary.thread.body %></p>
+    <%= for summary <- @threads do %>
+      <% post = summary.thread %>
+      <% template = PostView.template_assigns(@board, post, @config) %>
+      <div class="catalog-thread" id={"catalog-#{post.id}"}>
+        <a href={
+          Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)
+        }>
+          <img
+            :if={post.thumb_path || post.file_path}
+            src={post.thumb_path || post.file_path}
+            alt={post.file_name || "upload"}
+            loading="lazy"
+          />
+        </a>
+        <div class="catalog-label">
+          <strong>
+            <%= PostView.post_title(template.board, template.post, template.config) %>
+          </strong>
+          <p :if={post.body}><%= post.body %></p>
+          <p class="unimportant"><%= summary.reply_count %> replies</p>
           <form action={~p"/#{@board.uri}/post"} method="post">
             <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
             <input type="hidden" name="delete_post_id" value={summary.thread.id} />
             <input type="password" name="password" placeholder="Password" />
             <button type="submit">Delete</button>
           </form>
-          <p><%= summary.reply_count %> replies</p>
-        </article>
-      <% end %>
-    </div>
+        </div>
+      </div>
+    <% end %>
   <% end %>
-</section>
+</div>
+
+<div class="boardlist bottom">
+  <span class="boardlist-links">
+    <%= for board <- @boards do %>
+      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
+    <% end %>
+  </span>
+</div>

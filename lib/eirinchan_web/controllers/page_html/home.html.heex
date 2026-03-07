@@ -1,45 +1,60 @@
 <.flash_group flash={@flash} />
-<section>
+<div class="boardlist top">
+  <span class="boardlist-links">
+    <%= for board <- @boards do %>
+      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
+    <% end %>
+    <a href={~p"/news"}>News</a>
+    <a href={~p"/catalog"}>Catalog</a>
+    <a href={~p"/recent"}>Recent</a>
+    <a href={~p"/manage/login"}>Manage</a>
+    <a href={~p"/feedback"}>Feedback</a>
+    <%= for page <- @custom_pages do %>
+      <a href={"/pages/#{page.slug}"}><%= page.title %></a>
+    <% end %>
+  </span>
+</div>
+
+<header>
   <h1>Eirinchan</h1>
-  <p>Board index</p>
+  <div class="subtitle">Board index</div>
+</header>
+
+<section :if={@announcement} class="blotter">
+  <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
 </section>
 
-<nav>
-  <strong>Boards</strong>
-  <%= for board <- @boards do %>
-    <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
-  <% end %>
-  <a href={~p"/news"}>News</a>
-  <a href={~p"/manage/login"}>Manage</a>
-  <a href={~p"/feedback"}>Feedback</a>
-  <%= for page <- @custom_pages do %>
-    <a href={"/pages/#{page.slug}"}><%= page.title %></a>
-  <% end %>
-</nav>
+<div class="boardlist bottom site-index-links">
+  <span>
+    <%= for board <- @boards do %>
+      <a href={"/#{board.uri}"}>/ <%= board.uri %> / - <%= board.title %></a>
+    <% end %>
+  </span>
+</div>
 
-<section>
-  <h2>Search</h2>
-  <form action={~p"/search"} method="get">
+<div class="pages top">
+  [<a href={~p"/news"}>News</a>]
+  [<a href={~p"/catalog"}>Catalog</a>]
+  [<a href={~p"/ukko"}>Ukko</a>]
+  [<a href={~p"/recent"}>Recent</a>]
+</div>
+
+<form class="search-form compact-search" action={~p"/search"} method="get">
+  <p>
     <input type="text" name="q" placeholder="Search posts" />
-    <button type="submit">Search</button>
-  </form>
-</section>
+    <input type="submit" value="Search" />
+  </p>
+</form>
 
-<section :if={@announcement}>
-  <h2>Announcement</h2>
-  <article>
-    <h3><%= @announcement.title %></h3>
-    <p><%= @announcement.body %></p>
-  </article>
-</section>
+<hr />
 
-<section>
+<section class="news-panel">
   <h2>News</h2>
   <%= if @news_entries == [] do %>
     <p>No news yet.</p>
   <% else %>
     <%= for entry <- @news_entries do %>
-      <article>
+      <article class="news-entry">
         <h3><%= entry.title %></h3>
         <p><%= entry.body %></p>
       </article>

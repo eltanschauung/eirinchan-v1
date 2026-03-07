@@ -5,7 +5,7 @@ defmodule EirinchanWeb.SetupController do
 
   def show(conn, _params) do
     if Installation.setup_required?() do
-      render(conn, :show, params: Installation.setup_defaults(), errors: %{})
+      render(conn, :show, layout: false, params: Installation.setup_defaults(), errors: %{})
     else
       redirect(conn, to: ~p"/manage/login")
     end
@@ -20,12 +20,14 @@ defmodule EirinchanWeb.SetupController do
 
       {:error, %{errors: errors}} ->
         render(conn, :show,
+          layout: false,
           params: Map.merge(Installation.setup_defaults(), stringify(params)),
           errors: errors
         )
 
       {:error, reason} ->
         render(conn, :show,
+          layout: false,
           params: Map.merge(Installation.setup_defaults(), stringify(params)),
           errors: %{"setup" => Exception.message(reason)}
         )
