@@ -28,7 +28,7 @@ defmodule Eirinchan.BuildTest do
                request: request
              )
 
-    assert {:ok, _second_thread, _meta} =
+    assert {:ok, second_thread, _meta} =
              Posts.create_post(
                board,
                %{
@@ -61,11 +61,24 @@ defmodule Eirinchan.BuildTest do
     catalog_json_path = Path.join(board_dir, "catalog.json")
     threads_json_path = Path.join(board_dir, "threads.json")
 
-    assert File.read!(index_path) =~ "Second thread subject"
-    assert File.read!(page_two_path) =~ "Opening subject"
+    assert File.read!(index_path) =~ "Opening subject"
+    assert File.read!(index_path) =~ "Reply body"
+    assert File.read!(page_two_path) =~ "Second thread subject"
     assert File.read!(thread_path) =~ "Reply body"
     assert Jason.decode!(File.read!(thread_json_path))["posts"] |> length() == 2
-    assert Jason.decode!(File.read!(page_zero_json_path))["threads"] |> length() == 1
+
+    assert Jason.decode!(File.read!(page_zero_json_path))["threads"]
+           |> hd()
+           |> Map.fetch!("posts")
+           |> hd()
+           |> Map.fetch!("no") == thread.id
+
+    assert Jason.decode!(File.read!(Path.join(board_dir, "1.json")))["threads"]
+           |> hd()
+           |> Map.fetch!("posts")
+           |> hd()
+           |> Map.fetch!("no") == second_thread.id
+
     assert Jason.decode!(File.read!(catalog_json_path)) |> length() == 2
     assert Jason.decode!(File.read!(threads_json_path)) |> length() == 2
   end

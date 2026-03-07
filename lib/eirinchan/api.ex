@@ -49,6 +49,7 @@ defmodule Eirinchan.Api do
     |> Map.put(:time, unix(summary.thread.inserted_at))
     |> Map.put(:replies, summary.reply_count)
     |> Map.put(:images, summary.image_count)
+    |> maybe_put(:semantic_url, summary.thread.slug)
     |> maybe_put(:omitted_posts, positive_or_nil(summary.omitted_posts))
     |> maybe_put(:omitted_images, positive_or_nil(summary.omitted_images))
     |> Map.put(:last_modified, unix(summary.last_modified))

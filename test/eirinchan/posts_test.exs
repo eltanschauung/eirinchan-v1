@@ -126,6 +126,83 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post rejects replies to locked threads" do
+    board = board_fixture()
+    thread = thread_fixture(board)
+
+    Repo.update_all(
+      from(post in Eirinchan.Posts.Post, where: post.id == ^thread.id),
+      set: [locked: true]
+    )
+
+    assert {:error, :thread_locked} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Reply body",
+                 "post" => "New Reply"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
+  test "reply bumping reorders threads unless the reply is sage" do
+    board = board_fixture()
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, older_thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Older", "subject" => "Older", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    Process.sleep(1000)
+
+    assert {:ok, newer_thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Newer", "subject" => "Newer", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(older_thread.id),
+                 "body" => "Bumping reply",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, page_after_bump} = Posts.list_threads_page(board, 1, config: config)
+    assert hd(page_after_bump.threads).thread.id == older_thread.id
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(newer_thread.id),
+                 "body" => "Sage reply",
+                 "email" => "sage",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, page_after_sage} = Posts.list_threads_page(board, 1, config: config)
+    assert hd(page_after_sage.threads).thread.id == older_thread.id
+  end
+
   test "list_threads_page returns previews, omitted counts, and page metadata" do
     board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
     config = post_config(board.config_overrides)

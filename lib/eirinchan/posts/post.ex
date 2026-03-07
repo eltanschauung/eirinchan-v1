@@ -8,6 +8,12 @@ defmodule Eirinchan.Posts.Post do
     field :subject, :string
     field :password, :string
     field :body, :string
+    field :bump_at, :utc_datetime_usec
+    field :sticky, :boolean, default: false
+    field :locked, :boolean, default: false
+    field :cycle, :boolean, default: false
+    field :sage, :boolean, default: false
+    field :slug, :string
 
     belongs_to :board, Eirinchan.Boards.BoardRecord
     belongs_to :thread, __MODULE__
@@ -17,7 +23,21 @@ defmodule Eirinchan.Posts.Post do
 
   def create_changeset(post, attrs) do
     post
-    |> cast(attrs, [:board_id, :thread_id, :name, :email, :subject, :password, :body])
+    |> cast(attrs, [
+      :board_id,
+      :thread_id,
+      :name,
+      :email,
+      :subject,
+      :password,
+      :body,
+      :bump_at,
+      :sticky,
+      :locked,
+      :cycle,
+      :sage,
+      :slug
+    ])
     |> update_change(:name, &normalize_string/1)
     |> update_change(:email, &normalize_string/1)
     |> update_change(:subject, &normalize_string/1)
