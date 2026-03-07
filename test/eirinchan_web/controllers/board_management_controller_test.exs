@@ -214,9 +214,9 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
       |> html_response(200)
 
     assert page =~ ~s(class="8chan vichan is-not-moderator theme-catalog active-catalog")
-    assert page =~ ~s(data-stylesheet="christmas.css")
+    assert page =~ ~s(data-stylesheet="yotsuba.css")
     assert page =~ ~s(href="/stylesheets/style.css")
-    assert page =~ ~s(id="stylesheet" href="/stylesheets/christmas.css")
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
     assert page =~ "Return to Index"
     assert page =~ "View News - 02/14/26"
     assert page =~ "Sort by:"

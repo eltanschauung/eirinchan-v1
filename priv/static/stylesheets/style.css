@@ -1565,3 +1565,153 @@ header .subtitle:empty {
   display: inline-block;
   margin-right: 0.6em;
 }
+
+.site-blotter-shell {
+  max-width: 640px;
+  margin: 0.75em auto 1.1em auto;
+  text-align: center;
+}
+
+.news-rule {
+  width: 100%;
+  max-width: 500px;
+  margin: 0.55em auto;
+}
+
+.news-button {
+  display: inline-block;
+  color: #800;
+  cursor: pointer;
+  font-size: 10pt;
+}
+
+.news-blotter {
+  display: none;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 0.25em 0 0.5em 0;
+}
+
+.news-blotter h2 {
+  color: #800;
+  font-family: tahoma;
+  font-size: 16pt;
+  letter-spacing: -1px;
+  margin-bottom: 0.35em;
+}
+
+.blotter-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.blotter-table td {
+  text-align: left;
+  vertical-align: top;
+  color: #800;
+  font-size: 8pt;
+  padding: 0.1em 0.25em;
+}
+
+.public-panel,
+.mod-page fieldset {
+  max-width: 980px;
+  margin: 0.9em auto;
+}
+
+.public-panel,
+.mod-page fieldset,
+.setup-page fieldset {
+  border: 1px solid #d9bfb7;
+  background: rgba(240, 224, 214, 0.55);
+  padding: 0.85em 1em;
+}
+
+.public-panel h2,
+.public-panel h3,
+.mod-page legend,
+.setup-page legend {
+  color: #800;
+}
+
+.news-entry p,
+.static-page-panel p {
+  margin: 0.35em 0;
+}
+
+.mod-page main,
+.setup-page main {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.mod-page header,
+.setup-page header {
+  margin-bottom: 0.6em;
+}
+
+.mod-page fieldset ul {
+  margin: 0;
+  padding-left: 1.3em;
+}
+
+.mod-page fieldset li {
+  margin: 0.35em 0;
+}
+
+.mod-form-table {
+  margin: 0;
+  width: 100%;
+  max-width: 860px;
+}
+
+.mod-form-table.compact {
+  max-width: 560px;
+}
+
+.mod-form-table th {
+  white-space: nowrap;
+}
+
+.mod-form-table td input[type="text"],
+.mod-form-table td input[type="password"],
+.mod-form-table td textarea,
+.installer-form td input[type="text"] {
+  width: min(100%, 32rem);
+}
+
+.mod-login-form table,
+.installer-form table {
+  margin: 0 auto;
+}
+
+.mod-login-error,
+.installer-error {
+  text-align: center;
+  color: #d00;
+  font-weight: bold;
+}
+
+.inline-form {
+  display: inline;
+  margin: 0;
+}
+
+.mod-board-actions,
+.mod-board-editor {
+  margin-top: 0.45em;
+}
+
+.danger-form input[type="submit"] {
+  color: #800;
+}
+
+.setup-page .banner,
+.mod-page .banner {
+  max-width: 980px;
+}
+
+.setup-page .blotter,
+.mod-page .blotter {
+  max-width: 980px;
+}

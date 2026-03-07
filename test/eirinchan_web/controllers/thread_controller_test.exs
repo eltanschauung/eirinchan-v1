@@ -185,9 +185,9 @@ defmodule EirinchanWeb.ThreadControllerTest do
     page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
 
     assert page =~ ~s(class="8chan vichan is-not-moderator active-thread")
-    assert page =~ ~s(data-stylesheet="christmas.css")
+    assert page =~ ~s(data-stylesheet="yotsuba.css")
     assert page =~ ~s(href="/stylesheets/style.css")
-    assert page =~ ~s(id="stylesheet" href="/stylesheets/christmas.css")
+    assert page =~ ~s(id="stylesheet" href="/stylesheets/yotsuba.css")
     assert page =~ ~s(src="/main.js")
     assert page =~ ~s(src="/b.php")
     assert page =~ "losers, creeps, whales"

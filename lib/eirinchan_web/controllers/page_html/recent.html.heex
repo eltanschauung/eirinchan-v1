@@ -1,32 +1,22 @@
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) - 1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
 </script>
 
+<img
+  :if={@primary_board && @primary_board.uri == "bant"}
+  class="board_image"
+  style="width:300px;height:100px"
+  src="/b.php"
+  alt=""
+/>
+
 <header>
-  <img
-    :if={@primary_board && @primary_board.uri == "bant"}
-    class="board_image"
-    style="margin-bottom:1em;width:300px;height:100px"
-    src="/b.php"
-    alt=""
-  />
   <h1>Recent Posts</h1>
-  <div class="subtitle"></div>
+  <div class="subtitle"><%= @board_chrome.subtitle || "Cross-board activity" %></div>
 </header>
 
 <div class="pages top">
@@ -35,21 +25,21 @@
   [<a href={~p"/ukko"}>Ukko</a>]
 </div>
 
-<section>
+<section class="public-panel">
   <%= if @posts == [] do %>
     <p>No recent posts yet.</p>
   <% else %>
     <%= for post <- @posts do %>
       <% thread_id = post.thread_id || post.id %>
-      <article id={"recent-#{post.id}"}>
+      <article id={"recent-#{post.id}"} class="news-entry">
         <h2>
           <a href={"/#{post.board.uri}/res/#{thread_id}.html##{post.id}"}>
             /<%= post.board.uri %>/ #<%= post.id %>
           </a>
         </h2>
-        <p>
+        <div class="body">
           <%= raw(PostView.body_html(post, post.board, %{id: thread_id}, %{fileboard: false})) %>
-        </p>
+        </div>
       </article>
       <hr />
     <% end %>

@@ -1,17 +1,6 @@
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) - 1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
@@ -19,7 +8,7 @@
 
 <header>
   <h1><%= @page.title %></h1>
-  <div class="subtitle"></div>
+  <div class="subtitle"><%= @board_chrome.subtitle || "Static page" %></div>
 </header>
 
 <%= if @board_chrome.show_default_announcement && @announcement do %>
@@ -35,10 +24,10 @@
   <% end %>
 </div>
 
-<section>
+<section class="public-panel static-page-panel">
   <article>
     <p><%= @page.body %></p>
-    <p :if={@page.mod_user}>Updated by <%= @page.mod_user.username %></p>
+    <p :if={@page.mod_user} class="unimportant">Updated by <%= @page.mod_user.username %></p>
   </article>
 </section>
 

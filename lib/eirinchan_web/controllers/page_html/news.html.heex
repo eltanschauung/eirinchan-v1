@@ -1,17 +1,6 @@
-<div class="boardlist">
-  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
-    <% links = group[:links] || group %>
-    <span class="sub" data-description={group[:description]}>
-      [
-      <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
-                                                                             length(links) - 1,
-                                                                           do: raw(" / ") %>
-      <% end %>
-      ]
-    </span>
-  <% end %>
-</div>
+<%= raw(
+  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
+) %>
 
 <script type="text/javascript">
   if (typeof do_boardlist !== 'undefined') do_boardlist();
@@ -19,7 +8,7 @@
 
 <header>
   <h1>News</h1>
-  <div class="subtitle"></div>
+  <div class="subtitle"><%= @board_chrome.subtitle || "Site updates" %></div>
 </header>
 
 <%= if @board_chrome.show_default_announcement && @announcement do %>
@@ -37,15 +26,15 @@
   <% end %>
 </div>
 
-<section>
+<section class="public-panel">
   <%= if @news_entries == [] do %>
     <p>No news entries yet.</p>
   <% else %>
     <%= for entry <- @news_entries do %>
-      <article>
+      <article class="news-entry">
         <h2><%= entry.title %></h2>
         <p><%= entry.body %></p>
-        <p :if={entry.mod_user}>Posted by <%= entry.mod_user.username %></p>
+        <p :if={entry.mod_user} class="unimportant">Posted by <%= entry.mod_user.username %></p>
       </article>
       <hr />
     <% end %>

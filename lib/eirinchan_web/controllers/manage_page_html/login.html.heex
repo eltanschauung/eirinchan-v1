@@ -1,20 +1,26 @@
-<.flash_group flash={@flash} />
-<section>
+<header>
   <h1>Moderator Login</h1>
-  <p>Sign in to manage boards and moderation tasks.</p>
-</section>
+  <div class="subtitle">Sign in to manage boards and moderation tasks.</div>
+</header>
 
-<p :if={@error}><%= @error %></p>
+<p :if={@error} class="error mod-login-error"><%= @error %></p>
 
-<form action={~p"/manage/login/browser"} method="post">
+<form action={~p"/manage/login/browser"} method="post" class="mod-login-form">
   <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-  <label>
-    <span>Username</span>
-    <input type="text" name="username" value={@username} />
-  </label>
-  <label>
-    <span>Password</span>
-    <input type="password" name="password" />
-  </label>
-  <button type="submit">Login</button>
+  <table style="margin-top:25px;">
+    <tr>
+      <th>Username</th>
+      <td>
+        <input type="text" name="username" size="20" maxlength="30" value={@username} autofocus />
+      </td>
+    </tr>
+    <tr>
+      <th>Password</th>
+      <td><input type="password" name="password" size="20" maxlength="30" value="" /></td>
+    </tr>
+    <tr>
+      <td></td>
+      <td><input type="submit" name="login" value="Continue" /></td>
+    </tr>
+  </table>
 </form>
