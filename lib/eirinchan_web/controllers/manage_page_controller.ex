@@ -194,6 +194,7 @@ defmodule EirinchanWeb.ManagePageController do
 
       render(conn, :ip_history,
         moderator: moderator,
+        boards: boards,
         ip: ip,
         board: nil,
         posts: Moderation.list_ip_posts(ip, board_ids: board_ids),
@@ -209,6 +210,7 @@ defmodule EirinchanWeb.ManagePageController do
          {:ok, board} <- load_accessible_board(moderator, uri) do
       render(conn, :ip_history,
         moderator: moderator,
+        boards: Moderation.list_accessible_boards(moderator),
         ip: ip,
         board: board,
         posts: Moderation.list_ip_posts(ip, board_ids: [board.id]),
@@ -370,6 +372,93 @@ defmodule EirinchanWeb.ManagePageController do
 
       {:error, :not_found} ->
         render_dashboard_error(conn, "Post not found.", %{}, :not_found)
+    end
+  end
+
+  def move_thread(conn, %{
+        "uri" => uri,
+        "thread_id" => thread_id,
+        "target_board_uri" => target_uri
+      }) do
+    with {:ok, moderator} <- ensure_moderator(conn),
+         {:ok, source_board} <- load_accessible_board(moderator, uri),
+         {:ok, target_board} <- load_accessible_board(moderator, target_uri),
+         {:ok, moved_thread} <-
+           Eirinchan.Posts.move_thread(
+             source_board,
+             thread_id,
+             target_board,
+             source_config: board_config(source_board, conn.host),
+             target_config: board_config(target_board, conn.host)
+           ) do
+      conn
+      |> put_flash(:info, "Thread moved.")
+      |> redirect(
+        to:
+          Eirinchan.ThreadPaths.thread_path(
+            target_board,
+            moved_thread,
+            board_config(target_board, conn.host)
+          )
+      )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Board access required.", %{}, :forbidden)
+
+      {:error, :not_found} ->
+        render_dashboard_error(conn, "Move target not found.", %{}, :not_found)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_dashboard_error(conn, format_changeset(changeset), %{}, :unprocessable_entity)
+    end
+  end
+
+  def move_reply(
+        conn,
+        %{
+          "uri" => uri,
+          "post_id" => post_id,
+          "target_board_uri" => target_uri,
+          "target_thread_id" => target_thread_id
+        }
+      ) do
+    with {:ok, moderator} <- ensure_moderator(conn),
+         {:ok, source_board} <- load_accessible_board(moderator, uri),
+         {:ok, target_board} <- load_accessible_board(moderator, target_uri),
+         {:ok, moved_reply} <-
+           Eirinchan.Posts.move_reply(
+             source_board,
+             post_id,
+             target_board,
+             target_thread_id,
+             source_config: board_config(source_board, conn.host),
+             target_config: board_config(target_board, conn.host)
+           ) do
+      conn
+      |> put_flash(:info, "Reply moved.")
+      |> redirect(
+        to:
+          Eirinchan.ThreadPaths.thread_path(
+            target_board,
+            %Eirinchan.Posts.Post{id: moved_reply.thread_id, slug: nil},
+            board_config(target_board, conn.host)
+          )
+      )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Board access required.", %{}, :forbidden)
+
+      {:error, :not_found} ->
+        render_dashboard_error(conn, "Move target not found.", %{}, :not_found)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_dashboard_error(conn, format_changeset(changeset), %{}, :unprocessable_entity)
     end
   end
 

@@ -57,6 +57,49 @@
           <% end %>
         </p>
         <p>Posted: <%= post.inserted_at %></p>
+
+        <section :if={@moderator.role in ["admin", "mod"]}>
+          <h3>Move</h3>
+          <%= if is_nil(post.thread_id) do %>
+            <form
+              action={"/manage/boards/#{post.board.uri}/threads/#{post.id}/browser/move"}
+              method="post"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <input type="hidden" name="_method" value="patch" />
+              <label>
+                <span>Target Board</span>
+                <select name="target_board_uri">
+                  <%= for board <- @boards do %>
+                    <option value={board.uri}>/<%= board.uri %>/</option>
+                  <% end %>
+                </select>
+              </label>
+              <button type="submit">Move Thread</button>
+            </form>
+          <% else %>
+            <form
+              action={"/manage/boards/#{post.board.uri}/posts/#{post.id}/browser/move"}
+              method="post"
+            >
+              <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+              <input type="hidden" name="_method" value="patch" />
+              <label>
+                <span>Target Board</span>
+                <select name="target_board_uri">
+                  <%= for board <- @boards do %>
+                    <option value={board.uri}>/<%= board.uri %>/</option>
+                  <% end %>
+                </select>
+              </label>
+              <label>
+                <span>Target Thread ID</span>
+                <input type="text" name="target_thread_id" />
+              </label>
+              <button type="submit">Move Reply</button>
+            </form>
+          <% end %>
+        </section>
       </article>
     <% end %>
   <% end %>

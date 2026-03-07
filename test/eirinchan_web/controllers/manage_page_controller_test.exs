@@ -338,4 +338,45 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
     refute Eirinchan.Repo.get(Eirinchan.Posts.Post, thread.id)
   end
+
+  test "browser moderation pages can move threads and replies", %{conn: conn} do
+    moderator = moderator_fixture(%{role: "admin"})
+    source_board = board_fixture(%{uri: "src"})
+    target_board = board_fixture(%{uri: "dst"})
+    source_thread = thread_fixture(source_board, %{body: "Thread to move"})
+    _reply = reply_fixture(source_board, source_thread, %{body: "Thread reply"})
+    reply_source_thread = thread_fixture(source_board, %{body: "Reply source"})
+    target_thread = thread_fixture(target_board, %{body: "Reply target"})
+    movable_reply = reply_fixture(source_board, reply_source_thread, %{body: "Reply to move"})
+
+    move_thread_conn =
+      conn
+      |> login_moderator(moderator)
+      |> patch("/manage/boards/#{source_board.uri}/threads/#{source_thread.id}/browser/move", %{
+        "target_board_uri" => target_board.uri
+      })
+
+    assert redirected_to(move_thread_conn) == "/#{target_board.uri}/res/#{source_thread.id}.html"
+    assert {:error, :not_found} = Eirinchan.Posts.get_thread(source_board, source_thread.id)
+
+    assert {:ok, [_moved_thread, _moved_reply]} =
+             Eirinchan.Posts.get_thread(target_board, source_thread.id)
+
+    move_reply_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> patch("/manage/boards/#{source_board.uri}/posts/#{movable_reply.id}/browser/move", %{
+        "target_board_uri" => target_board.uri,
+        "target_thread_id" => Integer.to_string(target_thread.id)
+      })
+
+    assert redirected_to(move_reply_conn) == "/#{target_board.uri}/res/#{target_thread.id}.html"
+    assert {:ok, [_thread]} = Eirinchan.Posts.get_thread(source_board, reply_source_thread.id)
+
+    assert {:ok, [_target, moved_reply]} =
+             Eirinchan.Posts.get_thread(target_board, target_thread.id)
+
+    assert moved_reply.id == movable_reply.id
+  end
 end
