@@ -17,6 +17,14 @@
   <% end %>
 </nav>
 
+<section>
+  <h2>Search</h2>
+  <form action={~p"/search"} method="get">
+    <input type="text" name="q" placeholder="Search posts" />
+    <button type="submit">Search</button>
+  </form>
+</section>
+
 <section :if={@announcement}>
   <h2>Announcement</h2>
   <article>

@@ -1,0 +1,61 @@
+<section>
+  <h1>Search</h1>
+  <p><a href={~p"/"}>Home</a></p>
+</section>
+
+<nav>
+  <%= for page <- @custom_pages do %>
+    <a href={"/pages/#{page.slug}"}><%= page.title %></a>
+  <% end %>
+</nav>
+
+<section :if={@announcement}>
+  <h2>Announcement</h2>
+  <article>
+    <h3><%= @announcement.title %></h3>
+    <p><%= @announcement.body %></p>
+  </article>
+</section>
+
+<section>
+  <form action={~p"/search"} method="get">
+    <label>
+      <span>Board</span>
+      <select name="board">
+        <option value="">All boards</option>
+        <%= for board <- @boards do %>
+          <option value={board.uri} selected={@board && @board.uri == board.uri}>
+            /<%= board.uri %>/ - <%= board.title %>
+          </option>
+        <% end %>
+      </select>
+    </label>
+    <label>
+      <span>Query</span>
+      <input type="text" name="q" value={@query} />
+    </label>
+    <button type="submit">Search</button>
+  </form>
+  <p :if={@error}><%= @error %></p>
+</section>
+
+<section>
+  <h2>Results</h2>
+  <%= if @results == [] do %>
+    <p>No results.</p>
+  <% else %>
+    <%= for post <- @results do %>
+      <article>
+        <h3>#<%= post.id %> on /<%= post.board.uri %>/</h3>
+        <p :if={post.subject}><strong><%= post.subject %></strong></p>
+        <p :if={post.name}><%= post.name %></p>
+        <p :if={post.body}><%= post.body %></p>
+        <p>
+          <a href={"/#{post.board.uri}/res/#{post.thread_id || post.id}.html"}>
+            View Thread
+          </a>
+        </p>
+      </article>
+    <% end %>
+  <% end %>
+</section>

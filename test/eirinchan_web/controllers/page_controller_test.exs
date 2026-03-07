@@ -39,6 +39,7 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "Global notice"
     assert page =~ "Maintenance"
     assert page =~ "Rules"
+    assert page =~ ~s(action="/search")
   end
 
   test "GET / redirects to setup when no admin exists", %{conn: conn} do

@@ -34,26 +34,33 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
   test "admin browser dashboard creates boards", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
+    uri = "tea#{System.unique_integer([:positive])}"
 
     conn =
       conn
       |> login_moderator(moderator)
-      |> post("/manage/boards/browser", %{"uri" => "tea", "title" => "Tea", "subtitle" => "Board"})
+      |> post("/manage/boards/browser", %{"uri" => uri, "title" => "Tea", "subtitle" => "Board"})
 
-    assert redirected_to(conn) == "/tea"
+    assert redirected_to(conn) == "/#{uri}"
 
     board_page =
       conn
       |> recycle()
-      |> get("/tea")
+      |> get("/#{uri}")
       |> html_response(200)
 
-    assert board_page =~ "/ tea / - Tea"
+    assert board_page =~ "/ #{uri} / - Tea"
   end
 
   test "admin browser dashboard updates and deletes boards", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
-    board = board_fixture(%{uri: "tea", title: "Tea", subtitle: "Board"})
+
+    board =
+      board_fixture(%{
+        uri: "tea#{System.unique_integer([:positive])}",
+        title: "Tea",
+        subtitle: "Board"
+      })
 
     update_conn =
       conn
@@ -287,8 +294,10 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
   test "browser recent posts page filters by board, query, and ip", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
-    board = board_fixture(%{uri: "tea", title: "Tea"})
-    other_board = board_fixture(%{uri: "meta", title: "Meta"})
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
+
+    other_board =
+      board_fixture(%{uri: "meta#{System.unique_integer([:positive])}", title: "Meta"})
 
     {:ok, matching_post, _meta} =
       Eirinchan.Posts.create_post(
@@ -331,7 +340,7 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
   test "browser board pages expose report queue and ban appeals management", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
-    board = board_fixture(%{uri: "tea", title: "Tea"})
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
     thread = thread_fixture(board, %{body: "Thread body"})
 
     report_conn =
@@ -397,7 +406,7 @@ defmodule EirinchanWeb.ManagePageControllerTest do
 
   test "browser IP history page supports notes and delete-by-ip actions", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
-    board = board_fixture(%{uri: "tea", title: "Tea"})
+    board = board_fixture(%{uri: "tea#{System.unique_integer([:positive])}", title: "Tea"})
 
     {:ok, thread, _meta} =
       Eirinchan.Posts.create_post(
