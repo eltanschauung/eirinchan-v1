@@ -43,6 +43,7 @@ defmodule EirinchanWeb.Plugs.FetchSiteAssets do
     instance_config = Settings.current_instance_config()
 
     Map.merge(site_assets, %{
+      version: Map.get(instance_config, :asset_version, site_assets.version),
       custom_javascript:
         Map.get(instance_config, :custom_javascript, site_assets.custom_javascript),
       analytics_html: Map.get(instance_config, :analytics_html, site_assets.analytics_html)

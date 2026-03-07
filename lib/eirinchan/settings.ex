@@ -10,6 +10,26 @@ defmodule Eirinchan.Settings do
     persisted_instance_config() || %{}
   end
 
+  @spec installed_themes() :: [map()]
+  def installed_themes do
+    current_instance_config()
+    |> Map.get(:themes, %{})
+    |> Map.get(:installed, [])
+    |> Enum.map(&normalize_theme_definition/1)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  @spec default_theme() :: binary() | nil
+  def default_theme do
+    current_instance_config()
+    |> Map.get(:themes, %{})
+    |> Map.get(:default)
+    |> case do
+      value when is_binary(value) -> String.trim(value)
+      _ -> nil
+    end
+  end
+
   @spec persisted_instance_config() :: map() | nil
   def persisted_instance_config do
     path = config_path()
@@ -72,4 +92,124 @@ defmodule Eirinchan.Settings do
 
   defp stringify_keys(value) when is_list(value), do: Enum.map(value, &stringify_keys/1)
   defp stringify_keys(value), do: value
+
+  @spec upsert_theme(map()) :: {:ok, map()} | {:error, :invalid_theme}
+  def upsert_theme(attrs) when is_map(attrs) do
+    with %{name: name} = theme <-
+           normalize_theme_definition(attrs) do
+      config = current_instance_config()
+
+      themes =
+        config
+        |> Map.get(:themes, %{})
+        |> Map.get(:installed, [])
+        |> Enum.map(&normalize_theme_definition/1)
+
+      updated =
+        themes
+        |> Enum.reject(&(&1 && &1.name == name))
+        |> Kernel.++([theme])
+        |> Enum.reject(&is_nil/1)
+        |> Enum.sort_by(& &1.name)
+
+      persist_and_return(
+        Map.put(config, :themes, %{default: default_theme(), installed: updated}),
+        theme
+      )
+    else
+      _ -> {:error, :invalid_theme}
+    end
+  end
+
+  @spec delete_theme(binary()) :: :ok | {:error, :not_found}
+  def delete_theme(name) when is_binary(name) do
+    normalized_name = String.trim(name)
+    config = current_instance_config()
+    themes = installed_themes()
+    updated = Enum.reject(themes, &(&1.name == normalized_name))
+
+    if length(updated) == length(themes) do
+      {:error, :not_found}
+    else
+      default =
+        case default_theme() do
+          ^normalized_name -> nil
+          current -> current
+        end
+
+      new_config = Map.put(config, :themes, %{default: default, installed: updated})
+
+      case persist_instance_config(new_config |> bump_asset_version()) do
+        :ok -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  @spec set_default_theme(binary()) :: :ok | {:error, :invalid_theme}
+  def set_default_theme(name) when is_binary(name) do
+    normalized_name = String.trim(name)
+
+    if normalized_name == "" do
+      {:error, :invalid_theme}
+    else
+      config = current_instance_config()
+      themes = config |> Map.get(:themes, %{}) |> Map.get(:installed, [])
+      new_config = Map.put(config, :themes, %{default: normalized_name, installed: themes})
+
+      case persist_instance_config(new_config |> bump_asset_version()) do
+        :ok -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  @spec current_asset_version() :: binary() | nil
+  def current_asset_version do
+    case current_instance_config() |> Map.get(:asset_version) do
+      value when is_binary(value) and value != "" -> value
+      _ -> nil
+    end
+  end
+
+  defp normalize_theme_definition(attrs) when is_map(attrs) do
+    name =
+      attrs[:name] ||
+        attrs["name"]
+        |> to_string()
+        |> String.trim()
+
+    label =
+      attrs[:label] ||
+        attrs["label"]
+        |> to_string()
+        |> String.trim()
+
+    stylesheet =
+      attrs[:stylesheet] ||
+        attrs["stylesheet"]
+        |> to_string()
+        |> String.trim()
+
+    if name == "" or label == "" or stylesheet == "" do
+      nil
+    else
+      %{name: name, label: label, stylesheet: stylesheet}
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp normalize_theme_definition(_attrs), do: nil
+
+  defp persist_and_return(new_config, result) do
+    case persist_instance_config(new_config |> bump_asset_version()) do
+      :ok -> {:ok, result}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp bump_asset_version(config) do
+    Map.put(config, :asset_version, Integer.to_string(System.system_time(:millisecond)))
+  end
 end

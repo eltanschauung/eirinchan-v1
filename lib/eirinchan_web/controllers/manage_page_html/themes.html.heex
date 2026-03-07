@@ -1,0 +1,69 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>Theme Registry</h1>
+  <p><a href={~p"/manage"}>Back to dashboard</a></p>
+  <p :if={@error}><%= @error %></p>
+</section>
+
+<section>
+  <h2>Install Theme</h2>
+  <form action={~p"/manage/themes/browser"} method="post">
+    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+    <label>
+      <span>Name</span>
+      <input type="text" name="name" />
+    </label>
+    <label>
+      <span>Label</span>
+      <input type="text" name="label" />
+    </label>
+    <label>
+      <span>Stylesheet</span>
+      <input type="text" name="stylesheet" placeholder="/stylesheets/custom.css" />
+    </label>
+    <button type="submit">Install Theme</button>
+  </form>
+</section>
+
+<section>
+  <h2>Installed Themes</h2>
+  <%= for theme <- @themes do %>
+    <article id={"theme-#{theme.name}"}>
+      <h3><%= theme.label %></h3>
+      <p>Name: <%= theme.name %></p>
+      <p>Stylesheet: <%= inspect(theme.stylesheet) %></p>
+
+      <form action={"/manage/themes/browser/#{theme.name}"} method="post">
+        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+        <input type="hidden" name="_method" value="patch" />
+        <input type="hidden" name="default_theme" value={theme.name} />
+        <button type="submit" disabled={@default_theme == theme.name}>
+          <%= if @default_theme == theme.name, do: "Default Theme", else: "Make Default" %>
+        </button>
+      </form>
+
+      <%= if theme.name not in ["default", "vichan", "contrast", "feedback", "ipaccessauth"] do %>
+        <form action={"/manage/themes/browser/#{theme.name}"} method="post">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="_method" value="patch" />
+          <input type="hidden" name="name" value={theme.name} />
+          <label>
+            <span>Label</span>
+            <input type="text" name="label" value={theme.label} />
+          </label>
+          <label>
+            <span>Stylesheet</span>
+            <input type="text" name="stylesheet" value={theme.stylesheet} />
+          </label>
+          <button type="submit">Update Theme</button>
+        </form>
+
+        <form action={"/manage/themes/browser/#{theme.name}"} method="post">
+          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+          <input type="hidden" name="_method" value="delete" />
+          <button type="submit">Uninstall Theme</button>
+        </form>
+      <% end %>
+    </article>
+  <% end %>
+</section>

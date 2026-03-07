@@ -7,6 +7,7 @@
 <nav>
   <a href={~p"/"}>Home</a>
   <a :if={@moderator.role == "admin"} href={~p"/manage/config/browser"}>Instance Config</a>
+  <a :if={@moderator.role == "admin"} href={~p"/manage/themes/browser"}>Themes</a>
   <a href={~p"/manage/announcement/browser"}>Announcement</a>
   <a href={~p"/manage/pages/browser"}>Pages</a>
   <a href={~p"/news"}>News</a>

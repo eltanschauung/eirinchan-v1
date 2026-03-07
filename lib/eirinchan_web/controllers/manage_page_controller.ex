@@ -13,6 +13,7 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
   alias EirinchanWeb.ManageSecurity
+  alias EirinchanWeb.ThemeRegistry
 
   def login(conn, _params) do
     cond do
@@ -194,6 +195,113 @@ defmodule EirinchanWeb.ManagePageController do
       )
     else
       {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
+    end
+  end
+
+  def themes(conn, _params) do
+    with {:ok, moderator} <- ensure_admin(conn) do
+      render(conn, :themes,
+        moderator: moderator,
+        themes: ThemeRegistry.all(),
+        default_theme: ThemeRegistry.default_theme(),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+    end
+  end
+
+  def create_theme(conn, params) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         {:ok, _theme} <-
+           Settings.upsert_theme(%{
+             name: params["name"],
+             label: params["label"],
+             stylesheet: params["stylesheet"]
+           }) do
+      conn
+      |> put_flash(:info, "Theme installed.")
+      |> redirect(to: ~p"/manage/themes/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :invalid_theme} ->
+        render_themes_error(
+          conn,
+          "Theme requires name, label, and stylesheet.",
+          :unprocessable_entity
+        )
+    end
+  end
+
+  def update_theme(conn, %{"name" => _name, "default_theme" => default_theme}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         :ok <- Settings.set_default_theme(default_theme) do
+      conn
+      |> put_flash(:info, "Default theme updated.")
+      |> redirect(to: ~p"/manage/themes/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :invalid_theme} ->
+        render_themes_error(conn, "Invalid theme selection.", :unprocessable_entity)
+    end
+  end
+
+  def update_theme(conn, %{"name" => name} = params) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         {:ok, _theme} <-
+           Settings.upsert_theme(%{
+             name: name,
+             label: params["label"],
+             stylesheet: params["stylesheet"]
+           }) do
+      conn
+      |> put_flash(:info, "Theme updated.")
+      |> redirect(to: ~p"/manage/themes/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :invalid_theme} ->
+        render_themes_error(
+          conn,
+          "Theme requires name, label, and stylesheet.",
+          :unprocessable_entity
+        )
+    end
+  end
+
+  def delete_theme(conn, %{"name" => name}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         :ok <- Settings.delete_theme(name) do
+      conn
+      |> put_flash(:info, "Theme removed.")
+      |> redirect(to: ~p"/manage/themes/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :not_found} ->
+        render_themes_error(conn, "Theme not found.", :not_found)
     end
   end
 
@@ -946,6 +1054,17 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:pages,
       moderator: conn.assigns[:current_moderator],
       pages: CustomPages.list_pages(),
+      error: message
+    )
+  end
+
+  defp render_themes_error(conn, message, status) do
+    conn
+    |> put_status(status)
+    |> render(:themes,
+      moderator: conn.assigns[:current_moderator],
+      themes: ThemeRegistry.all(),
+      default_theme: ThemeRegistry.default_theme(),
       error: message
     )
   end

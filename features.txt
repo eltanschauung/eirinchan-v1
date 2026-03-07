@@ -214,16 +214,16 @@ search wildcard/phrase semantics parity: partial
 search result rendering parity (Post/Thread objects): partial
 
 [Themes and Extension Framework]
-theme registry and installation flow parity: incomplete
-theme settings persistence parity: incomplete
-theme rebuild triggers by action type parity: incomplete
-theme uninstall flow parity: incomplete
+theme registry and installation flow parity: partial
+theme settings persistence parity: partial
+theme rebuild triggers by action type parity: partial
+theme uninstall flow parity: partial
 catalog theme parity: partial
 ukko theme parity: partial
 sitemap theme parity: partial
 recent theme parity: partial
-IpAccessAuth theme parity: incomplete
-feedback theme parity: incomplete
+IpAccessAuth theme parity: partial
+feedback theme parity: partial
 
 [Integrations and External Services]
 GeoIP legacy database lookup parity (GeoIPv6.dat): skipped
