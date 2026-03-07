@@ -1214,6 +1214,50 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post applies captcha mode only to the configured post type" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          captcha: %{enabled: true, provider: "native", expected_response: "ok", mode: "reply"}
+        }
+      })
+
+    config = post_config(board.config_overrides)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "first post", "post" => "New Topic"},
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert {:error, :invalid_captcha} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "reply body",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert {:ok, _reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "reply body",
+                 "captcha" => "ok",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+  end
+
   test "create_post extracts cites and stores nntp references for existing posts" do
     board = board_fixture()
     thread = thread_fixture(board)

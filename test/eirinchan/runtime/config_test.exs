@@ -129,4 +129,20 @@ defmodule Eirinchan.Runtime.ConfigTest do
     assert host_config.cookies.mod_cookie_name == "__Host-mod"
     assert secure_config.cookies.mod_cookie_name == "__Secure-mod"
   end
+
+  test "normalizes captcha mode and refresh defaults" do
+    config =
+      Config.compose(
+        %{
+          root: "/",
+          captcha: %{enabled: true, provider: "native", mode: " Reply "},
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    assert config.captcha.mode == "reply"
+    assert config.captcha.refresh_on_error
+  end
 end
