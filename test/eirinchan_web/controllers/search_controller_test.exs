@@ -30,6 +30,7 @@ defmodule EirinchanWeb.SearchControllerTest do
 
     assert page =~ "Search"
     assert page =~ "green tea leaf"
+    assert page =~ "Thread ##{thread.id}"
     assert page =~ "/#{board.uri}/res/#{thread.id}.html"
     refute page =~ "meta tea"
   end
@@ -126,6 +127,47 @@ defmodule EirinchanWeb.SearchControllerTest do
 
     assert get(conn, "/search", %{"q" => "name:Alice", "board" => board.uri})
            |> html_response(200) =~ "green leaf"
+  end
+
+  test "public search renders thread-aware result objects for replies", %{conn: conn} do
+    board = board_fixture(%{uri: "render#{System.unique_integer([:positive])}", title: "Render"})
+
+    {:ok, thread, _meta} =
+      Eirinchan.Posts.create_post(
+        board,
+        %{
+          "name" => "Op",
+          "subject" => "Thread subject",
+          "body" => "thread body",
+          "post" => "New Topic"
+        },
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{referer: "http://example.test/#{board.uri}/index.html"}
+      )
+
+    {:ok, reply, _meta} =
+      Eirinchan.Posts.create_post(
+        board,
+        %{
+          "thread" => Integer.to_string(thread.id),
+          "name" => "Reply",
+          "body" => "reply body match",
+          "post" => "New Reply"
+        },
+        config: Eirinchan.Runtime.Config.compose(nil, %{}, board.config_overrides),
+        request: %{referer: "http://example.test/#{board.uri}/index.html"}
+      )
+
+    page =
+      conn
+      |> get("/search", %{"q" => "reply body", "board" => board.uri})
+      |> html_response(200)
+
+    assert page =~ "Reply ##{reply.id}"
+    assert page =~ "Matched Reply"
+    assert page =~ "Thread subject"
+    assert page =~ "/#{board.uri}/res/#{thread.id}.html#p#{reply.id}"
+    assert page =~ "/#{board.uri}/res/#{thread.id}.html#p#{thread.id}"
   end
 
   test "public search supports wildcard and phrase search semantics", %{conn: conn} do

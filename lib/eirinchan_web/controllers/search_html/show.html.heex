@@ -44,16 +44,34 @@
   <%= if @results == [] do %>
     <p>No results.</p>
   <% else %>
-    <%= for post <- @results do %>
+    <%= for result <- @results do %>
       <article>
-        <h3>#<%= post.id %> on /<%= post.board.uri %>/</h3>
-        <p :if={post.subject}><strong><%= post.subject %></strong></p>
-        <p :if={post.name}><%= post.name %></p>
-        <p :if={post.body}><%= post.body %></p>
+        <h3>
+          <%= result.object_type %> #<%= result.post.id %> on /<%= result.board.uri %>/
+        </h3>
         <p>
-          <a href={"/#{post.board.uri}/res/#{post.thread_id || post.id}.html"}>
-            View Thread
+          <a href={result.result_url}>
+            View <%= result.object_type %>
           </a>
+          | <a href={result.thread_url}>View Thread</a>
+        </p>
+        <section>
+          <h4>Thread</h4>
+          <p>#<%= result.thread.id %></p>
+          <p :if={result.thread.subject}><strong><%= result.thread.subject %></strong></p>
+          <p :if={result.thread.name}><%= result.thread.name %></p>
+          <p :if={result.thread_excerpt}><%= result.thread_excerpt %></p>
+        </section>
+        <section :if={!result.op?}>
+          <h4>Matched Reply</h4>
+        </section>
+        <section>
+          <p :if={result.post.subject}><strong><%= result.post.subject %></strong></p>
+          <p :if={result.post.name}><%= result.post.name %></p>
+          <p :if={result.excerpt}><%= result.excerpt %></p>
+        </section>
+        <p>
+          Result anchor: <code>#p<%= result.post.id %></code>
         </p>
       </article>
     <% end %>
