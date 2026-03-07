@@ -6,18 +6,19 @@ defmodule Eirinchan.Uploads do
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Posts.Post
 
+  @image_extensions [".png", ".jpg", ".jpeg", ".gif"]
+
   @spec describe(Plug.Upload.t(), map()) :: {:ok, map()} | {:error, atom()}
   def describe(%Plug.Upload{} = upload, config) do
     normalized_name = normalized_input_filename(upload.filename)
 
     with {:ok, binary} <- File.read(upload.path) do
-      file_type = MIME.from_path(normalized_name)
-
       ext =
         normalized_name
         |> Path.extname()
         |> String.downcase()
 
+      file_type = detect_mime_type(upload.path, normalized_name)
       image_metadata = maybe_image_metadata(upload.path, file_type)
 
       {:ok,
@@ -125,6 +126,25 @@ defmodule Eirinchan.Uploads do
 
   def image?(_metadata), do: false
 
+  def compatible_with_extension?(%{ext: ext, file_type: file_type}),
+    do: compatible_with_extension?(ext, file_type)
+
+  def compatible_with_extension?(ext, file_type)
+      when is_binary(ext) and is_binary(file_type) do
+    cond do
+      ext in [".jpg", ".jpeg"] -> file_type == "image/jpeg"
+      ext == ".png" -> file_type == "image/png"
+      ext == ".gif" -> file_type == "image/gif"
+      ext == ".txt" -> file_type == "inode/x-empty" or String.starts_with?(file_type, "text/")
+      true -> true
+    end
+  end
+
+  def compatible_with_extension?(_ext, _file_type), do: false
+
+  def image_extension?(ext) when is_binary(ext), do: ext in @image_extensions
+  def image_extension?(_ext), do: false
+
   defp maybe_image_metadata(path, file_type) do
     if String.starts_with?(file_type, "image/") do
       case image_metadata(path) do
@@ -133,6 +153,19 @@ defmodule Eirinchan.Uploads do
       end
     else
       %{width: nil, height: nil}
+    end
+  end
+
+  defp detect_mime_type(path, normalized_name) do
+    case System.cmd("file", ["--mime-type", "-b", path], stderr_to_stdout: true) do
+      {output, 0} ->
+        case String.trim(output) do
+          "" -> MIME.from_path(normalized_name)
+          mime_type -> mime_type
+        end
+
+      _ ->
+        MIME.from_path(normalized_name)
     end
   end
 

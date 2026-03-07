@@ -578,6 +578,7 @@ defmodule Eirinchan.Posts do
 
   defp validate_upload_entry(upload, metadata, config, op?) do
     with :ok <- validate_upload_type(upload, metadata, config, op?),
+         :ok <- validate_upload_content(metadata),
          :ok <- validate_upload_size(metadata, config) do
       :ok
     end
@@ -618,6 +619,20 @@ defmodule Eirinchan.Posts do
       {:error, :file_too_large}
     else
       :ok
+    end
+  end
+
+  defp validate_upload_content(nil), do: {:error, :upload_failed}
+
+  defp validate_upload_content(metadata) do
+    if Uploads.compatible_with_extension?(metadata) do
+      :ok
+    else
+      if Uploads.image_extension?(metadata.ext) do
+        {:error, :invalid_image}
+      else
+        {:error, :invalid_file_type}
+      end
     end
   end
 

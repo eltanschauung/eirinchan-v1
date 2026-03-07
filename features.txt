@@ -85,7 +85,7 @@ EXIF stripping behavior parity: incomplete
 EXIF orientation correction behavior parity: incomplete
 use_exiftool path behavior parity: incomplete
 strip_exif + orientation interaction parity: incomplete
-mime exploit detection rules parity: incomplete
+mime exploit detection rules parity: partial
 OCR pipeline integration (tesseract) parity: incomplete
 ocr text appending into moderation/filter pipeline: incomplete
 move_uploaded_file/rename fallback behavior parity: incomplete
