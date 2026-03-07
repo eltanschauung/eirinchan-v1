@@ -1,7 +1,7 @@
 defmodule EirinchanWeb.PublicShell do
   @moduledoc false
 
-  @javascript_urls [
+  @base_javascript_urls [
     "/main.js",
     "/js/jquery.min.js",
     "/js/inline-expanding.js",
@@ -43,8 +43,12 @@ defmodule EirinchanWeb.PublicShell do
     "/js/catalog-search.js",
     "/js/webm-settings.js",
     "/js/webm-settings.js",
-    "/js/expand-video.js"
+    "/js/expand-video.js",
+    "/js/download-original.js"
   ]
+
+  @catalog_javascript_urls @base_javascript_urls ++
+                             ["/js/jquery.mixitup.min.js", "/js/catalog.js"]
 
   def head_html(active_page, opts \\ []) do
     board_name =
@@ -65,9 +69,66 @@ defmodule EirinchanWeb.PublicShell do
     |> String.trim()
   end
 
-  def javascript_urls, do: @javascript_urls
+  def javascript_urls, do: @base_javascript_urls
+  def javascript_urls(:catalog), do: @catalog_javascript_urls
+  def javascript_urls(_page), do: @base_javascript_urls
+
+  def thread_meta_html(board, thread, config) do
+    meta_subject = thread.subject || strip_html(thread.body || "")
+    meta_description = strip_html(thread.body || "")
+    image_url = thread_thumb_url(board, thread, config)
+    thread_url = "https://bantculture.com/#{board.uri}/res/#{thread.id}.html"
+
+    [
+      ~s(<meta name="description" content="#{escape(board_heading(board) <> " - " <> meta_subject)}" />),
+      ~s(<meta name="twitter:card" value="summary">),
+      ~s(<meta property="og:title" content="#{escape(meta_subject)}" />),
+      ~s(<meta property="og:type" content="article" />),
+      ~s(<meta property="og:url" content="#{escape(thread_url)}" />)
+    ]
+    |> maybe_add_meta(image_url, fn url ->
+      [
+        ~s(<meta property="og:image" content="#{escape(url)}" />)
+      ]
+    end)
+    |> Kernel.++([~s(<meta property="og:description" content="#{escape(meta_description)}" />)])
+    |> Enum.join("")
+  end
 
   def body_end_html do
     "<script type=\"text/javascript\">ready();</script>"
+  end
+
+  defp board_heading(board), do: "/#{board.uri}/ - #{board.title}"
+
+  defp thread_thumb_url(board, thread, config) do
+    case thread.thumb_path do
+      nil ->
+        nil
+
+      thumb ->
+        if String.starts_with?(thumb, "/") do
+          "https://bantculture.com" <> thumb
+        else
+          "https://bantculture.com/#{board.uri}/#{config.dir.thumb}#{thumb}"
+        end
+    end
+  end
+
+  defp maybe_add_meta(items, nil, _builder), do: items
+  defp maybe_add_meta(items, value, builder), do: items ++ builder.(value)
+
+  defp strip_html(value) do
+    value
+    |> Phoenix.HTML.html_escape()
+    |> Phoenix.HTML.safe_to_string()
+    |> String.replace(~r/<[^>]*>/, "")
+    |> String.slice(0, 256)
+  end
+
+  defp escape(value) do
+    value
+    |> Phoenix.HTML.html_escape()
+    |> Phoenix.HTML.safe_to_string()
   end
 end

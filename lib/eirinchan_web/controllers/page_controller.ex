@@ -137,7 +137,7 @@ defmodule EirinchanWeb.PageController do
     end
   end
 
-  defp public_page_assigns(page_kind \\ "active-page", active_page \\ "index") do
+  defp public_page_assigns(page_kind, active_page) do
     boards = Boards.list_boards()
     primary_board = Enum.find(boards, &(&1.uri == "bant")) || %{uri: "bant"}
     chrome = BoardChrome.for_board(primary_board)
@@ -154,7 +154,7 @@ defmodule EirinchanWeb.PageController do
       body_class: public_body_class(page_kind),
       body_data_stylesheet: public_data_stylesheet(primary_board),
       head_html: PublicShell.head_html(active_page),
-      javascript_urls: PublicShell.javascript_urls(),
+      javascript_urls: PublicShell.javascript_urls(active_page),
       body_end_html: PublicShell.body_end_html(),
       primary_stylesheet: public_primary_stylesheet(primary_board),
       primary_stylesheet_id: "stylesheet",
