@@ -1,9 +1,9 @@
 [Critical Core Pipelines]
-request bootstrap and runtime initialization parity: incomplete
-config precedence (default -> instance -> board overrides): incomplete
-effective config derivation with computed defaults: incomplete
-board context loading/openBoard equivalent with per-board state: incomplete
-global mutable state replacement strategy (config/board/mod/build pages): incomplete
+request bootstrap and runtime initialization parity: partial
+config precedence (default -> instance -> board overrides): partial
+effective config derivation with computed defaults: partial
+board context loading/openBoard equivalent with per-board state: partial
+global mutable state replacement strategy (config/board/mod/build pages): partial
 public request router parity for post/report/search/static/mod entrypoints: incomplete
 error handling model parity (user-facing + internal logging): incomplete
 post submission orchestration pipeline parity (end-to-end): incomplete
@@ -92,7 +92,7 @@ move_uploaded_file/rename fallback behavior parity: incomplete
 undoImage rollback on failure parity: incomplete
 
 [Persistence and Data Model]
-board metadata table parity: incomplete
+board metadata table parity: partial
 per-board post storage model parity or compatible replacement: incomplete
 post files JSON payload compatibility layer: incomplete
 cites table behavior parity: incomplete
