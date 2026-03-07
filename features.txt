@@ -189,9 +189,9 @@ IpAccessAuth output path configurability (/auth default): incomplete
 IpAccessAuth minimal UI parity (no image/footer by default): incomplete
 
 [IP Privacy, Hashing, and Moderation Visibility]
-ipcrypt hashing parity for public/mod contexts: incomplete
-ipcrypt_immune_ip single IP bypass behavior parity: incomplete
-ipcrypt_immune_ip CIDR range bypass behavior parity: incomplete
+ipcrypt hashing parity for public/mod contexts: partial
+ipcrypt_immune_ip single IP bypass behavior parity: partial
+ipcrypt_immune_ip CIDR range bypass behavior parity: partial
 cloak IP presentation parity in moderation templates: partial
 show_ip permission gating parity: partial
 proxy/IP header trust model parity: partial
