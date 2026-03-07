@@ -232,7 +232,7 @@ captcha provider HTTP service abstraction parity: partial
 nntpchan inbound post ingestion parity: incomplete
 nntpchan outbound publication parity: incomplete
 purge integration support parity: incomplete
-logging backends parity (error_log/file/stderr/syslog): incomplete
+logging backends parity (error_log/file/stderr/syslog): partial
 
 [API and Client Compatibility]
 4chan-style JSON field compatibility: partial
