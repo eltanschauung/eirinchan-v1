@@ -52,6 +52,9 @@
       </figcaption>
     </figure>
   <% end %>
+  <p :if={@summary.thread.name || @summary.thread.tripcode}>
+    <%= @summary.thread.name %> <%= @summary.thread.tripcode %>
+  </p>
   <p>
     <%= if @summary.thread.raw_html, do: raw(@summary.thread.body), else: @summary.thread.body %>
   </p>
@@ -162,6 +165,7 @@
     <%= for reply <- @summary.replies do %>
       <article id={"p#{reply.id}"}>
         <h3><%= reply.subject || "Reply ##{reply.id}" %></h3>
+        <p :if={reply.name || reply.tripcode}><%= reply.name %> <%= reply.tripcode %></p>
         <%= if reply.file_path do %>
           <figure>
             <a href={reply.file_path}>

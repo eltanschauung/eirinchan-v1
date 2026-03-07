@@ -654,6 +654,24 @@ defmodule EirinchanWeb.PostControllerTest do
     assert %{"error" => "Captcha validation failed."} = json_response(conn, 422)
   end
 
+  test "post endpoint accepts ban appeals", %{conn: conn} do
+    board = board_fixture()
+
+    {:ok, ban} =
+      Eirinchan.Bans.create_ban(%{board_id: board.id, ip_subnet: "203.0.113.4", reason: "Spam"})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "appeal_ban_id" => Integer.to_string(ban.id),
+        "body" => "Please review",
+        "json_response" => "1"
+      })
+
+    assert %{"appeal_id" => _id, "status" => "ok"} = json_response(conn, 200)
+  end
+
   test "report branch creates a report and returns thread redirect metadata", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{slugify: true}})
     thread = thread_fixture(board, %{subject: "Reported subject", body: "Thread body"})

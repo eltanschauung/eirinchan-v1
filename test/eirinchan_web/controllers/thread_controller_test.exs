@@ -175,4 +175,21 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ "/ meta /"
     assert page =~ "/ #{board.uri} /"
   end
+
+  test "thread pages render poster tripcodes", %{conn: conn} do
+    board = board_fixture()
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"name" => "Anon#secret", "body" => "Opening body", "post" => "New Topic"},
+               config: config,
+               request: %{referer: "http://www.example.com/#{board.uri}/index.html"}
+             )
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+
+    assert page =~ thread.tripcode
+  end
 end
