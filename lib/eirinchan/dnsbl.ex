@@ -49,6 +49,26 @@ defmodule Eirinchan.DNSBL do
     Enum.any?(expected, fn octet -> normalized in [to_string(octet), "127.0.0.#{octet}"] end)
   end
 
+  defp blocked_response?(response, %{type: "httpbl"} = expected) do
+    httpbl_match?(normalize_dns_response(response), expected)
+  end
+
+  defp blocked_response?(response, expected) when is_map(expected) do
+    expected
+    |> Enum.into(%{}, fn {key, value} -> {to_string(key), value} end)
+    |> case do
+      %{"type" => "httpbl"} = map ->
+        httpbl_match?(normalize_dns_response(response), %{
+          type: "httpbl",
+          max_days: map["max_days"],
+          min_threat: map["min_threat"]
+        })
+
+      _ ->
+        false
+    end
+  end
+
   defp blocked_response?(response, fun) when is_function(fun, 1),
     do: fun.(normalize_dns_response(response))
 
@@ -59,6 +79,14 @@ defmodule Eirinchan.DNSBL do
 
   defp normalize_blacklist([lookup, expectation, name]), do: {lookup, expectation, name}
   defp normalize_blacklist([lookup, expectation]), do: {lookup, expectation, lookup}
+
+  defp normalize_blacklist(%{} = blacklist) do
+    lookup = Map.get(blacklist, "lookup") || Map.get(blacklist, :lookup)
+    expectation = Map.get(blacklist, "expectation") || Map.get(blacklist, :expectation)
+    name = Map.get(blacklist, "display_name") || Map.get(blacklist, :display_name) || lookup
+    {lookup, expectation, name}
+  end
+
   defp normalize_blacklist(lookup) when is_binary(lookup), do: {lookup, nil, lookup}
 
   defp default_lookup(host) do
@@ -81,6 +109,24 @@ defmodule Eirinchan.DNSBL do
 
   defp render_ip(ip) when is_tuple(ip), do: ip |> :inet.ntoa() |> to_string()
   defp render_ip(ip), do: to_string(ip)
+
+  defp httpbl_match?(response, %{max_days: max_days, min_threat: min_threat})
+       when is_integer(max_days) and is_integer(min_threat) do
+    case String.split(response, ".") do
+      ["127", days, threat, _type] ->
+        with {parsed_days, ""} <- Integer.parse(days),
+             {parsed_threat, ""} <- Integer.parse(threat) do
+          parsed_days <= max_days and parsed_threat >= min_threat
+        else
+          _ -> false
+        end
+
+      _ ->
+        false
+    end
+  end
+
+  defp httpbl_match?(_response, _expected), do: false
 
   defp ipv6?(ip) do
     case IpMatching.parse_ip(ip) do

@@ -30,4 +30,23 @@ defmodule Eirinchan.DNSBLTest do
                resolver: resolver
              )
   end
+
+  test "blocks httpbl-style map expectations" do
+    resolver = fn "9.113.0.203.key.dnsbl.httpbl.org" -> "127.10.7.4" end
+
+    assert {:error, "dnsbl.httpbl.org"} =
+             DNSBL.check(
+               {203, 0, 113, 9},
+               %{
+                 dnsbl: [
+                   %{
+                     lookup: "%.key.dnsbl.httpbl.org",
+                     expectation: %{type: "httpbl", max_days: 14, min_threat: 5},
+                     display_name: "dnsbl.httpbl.org"
+                   }
+                 ]
+               },
+               resolver: resolver
+             )
+  end
 end

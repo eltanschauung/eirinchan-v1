@@ -82,6 +82,59 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert persisted =~ "\"label\": \"bant\""
   end
 
+  test "admin can update dnsbl configuration from the dashboard", %{conn: conn} do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+
+    path =
+      Path.join(System.tmp_dir!(), "eirinchan-dnsbl-#{System.unique_integer([:positive])}.json")
+
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    moderator = moderator_fixture(%{role: "admin"})
+
+    dashboard =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage")
+      |> html_response(200)
+
+    assert dashboard =~ "DNSBL Configuration"
+
+    update_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> patch("/manage/dnsbl/browser", %{
+        "dnsbl_json" => """
+        [
+          ["rbl.efnetrbl.org", 4],
+          {
+            "lookup": "%.key.dnsbl.httpbl.org",
+            "expectation": {"type": "httpbl", "max_days": 14, "min_threat": 5},
+            "display_name": "dnsbl.httpbl.org"
+          }
+        ]
+        """,
+        "dnsbl_exceptions" => "203.0.113.9\n198.51.100.0/24"
+      })
+
+    assert redirected_to(update_conn) == "/manage/dnsbl/browser"
+
+    persisted = File.read!(path)
+    assert persisted =~ "\"dnsbl\""
+    assert persisted =~ "\"rbl.efnetrbl.org\""
+    assert persisted =~ "\"dnsbl.httpbl.org\""
+    assert persisted =~ "\"dnsbl_exceptions\""
+    assert persisted =~ "\"203.0.113.9\""
+    assert persisted =~ "\"198.51.100.0/24\""
+  end
+
   test "browser dashboard redirects to login when admin exists but session is missing", %{
     conn: conn
   } do
