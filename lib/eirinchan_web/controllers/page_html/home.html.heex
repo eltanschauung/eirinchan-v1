@@ -1,42 +1,54 @@
-<.flash_group flash={@flash} />
-<div class="boardlist top">
-  <span class="boardlist-links">
-    <%= for board <- @boards do %>
-      <a href={"/#{board.uri}"}>/ <%= board.uri %> /</a>
-    <% end %>
-    <a href={~p"/news"}>News</a>
-    <a href={~p"/catalog"}>Catalog</a>
-    <a href={~p"/recent"}>Recent</a>
-    <a href={~p"/manage/login"}>Manage</a>
-    <a href={~p"/feedback"}>Feedback</a>
-    <%= for page <- @custom_pages do %>
-      <a href={"/pages/#{page.slug}"}><%= page.title %></a>
-    <% end %>
-  </span>
+<div class="boardlist">
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
+      [
+      <%= for {link, index} <- Enum.with_index(links) do %>
+        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
+                                                                             length(links) - 1,
+                                                                           do: raw(" / ") %>
+      <% end %>
+      ]
+    </span>
+  <% end %>
 </div>
+
+<script type="text/javascript">
+  if (typeof do_boardlist !== 'undefined') do_boardlist();
+</script>
 
 <header>
+  <img
+    :if={@primary_board && @primary_board.uri == "bant"}
+    class="board_image"
+    style="margin-bottom:1em;width:300px;height:100px"
+    src="/b.php"
+    alt=""
+  />
   <h1>Eirinchan</h1>
-  <div class="subtitle">Board index</div>
+  <div class="subtitle"><%= @board_chrome.subtitle || "Board index" %></div>
 </header>
 
-<section :if={@announcement} class="blotter">
-  <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
-</section>
+<%= if @board_chrome.top_news_html do %>
+  <%= raw(@board_chrome.top_news_html) %>
+<% end %>
 
-<div class="boardlist bottom site-index-links">
-  <span>
-    <%= for board <- @boards do %>
-      <a href={"/#{board.uri}"}>/ <%= board.uri %> / - <%= board.title %></a>
-    <% end %>
-  </span>
-</div>
+<%= if @board_chrome.show_default_announcement && @announcement do %>
+  <div class="blotter">
+    <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
+  </div>
+<% end %>
 
 <div class="pages top">
   [<a href={~p"/news"}>News</a>]
   [<a href={~p"/catalog"}>Catalog</a>]
   [<a href={~p"/ukko"}>Ukko</a>]
   [<a href={~p"/recent"}>Recent</a>]
+  [<a href={~p"/manage/login"}>Manage</a>]
+  [<a href={~p"/feedback"}>Feedback</a>]
+  <%= for page <- @custom_pages do %>
+    [<a href={"/pages/#{page.slug}"}><%= page.title %></a>]
+  <% end %>
 </div>
 
 <form class="search-form compact-search" action={~p"/search"} method="get">
@@ -47,6 +59,12 @@
 </form>
 
 <hr />
+
+<div class="pages site-index-links">
+  <%= for board <- @boards do %>
+    [<a href={"/#{board.uri}"}>/<%= board.uri %>/ - <%= board.title %></a>]
+  <% end %>
+</div>
 
 <section class="news-panel">
   <h2>News</h2>
@@ -61,3 +79,7 @@
     <% end %>
   <% end %>
 </section>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>

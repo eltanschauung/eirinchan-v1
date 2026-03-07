@@ -1,19 +1,32 @@
-<section>
-  <h1>Global Catalog</h1>
-  <nav>
-    <a href={~p"/"}>Home</a>
-    <a href={~p"/ukko"}>Ukko</a>
-    <a href={~p"/recent"}>Recent</a>
-  </nav>
-</section>
+<div class="boardlist">
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
+      [
+      <%= for {link, index} <- Enum.with_index(links) do %>
+        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
+                                                                             length(links) - 1,
+                                                                           do: raw(" / ") %>
+      <% end %>
+      ]
+    </span>
+  <% end %>
+</div>
 
-<section :if={@announcement}>
-  <h2>Announcement</h2>
-  <article>
-    <h3><%= @announcement.title %></h3>
-    <p><%= @announcement.body %></p>
-  </article>
-</section>
+<script type="text/javascript">
+  if (typeof do_boardlist !== 'undefined') do_boardlist();
+</script>
+
+<header>
+  <h1>Global Catalog</h1>
+  <div class="subtitle"></div>
+</header>
+
+<div class="pages top">
+  [<a href={~p"/"}>Home</a>]
+  [<a href={~p"/ukko"}>Ukko</a>]
+  [<a href={~p"/recent"}>Recent</a>]
+</div>
 
 <section>
   <%= if @threads == [] do %>
@@ -26,9 +39,16 @@
             /<%= board.uri %>/ <%= summary.thread.subject || "Untitled" %>
           </a>
         </h2>
-        <p><%= summary.thread.body %></p>
+        <p>
+          <%= raw(PostView.body_html(summary.thread, board, summary.thread, %{fileboard: false})) %>
+        </p>
         <p><%= summary.reply_count %> replies</p>
       </article>
+      <hr />
     <% end %>
   <% end %>
 </section>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>

@@ -10,17 +10,20 @@ defmodule EirinchanWeb.PageController do
   alias Eirinchan.Posts
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
+  alias EirinchanWeb.BoardChrome
 
   def home(conn, _params) do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(conn, :home,
-        layout: false,
-        boards: Boards.list_boards(),
-        announcement: Announcement.current(),
-        custom_pages: CustomPages.list_pages(),
-        news_entries: News.list_entries(limit: 5)
+      render(
+        conn,
+        :home,
+        Keyword.merge(
+          public_page_assigns(),
+          layout: false,
+          news_entries: News.list_entries(limit: 5)
+        )
       )
     end
   end
@@ -29,12 +32,14 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(conn, :news,
-        layout: false,
-        boards: Boards.list_boards(),
-        announcement: Announcement.current(),
-        custom_pages: CustomPages.list_pages(),
-        news_entries: News.list_entries()
+      render(
+        conn,
+        :news,
+        Keyword.merge(
+          public_page_assigns(),
+          layout: false,
+          news_entries: News.list_entries()
+        )
       )
     end
   end
@@ -43,12 +48,14 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(conn, :catalog,
-        layout: false,
-        boards: Boards.list_boards(),
-        announcement: Announcement.current(),
-        custom_pages: CustomPages.list_pages(),
-        threads: global_catalog_threads()
+      render(
+        conn,
+        :catalog,
+        Keyword.merge(
+          public_page_assigns("active-catalog"),
+          layout: false,
+          threads: global_catalog_threads()
+        )
       )
     end
   end
@@ -57,12 +64,14 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(conn, :ukko,
-        layout: false,
-        boards: Boards.list_boards(),
-        announcement: Announcement.current(),
-        custom_pages: CustomPages.list_pages(),
-        threads: ukko_threads()
+      render(
+        conn,
+        :ukko,
+        Keyword.merge(
+          public_page_assigns(),
+          layout: false,
+          threads: ukko_threads()
+        )
       )
     end
   end
@@ -71,12 +80,14 @@ defmodule EirinchanWeb.PageController do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(conn, :recent,
-        layout: false,
-        boards: Boards.list_boards(),
-        announcement: Announcement.current(),
-        custom_pages: CustomPages.list_pages(),
-        posts: Posts.list_recent_posts(limit: 50)
+      render(
+        conn,
+        :recent,
+        Keyword.merge(
+          public_page_assigns(),
+          layout: false,
+          posts: Posts.list_recent_posts(limit: 50)
+        )
       )
     end
   end
@@ -112,16 +123,48 @@ defmodule EirinchanWeb.PageController do
           send_resp(conn, :not_found, "Page not found")
 
         page ->
-          render(conn, :page,
-            layout: false,
-            boards: Boards.list_boards(),
-            announcement: Announcement.current(),
-            custom_pages: CustomPages.list_pages(),
-            page: page
+          render(
+            conn,
+            :page,
+            Keyword.merge(
+              public_page_assigns(),
+              layout: false,
+              page: page
+            )
           )
       end
     end
   end
+
+  defp public_page_assigns(page_kind \\ "active-page") do
+    boards = Boards.list_boards()
+    primary_board = Enum.find(boards, &(&1.uri == "bant")) || %{uri: "bant"}
+    chrome = BoardChrome.for_board(primary_board)
+
+    [
+      boards: boards,
+      primary_board: primary_board,
+      board_chrome: chrome,
+      announcement: Announcement.current(),
+      custom_pages: CustomPages.list_pages(),
+      body_class: public_body_class(page_kind),
+      body_data_stylesheet: public_data_stylesheet(primary_board),
+      extra_stylesheets: public_extra_stylesheets(primary_board),
+      hide_theme_switcher: true,
+      skip_app_stylesheet: true
+    ]
+  end
+
+  defp public_body_class("active-catalog"),
+    do: "8chan vichan is-not-moderator theme-catalog active-catalog"
+
+  defp public_body_class(page_kind), do: "8chan vichan is-not-moderator #{page_kind}"
+
+  defp public_data_stylesheet(%{uri: "bant"}), do: "christmas.css"
+  defp public_data_stylesheet(_board), do: nil
+
+  defp public_extra_stylesheets(%{uri: "bant"}), do: ["/stylesheets/christmas.css"]
+  defp public_extra_stylesheets(_board), do: []
 
   defp global_catalog_threads do
     Boards.list_boards()

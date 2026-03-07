@@ -31,15 +31,15 @@ defmodule EirinchanWeb.PageControllerTest do
 
     conn = get(conn, ~p"/")
     page = html_response(conn, 200)
-    assert page =~ "Board index"
-    assert page =~ "/ tech /"
+    assert page =~ "losers, creeps, whales"
+    assert page =~ "/tech/ - Technology"
     assert page =~ "Manage"
     assert page =~ "Feedback"
-    assert page =~ "Read this"
-    assert page =~ "Global notice"
     assert page =~ "Maintenance"
     assert page =~ "Rules"
     assert page =~ ~s(action="/search")
+    assert page =~ "View News - 02/14/26"
+    assert page =~ "We witches are not whale lol."
   end
 
   test "GET / redirects to setup when no admin exists", %{conn: conn} do
@@ -73,12 +73,12 @@ defmodule EirinchanWeb.PageControllerTest do
     conn = get(conn, ~p"/news")
     page = html_response(conn, 200)
     assert page =~ "News"
-    assert page =~ "System notice"
-    assert page =~ "Read first"
     assert page =~ "Launch"
     assert page =~ "Board online"
     assert page =~ "editor"
     assert page =~ "FAQ"
+    assert page =~ ~s(class="boardlist")
+    assert page =~ "We witches are not whale lol."
   end
 
   test "GET /pages/:slug renders a custom page", %{conn: conn} do
@@ -148,6 +148,7 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "Recent Posts"
     assert page =~ "Recent reply"
     assert page =~ board.uri
+    assert page =~ ~s(class="boardlist")
   end
 
   test "GET /sitemap.xml renders board and thread urls", %{conn: conn} do

@@ -1,20 +1,41 @@
-<section>
-  <h1>News</h1>
-  <p><a href={~p"/"}>Home</a></p>
-  <nav>
-    <%= for page <- @custom_pages do %>
-      <a href={"/pages/#{page.slug}"}><%= page.title %></a>
-    <% end %>
-  </nav>
-</section>
+<div class="boardlist">
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
+      [
+      <%= for {link, index} <- Enum.with_index(links) do %>
+        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
+                                                                             length(links) - 1,
+                                                                           do: raw(" / ") %>
+      <% end %>
+      ]
+    </span>
+  <% end %>
+</div>
 
-<section :if={@announcement}>
-  <h2>Announcement</h2>
-  <article>
-    <h3><%= @announcement.title %></h3>
-    <p><%= @announcement.body %></p>
-  </article>
-</section>
+<script type="text/javascript">
+  if (typeof do_boardlist !== 'undefined') do_boardlist();
+</script>
+
+<header>
+  <h1>News</h1>
+  <div class="subtitle"></div>
+</header>
+
+<%= if @board_chrome.show_default_announcement && @announcement do %>
+  <div class="blotter">
+    <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
+  </div>
+<% end %>
+
+<div class="pages top">
+  [<a href={~p"/"}>Home</a>]
+  [<a href={~p"/catalog"}>Catalog</a>]
+  [<a href={~p"/recent"}>Recent</a>]
+  <%= for page <- @custom_pages do %>
+    [<a href={"/pages/#{page.slug}"}><%= page.title %></a>]
+  <% end %>
+</div>
 
 <section>
   <%= if @news_entries == [] do %>
@@ -26,6 +47,11 @@
         <p><%= entry.body %></p>
         <p :if={entry.mod_user}>Posted by <%= entry.mod_user.username %></p>
       </article>
+      <hr />
     <% end %>
   <% end %>
 </section>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>

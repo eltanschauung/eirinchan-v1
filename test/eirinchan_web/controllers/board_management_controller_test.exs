@@ -137,6 +137,20 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert second_page =~ ~s(name="delete_post_id")
   end
 
+  test "board pages render formatted quote links in thread previews", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board, %{body: "Opening body"})
+    reply_fixture(board, thread, %{body: ">>#{thread.id}\n>quoted line"})
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ ~s(href="/#{board.uri}/res/#{thread.id}.html##{thread.id}")
+    assert page =~ ~s(class="quote")
+  end
+
   test "catalog page renders thread summaries across board pages", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{threads_per_page: 1}})
 
