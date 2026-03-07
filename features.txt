@@ -228,7 +228,7 @@ feedback theme parity: incomplete
 [Integrations and External Services]
 GeoIP legacy database lookup parity (GeoIPv6.dat): incomplete
 GeoIP2 database lookup support (GeoLite2-Country.mmdb): incomplete
-captcha provider HTTP service abstraction parity: incomplete
+captcha provider HTTP service abstraction parity: partial
 nntpchan inbound post ingestion parity: incomplete
 nntpchan outbound publication parity: incomplete
 purge integration support parity: incomplete

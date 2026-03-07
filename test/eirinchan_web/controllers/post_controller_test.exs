@@ -695,6 +695,38 @@ defmodule EirinchanWeb.PostControllerTest do
     assert log =~ "post.error reason=invalid_captcha"
   end
 
+  test "posting validates hosted captcha providers over http", %{conn: conn} do
+    server = serve_json_response(~s({"success":true}))
+
+    on_exit(fn ->
+      server.stop.()
+    end)
+
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          captcha: %{
+            enabled: true,
+            provider: "hcaptcha",
+            verify_url: server.url,
+            secret: "topsecret"
+          }
+        }
+      })
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "json_response" => "1",
+        "post" => "New Topic",
+        "h-captcha-response" => "remote-ok"
+      })
+
+    assert %{"id" => _id, "thread_id" => _thread_id} = json_response(conn, 200)
+  end
+
   test "posting rejects active banned ips", %{conn: conn} do
     board = board_fixture()
 
