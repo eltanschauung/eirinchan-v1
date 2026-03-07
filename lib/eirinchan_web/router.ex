@@ -22,6 +22,8 @@ defmodule EirinchanWeb.Router do
     get "/boards/:uri", BoardManagementController, :show
     patch "/boards/:uri", BoardManagementController, :update
     delete "/boards/:uri", BoardManagementController, :delete
+    get "/boards/:uri/threads/:thread_id", ThreadManagementController, :show
+    patch "/boards/:uri/threads/:thread_id", ThreadManagementController, :update
   end
 
   scope "/api", EirinchanWeb do

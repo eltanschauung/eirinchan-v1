@@ -62,6 +62,10 @@ defmodule Eirinchan.Api do
     |> Map.put(:time, unix(summary.thread.inserted_at))
     |> Map.put(:replies, summary.reply_count)
     |> Map.put(:images, summary.image_count)
+    |> maybe_put_flag(:sticky, summary.thread.sticky)
+    |> maybe_put_flag(:closed, summary.thread.locked)
+    |> maybe_put_flag(:cyclical, summary.thread.cycle)
+    |> maybe_put_flag(:bumplimit, summary.thread.sage)
     |> maybe_put(:semantic_url, summary.thread.slug)
     |> maybe_put(:omitted_posts, positive_or_nil(summary.omitted_posts))
     |> maybe_put(:omitted_images, positive_or_nil(summary.omitted_images))
@@ -92,6 +96,10 @@ defmodule Eirinchan.Api do
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, _key, ""), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp maybe_put_flag(map, _key, false), do: map
+  defp maybe_put_flag(map, _key, nil), do: map
+  defp maybe_put_flag(map, key, true), do: Map.put(map, key, 1)
 
   defp positive_or_nil(value) when is_integer(value) and value > 0, do: value
   defp positive_or_nil(_value), do: nil

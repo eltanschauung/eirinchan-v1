@@ -7,6 +7,15 @@
     <a href={Eirinchan.ThreadPaths.board_page_path(@board, @page_num, @config)}>Return</a>
   </p>
   <p><a href={"/#{@board.uri}/catalog.html"}>Catalog</a></p>
+  <p :if={
+    @summary.thread.sticky or @summary.thread.locked or @summary.thread.cycle or
+      @summary.thread.sage
+  }>
+    <%= if @summary.thread.sticky, do: "[Sticky]" %>
+    <%= if @summary.thread.locked, do: " [Locked]" %>
+    <%= if @summary.thread.cycle, do: " [Cyclical]" %>
+    <%= if @summary.thread.sage, do: " [Bumplocked]" %>
+  </p>
   <p><%= @summary.thread.body %></p>
 </section>
 

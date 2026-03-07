@@ -150,10 +150,10 @@ post delete workflow parity: incomplete
 delete file from post workflow parity: incomplete
 spoilerize file moderation action parity: incomplete
 delete-by-IP workflow parity (board/global): incomplete
-lock/unlock thread moderation parity: incomplete
-sticky/unsticky moderation parity: incomplete
-cycle/uncycle moderation parity: incomplete
-bumplock/unbumplock moderation parity: incomplete
+lock/unlock thread moderation parity: partial
+sticky/unsticky moderation parity: partial
+cycle/uncycle moderation parity: partial
+bumplock/unbumplock moderation parity: partial
 move thread workflow parity: incomplete
 move reply workflow parity: incomplete
 noticeboard/news moderation pages parity: incomplete

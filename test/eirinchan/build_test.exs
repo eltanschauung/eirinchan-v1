@@ -110,4 +110,40 @@ defmodule Eirinchan.BuildTest do
     assert File.read!(canonical_path) =~ "Opening body"
     assert File.read!(legacy_path) =~ "Opening body"
   end
+
+  test "thread state updates rebuild static board and thread outputs" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture()
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "subject" => "Managed subject",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    assert {:ok, _updated_thread} =
+             Posts.update_thread_state(
+               board,
+               thread.id,
+               %{"sticky" => "true", "locked" => "true"},
+               config: config
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+
+    assert File.read!(index_path) =~ "[Sticky]"
+    assert File.read!(index_path) =~ "[Locked]"
+    assert File.read!(thread_path) =~ "[Sticky]"
+    assert File.read!(thread_path) =~ "[Locked]"
+  end
 end

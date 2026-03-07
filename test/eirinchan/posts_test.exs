@@ -247,6 +247,62 @@ defmodule Eirinchan.PostsTest do
     assert thread.id == older_thread.id
   end
 
+  test "update_thread_state applies cycle and bumplock behavior to future replies" do
+    board = board_fixture(%{config_overrides: %{cycle_limit: 1, threads_per_page: 1}})
+    config = post_config(board.config_overrides)
+    request = post_request(board.uri)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Opening body", "subject" => "Opening", "post" => "New Topic"},
+               config: config,
+               request: request
+             )
+
+    initial_bump_at = thread.bump_at
+
+    assert {:ok, updated_thread} =
+             Posts.update_thread_state(
+               board,
+               thread.id,
+               %{"cycle" => "true", "sage" => "true"},
+               config: config
+             )
+
+    assert updated_thread.cycle
+    assert updated_thread.sage
+
+    assert {:ok, first_reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "First reply",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, second_reply, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "thread" => Integer.to_string(thread.id),
+                 "body" => "Second reply",
+                 "post" => "New Reply"
+               },
+               config: config,
+               request: request
+             )
+
+    assert {:ok, [reloaded_thread | replies]} = Posts.get_thread(board, thread.id, config: config)
+    assert reloaded_thread.bump_at == initial_bump_at
+    assert Enum.map(replies, & &1.id) == [second_reply.id]
+    refute Enum.any?(replies, &(&1.id == first_reply.id))
+  end
+
   test "list_threads_page returns previews, omitted counts, and page metadata" do
     board = board_fixture(%{config_overrides: %{threads_per_page: 1, threads_preview: 1}})
     config = post_config(board.config_overrides)

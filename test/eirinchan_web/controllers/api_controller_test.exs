@@ -69,4 +69,34 @@ defmodule EirinchanWeb.ApiControllerTest do
              &(&1["board"] == board.uri and &1["title"] == board.title)
            )
   end
+
+  test "thread api exposes moderation state flags on OP posts", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board)
+
+    conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> patch("/manage/boards/#{board.uri}/threads/#{thread.id}", %{
+        "sticky" => "true",
+        "locked" => "true",
+        "cycle" => "true",
+        "sage" => "true"
+      })
+
+    assert %{"data" => %{"sticky" => true}} = json_response(conn, 200)
+
+    thread_json =
+      conn
+      |> recycle()
+      |> put_req_header("accept", "application/json")
+      |> get("/api/#{board.uri}/res/#{thread.id}")
+      |> json_response(200)
+
+    assert [op | _] = thread_json["posts"]
+    assert op["sticky"] == 1
+    assert op["closed"] == 1
+    assert op["cyclical"] == 1
+    assert op["bumplimit"] == 1
+  end
 end
