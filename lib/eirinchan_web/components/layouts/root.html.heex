@@ -53,5 +53,8 @@
       </form>
     </section>
     <%= @inner_content %>
+    <%= if @analytics_html do %>
+      <%= Phoenix.HTML.raw(@analytics_html) %>
+    <% end %>
   </body>
 </html>

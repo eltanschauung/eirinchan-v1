@@ -3,9 +3,12 @@ defmodule EirinchanWeb.Plugs.FetchSiteAssets do
 
   import Plug.Conn
 
+  alias Eirinchan.Settings
+
   @default_config %{
     version: nil,
-    custom_javascript: []
+    custom_javascript: [],
+    analytics_html: nil
   }
 
   def init(opts), do: opts
@@ -16,6 +19,7 @@ defmodule EirinchanWeb.Plugs.FetchSiteAssets do
     conn
     |> assign(:asset_version, blank_to_nil(config.version))
     |> assign(:custom_javascript_urls, parse_custom_javascript(config.custom_javascript))
+    |> assign(:analytics_html, blank_to_nil(config.analytics_html))
   end
 
   def parse_custom_javascript(value) when is_list(value) do
@@ -35,7 +39,14 @@ defmodule EirinchanWeb.Plugs.FetchSiteAssets do
   def parse_custom_javascript(_value), do: []
 
   defp config do
-    Map.merge(@default_config, Application.get_env(:eirinchan, :site_assets, %{}))
+    site_assets = Map.merge(@default_config, Application.get_env(:eirinchan, :site_assets, %{}))
+    instance_config = Settings.current_instance_config()
+
+    Map.merge(site_assets, %{
+      custom_javascript:
+        Map.get(instance_config, :custom_javascript, site_assets.custom_javascript),
+      analytics_html: Map.get(instance_config, :analytics_html, site_assets.analytics_html)
+    })
   end
 
   defp blank_to_nil(nil), do: nil

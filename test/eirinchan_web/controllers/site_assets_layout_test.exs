@@ -3,10 +3,27 @@ defmodule EirinchanWeb.SiteAssetsLayoutTest do
 
   setup do
     previous =
-      Application.get_env(:eirinchan, :site_assets, %{version: nil, custom_javascript: []})
+      Application.get_env(:eirinchan, :site_assets, %{
+        version: nil,
+        custom_javascript: [],
+        analytics_html: nil
+      })
+
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-site-assets-#{System.unique_integer([:positive])}.json"
+      )
+
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
 
     on_exit(fn ->
       Application.put_env(:eirinchan, :site_assets, previous)
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
     end)
 
     :ok
@@ -30,5 +47,19 @@ defmodule EirinchanWeb.SiteAssetsLayoutTest do
     assert page =~ ~s(/js/custom-a.js?v=build-42)
     assert page =~ ~s(/js/custom-b.js?v=build-42)
     assert page =~ ~s(/js/custom-c.js?v=build-42)
+  end
+
+  test "root layout includes configured analytics hooks from instance config", %{conn: conn} do
+    :ok =
+      Eirinchan.Settings.persist_instance_config(%{
+        analytics_html: ~s(<script id="analytics-hook">window.analyticsLoaded = true;</script>)
+      })
+
+    page =
+      conn
+      |> get("/search", %{"q" => ""})
+      |> html_response(200)
+
+    assert page =~ ~s(<script id="analytics-hook">window.analyticsLoaded = true;</script>)
   end
 end
