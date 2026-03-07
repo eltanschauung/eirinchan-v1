@@ -320,6 +320,7 @@ defmodule EirinchanWeb.PostController do
   defp error_status(:thread_not_found), do: :not_found
   defp error_status(:post_not_found), do: :not_found
   defp error_status(:ban_not_found), do: :not_found
+  defp error_status(:dnsbl), do: :forbidden
   defp error_status(:invalid_password), do: :forbidden
   defp error_status(:banned), do: :forbidden
   defp error_status(:thread_locked), do: :forbidden
@@ -346,6 +347,7 @@ defmodule EirinchanWeb.PostController do
 
   defp error_message(:thread_not_found, _config), do: "Thread not found"
   defp error_message(:post_not_found, _config), do: "Post not found"
+  defp error_message(:dnsbl, config), do: String.replace(config.error.dnsbl, "%s", "DNSBL")
   defp error_message(:invalid_password, config), do: config.error.password
   defp error_message(:banned, config), do: config.error.banned
   defp error_message(:thread_locked, config), do: config.error.locked

@@ -11,6 +11,7 @@ defmodule Eirinchan.Posts do
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Captcha
+  alias Eirinchan.DNSBL
   alias Eirinchan.GeoIp
   alias Eirinchan.Moderation
   alias Eirinchan.Moderation.ModUser
@@ -29,6 +30,7 @@ defmodule Eirinchan.Posts do
              :thread_not_found
              | :invalid_post_mode
              | :invalid_referer
+             | :dnsbl
              | :antispam
              | :invalid_captcha
              | :banned
@@ -67,6 +69,7 @@ defmodule Eirinchan.Posts do
            :ok <- validate_hidden_input(attrs, config, request, board),
            :ok <- validate_antispam_question(op?, attrs, config, request, board),
            :ok <- validate_captcha(attrs, config, request, board),
+           :ok <- validate_dnsbl(request, config),
            :ok <- validate_ban(request, board),
            :ok <- validate_board_lock(config, request, board),
            {:ok, thread} <- fetch_thread(board, thread_param, repo),
@@ -1528,6 +1531,19 @@ defmodule Eirinchan.Posts do
       else
         {:error, :invalid_referer}
       end
+    end
+  end
+
+  defp validate_dnsbl(request, config) do
+    dnsbl_opts =
+      case Map.get(request, :dnsbl_resolver) do
+        resolver when is_function(resolver, 1) -> [resolver: resolver]
+        _ -> []
+      end
+
+    case DNSBL.check(Map.get(request, :remote_ip), config, dnsbl_opts) do
+      :ok -> :ok
+      {:error, _name} -> {:error, :dnsbl}
     end
   end
 

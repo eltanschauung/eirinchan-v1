@@ -59,7 +59,7 @@ simple question anti-spam for OPs: partial
 captcha provider abstraction parity (native/recaptcha/hcaptcha): partial
 dynamic captcha mode logic parity: partial
 captcha error and refresh behavior parity: partial
-DNSBL check pipeline parity: incomplete
+DNSBL check pipeline parity: partial
 ban check pipeline parity: partial
 robot9001 unoriginal-content detection: skipped
 robot mute escalation and mute duration logic: skipped
@@ -231,7 +231,7 @@ GeoIP2 database lookup support (GeoLite2-Country.mmdb): partial
 captcha provider HTTP service abstraction parity: partial
 nntpchan inbound post ingestion parity: skipped
 nntpchan outbound publication parity: skipped
-purge integration support parity: incomplete
+purge integration support parity: partial
 logging backends parity (error_log/file/stderr/syslog): partial
 
 [API and Client Compatibility]
