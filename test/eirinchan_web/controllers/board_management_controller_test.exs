@@ -76,9 +76,14 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
       |> get(~p"/#{board.uri}")
       |> html_response(200)
 
-    assert response =~ "/ #{board.uri} / - Technology"
+    assert response =~ "/#{board.uri}/ - Technology"
     assert response =~ "Wired"
-    assert response =~ "/ meta /"
+
+    assert response =~
+             ~s(<script type="text/javascript">var active_page = "index", board_name = "#{board.uri}";</script>)
+
+    assert response =~ ~s(src="/main.js")
+    assert response =~ ~s(title="Meta">meta</a>)
     assert response =~ "Board notice"
     assert response =~ "Visible on boards"
     assert response =~ ~s(action="/search")
@@ -439,7 +444,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
       |> get(~p"/#{board.uri}")
       |> html_response(200)
 
-    assert page =~ "/ #{board.uri} /"
+    assert page =~ "/#{board.uri}/ - #{board.title}"
     assert File.exists?(Path.join([Build.board_root(), board.uri, "index.html"]))
   end
 

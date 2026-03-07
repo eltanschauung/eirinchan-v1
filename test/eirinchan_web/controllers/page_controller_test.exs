@@ -38,6 +38,8 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "Maintenance"
     assert page =~ "Rules"
     assert page =~ ~s(action="/search")
+    assert page =~ ~s(var active_page = "index", board_name = null;)
+    assert page =~ ~s(src="/main.js")
     assert page =~ "View News - 02/14/26"
     assert page =~ "We witches are not whale lol."
   end
@@ -78,6 +80,7 @@ defmodule EirinchanWeb.PageControllerTest do
     assert page =~ "editor"
     assert page =~ "FAQ"
     assert page =~ ~s(class="boardlist")
+    assert page =~ ~s(var active_page = "news", board_name = null;)
     assert page =~ "We witches are not whale lol."
   end
 

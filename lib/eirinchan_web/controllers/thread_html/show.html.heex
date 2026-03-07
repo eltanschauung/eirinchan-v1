@@ -6,15 +6,10 @@
     <span class="sub" data-description={group[:description]}>
       [
       <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
-                                                                                                                                    length(
-                                                                                                                                      links
-                                                                                                                                    ) -
-                                                                                                                                      1,
-                                                                                                                                  do:
-                                                                                                                                    raw(
-                                                                                                                                      " / "
-                                                                                                                                    ) %>
+        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
+                                                                             length(links) -
+                                                                               1,
+                                                                           do: raw(" / ") %>
       <% end %>
       ]
     </span>
@@ -37,7 +32,6 @@
 <header>
   <h1><%= PostView.board_heading(@board) %></h1>
   <div class="subtitle"><%= @board_chrome.subtitle || @board.subtitle %></div>
-  <span style="display:none">/ <%= @board.uri %> / - <%= @board.title %></span>
 </header>
 
 <div class="banner">
@@ -477,15 +471,10 @@
     <span class="sub" data-description={group[:description]}>
       [
       <%= for {link, index} <- Enum.with_index(links) do %>
-        <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
-                                                                                                                                    length(
-                                                                                                                                      links
-                                                                                                                                    ) -
-                                                                                                                                      1,
-                                                                                                                                  do:
-                                                                                                                                    raw(
-                                                                                                                                      " / "
-                                                                                                                                    ) %>
+        <a href={link.href} title={link.title}><%= link.label %></a><%= if index <
+                                                                             length(links) -
+                                                                               1,
+                                                                           do: raw(" / ") %>
       <% end %>
       ]
     </span>

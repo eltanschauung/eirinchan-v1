@@ -172,8 +172,10 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
 
-    assert page =~ "/ meta /"
-    assert page =~ "/ #{board.uri} /"
+    assert page =~ ~s(title="Meta">meta</a>)
+    assert page =~ ~s(title="#{board.title}">#{board.uri}</a>)
+    assert page =~ ~s(var active_page = "thread", board_name = "#{board.uri}")
+    assert page =~ ~s(src="/main.js")
   end
 
   test "bant thread pages render the custom chrome shell", %{conn: conn} do
