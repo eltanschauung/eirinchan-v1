@@ -1013,6 +1013,57 @@ defmodule Eirinchan.PostsTest do
     assert reply.tag == nil
   end
 
+  test "create_post applies wordfilters before storing post text" do
+    board =
+      board_fixture(%{
+        config_overrides: %{wordfilters: [%{pattern: "badword", replacement: "goodword"}]}
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "badword here", "subject" => "badword", "post" => "New Topic"},
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.body == "goodword here"
+    assert thread.subject == "goodword"
+  end
+
+  test "create_post strips combining characters when configured" do
+    board = board_fixture(%{config_overrides: %{strip_combining_chars: true}})
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{"body" => "Cafe\u0301", "name" => "A\u0301non", "post" => "New Topic"},
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.body == "Cafe"
+    assert thread.name == "Anon"
+  end
+
+  test "create_post escapes user-supplied tinyboard modifiers before compatibility encoding" do
+    board = board_fixture()
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "<tinyboard flag>evil</tinyboard>",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.body == "&lt;tinyboard flag>evil&lt;/tinyboard&gt;"
+    refute Posts.compat_body(thread) =~ "\n<tinyboard flag>evil</tinyboard>"
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)
