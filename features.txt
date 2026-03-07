@@ -4,16 +4,16 @@ config precedence (default -> instance -> board overrides): partial
 effective config derivation with computed defaults: partial
 board context loading/openBoard equivalent with per-board state: partial
 global mutable state replacement strategy (config/board/mod/build pages): partial
-public request router parity for post/report/search/static/mod entrypoints: incomplete
+public request router parity for post/report/search/static/mod entrypoints: partial
 error handling model parity (user-facing + internal logging): incomplete
-post submission orchestration pipeline parity (end-to-end): incomplete
-thread display pipeline parity (OP + replies + omitted counters): incomplete
-index display pipeline parity (pagination + previews + links): incomplete
+post submission orchestration pipeline parity (end-to-end): partial
+thread display pipeline parity (OP + replies + omitted counters): partial
+index display pipeline parity (pagination + previews + links): partial
 catalog display pipeline parity: incomplete
 API display pipeline parity (thread/page/catalog JSON): incomplete
 
 [Posting Pipeline - Validation and Business Rules]
-OP vs reply branch handling parity: incomplete
+OP vs reply branch handling parity: partial
 thread existence/lock/sage/cycle checks: incomplete
 board locked posting rules: incomplete
 moderator bypass and permission checks in posting path: incomplete
@@ -22,7 +22,7 @@ referer validation logic parity: incomplete
 body required/optional rules (force_body/force_body_op): incomplete
 OP image required rules (force_image_op): incomplete
 max lines and max body enforcement: incomplete
-name/email/subject/password normalization and defaults: incomplete
+name/email/subject/password normalization and defaults: partial
 tripcode generation parity: incomplete
 capcode parsing and permission rules: incomplete
 noko/nonoko/always_noko behavior: incomplete
@@ -36,8 +36,8 @@ reply_hard_limit/image_hard_limit enforcement: incomplete
 report creation branch inside post endpoint parity: incomplete
 post deletion branch inside post endpoint parity: incomplete
 ban appeal submission branch inside post endpoint parity: incomplete
-JSON response mode for ajax posting: incomplete
-redirect response mode for classic posting: incomplete
+JSON response mode for ajax posting: partial
+redirect response mode for classic posting: partial
 
 [Posting Pipeline - Custom/Extended Flags and Metadata]
 country flag auto-injection from client IP metadata: incomplete
@@ -93,7 +93,7 @@ undoImage rollback on failure parity: incomplete
 
 [Persistence and Data Model]
 board metadata table parity: partial
-per-board post storage model parity or compatible replacement: incomplete
+per-board post storage model parity or compatible replacement: partial
 post files JSON payload compatibility layer: incomplete
 cites table behavior parity: incomplete
 reports table behavior parity: incomplete
@@ -197,9 +197,9 @@ show_ip permission gating parity: incomplete
 proxy/IP header trust model parity: incomplete
 
 [Board and Content Management]
-board create/edit workflow parity: incomplete
-board title/subtitle configuration parity: incomplete
-board URL and abbreviation formatting parity: incomplete
+board create/edit workflow parity: partial
+board title/subtitle configuration parity: partial
+board URL and abbreviation formatting parity: partial
 board search box behavior parity: incomplete
 global announcement/blotter behavior parity: incomplete
 custom pages CRUD parity: incomplete

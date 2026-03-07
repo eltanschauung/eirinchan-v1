@@ -14,14 +14,22 @@ defmodule EirinchanWeb.Router do
     plug :accepts, ["json"]
   end
 
+  scope "/manage", EirinchanWeb do
+    pipe_through :api
+
+    get "/boards", BoardManagementController, :index
+    post "/boards", BoardManagementController, :create
+    get "/boards/:uri", BoardManagementController, :show
+    patch "/boards/:uri", BoardManagementController, :update
+    delete "/boards/:uri", BoardManagementController, :delete
+  end
+
   scope "/", EirinchanWeb do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/:board", BoardController, :show
+    post "/:board/post", PostController, :create
+    get "/:board/res/:thread_id", ThreadController, :show
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", EirinchanWeb do
-  #   pipe_through :api
-  # end
 end

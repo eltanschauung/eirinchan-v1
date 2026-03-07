@@ -2,8 +2,8 @@ import Config
 
 # Configure your database
 config :eirinchan, Eirinchan.Repo,
-  username: "postgres",
-  password: "postgres",
+  username: "eirinchan",
+  password: "eirinchan",
   hostname: "localhost",
   database: "eirinchan_dev",
   stacktrace: true,

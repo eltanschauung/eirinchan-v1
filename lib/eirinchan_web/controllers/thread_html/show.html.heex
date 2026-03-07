@@ -1,0 +1,30 @@
+<.flash_group flash={@flash} />
+<section id={"p#{@thread.id}"}>
+  <h1>/ <%= @board.uri %> / - <%= @thread.subject || "Thread ##{@thread.id}" %></h1>
+  <p><%= @thread.body %></p>
+</section>
+
+<section>
+  <h2>Reply</h2>
+  <form action={~p"/#{@board.uri}/post"} method="post">
+    <input type="hidden" name="thread" value={@thread.id} />
+    <input type="text" name="name" placeholder="Name" />
+    <input type="text" name="email" placeholder="Email" />
+    <textarea name="body" placeholder="Reply"></textarea>
+    <button type="submit" name="post" value="Reply">Reply</button>
+  </form>
+</section>
+
+<section>
+  <h2>Replies</h2>
+  <%= if @replies == [] do %>
+    <p>No replies yet.</p>
+  <% else %>
+    <%= for reply <- @replies do %>
+      <article id={"p#{reply.id}"}>
+        <h3><%= reply.subject || "Reply ##{reply.id}" %></h3>
+        <p><%= reply.body %></p>
+      </article>
+    <% end %>
+  <% end %>
+</section>

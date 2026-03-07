@@ -28,6 +28,8 @@ defmodule EirinchanWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import EirinchanWeb.ConnCase
+      import Eirinchan.BoardsFixtures
+      import Eirinchan.PostsFixtures
     end
   end
 

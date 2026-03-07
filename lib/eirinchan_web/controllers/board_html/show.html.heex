@@ -1,0 +1,36 @@
+<.flash_group flash={@flash} />
+<section>
+  <h1>/ <%= @board.uri %> / - <%= @board.title %></h1>
+  <%= if @board.subtitle do %>
+    <p><%= @board.subtitle %></p>
+  <% end %>
+</section>
+
+<section>
+  <h2>Post</h2>
+  <form action={~p"/#{@board.uri}/post"} method="post">
+    <input type="text" name="name" placeholder="Name" />
+    <input type="text" name="email" placeholder="Email" />
+    <input type="text" name="subject" placeholder="Subject" />
+    <input type="password" name="password" placeholder="Password" />
+    <textarea name="body" placeholder="Comment"></textarea>
+    <button type="submit" name="post" value="New Thread">Post</button>
+  </form>
+</section>
+
+<section>
+  <h2>Threads</h2>
+  <%= if @threads == [] do %>
+    <p>No threads yet.</p>
+  <% else %>
+    <ul>
+      <%= for thread <- @threads do %>
+        <li>
+          <a href={"/#{@board.uri}/res/#{thread.id}.html"}>
+            <%= thread.subject || "Thread ##{thread.id}" %>
+          </a>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>
