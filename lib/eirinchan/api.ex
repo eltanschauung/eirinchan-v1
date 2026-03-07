@@ -70,6 +70,7 @@ defmodule Eirinchan.Api do
     |> maybe_put(:omitted_posts, positive_or_nil(summary.omitted_posts))
     |> maybe_put(:omitted_images, positive_or_nil(summary.omitted_images))
     |> maybe_put_file(summary.thread)
+    |> maybe_put_extra_files(summary.thread)
     |> Map.put(:last_modified, unix(summary.last_modified))
   end
 
@@ -80,6 +81,7 @@ defmodule Eirinchan.Api do
     |> maybe_put(:com, post.body)
     |> maybe_put(:name, post.name)
     |> maybe_put_file(post)
+    |> maybe_put_extra_files(post)
     |> Map.put(:time, unix(post.inserted_at))
   end
 
@@ -117,6 +119,27 @@ defmodule Eirinchan.Api do
     |> maybe_put(:w, post.image_width)
     |> maybe_put(:h, post.image_height)
     |> maybe_put(:tim, post.id)
+  end
+
+  defp maybe_put_extra_files(map, %{extra_files: %Ecto.Association.NotLoaded{}}), do: map
+  defp maybe_put_extra_files(map, %{extra_files: []}), do: map
+
+  defp maybe_put_extra_files(map, %{extra_files: files}) when is_list(files) do
+    Map.put(map, :extra_files, Enum.map(files, &extra_file_payload/1))
+  end
+
+  defp extra_file_payload(file) do
+    ext = Path.extname(file.file_name || file.file_path || "")
+    filename = Path.basename(file.file_name || file.file_path || "", ext)
+
+    %{}
+    |> maybe_put(:filename, filename)
+    |> maybe_put(:ext, ext)
+    |> maybe_put(:fsize, file.file_size)
+    |> maybe_put(:md5, file.file_md5)
+    |> maybe_put(:w, file.image_width)
+    |> maybe_put(:h, file.image_height)
+    |> maybe_put(:tim, file.id)
   end
 
   defp positive_or_nil(value) when is_integer(value) and value > 0, do: value

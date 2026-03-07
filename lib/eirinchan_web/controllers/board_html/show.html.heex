@@ -14,7 +14,7 @@
     <input type="text" name="email" placeholder="Email" />
     <input type="text" name="subject" placeholder="Subject" />
     <input type="password" name="password" placeholder="Password" />
-    <input type="file" name="file" />
+    <input type="file" name="files[]" multiple />
     <textarea name="body" placeholder="Comment"></textarea>
     <button type="submit" name="post" value={@config.button_newtopic}>
       <%= @config.button_newtopic %>
@@ -69,6 +69,20 @@
             </figcaption>
           </figure>
         <% end %>
+        <%= for file <- summary.thread.extra_files || [] do %>
+          <figure>
+            <a href={file.file_path}>
+              <img
+                src={file.thumb_path || file.file_path}
+                alt={file.file_name || "upload"}
+                loading="lazy"
+              />
+            </a>
+            <figcaption>
+              <a href={file.file_path}><%= file.file_name || Path.basename(file.file_path) %></a>
+            </figcaption>
+          </figure>
+        <% end %>
         <p><%= summary.thread.body %></p>
         <form action={~p"/#{@board.uri}/post"} method="post">
           <input type="hidden" name="delete_post_id" value={summary.thread.id} />
@@ -98,6 +112,22 @@
                 <figcaption>
                   <a href={reply.file_path}>
                     <%= reply.file_name || Path.basename(reply.file_path) %>
+                  </a>
+                </figcaption>
+              </figure>
+            <% end %>
+            <%= for file <- reply.extra_files || [] do %>
+              <figure>
+                <a href={file.file_path}>
+                  <img
+                    src={file.thumb_path || file.file_path}
+                    alt={file.file_name || "upload"}
+                    loading="lazy"
+                  />
+                </a>
+                <figcaption>
+                  <a href={file.file_path}>
+                    <%= file.file_name || Path.basename(file.file_path) %>
                   </a>
                 </figcaption>
               </figure>

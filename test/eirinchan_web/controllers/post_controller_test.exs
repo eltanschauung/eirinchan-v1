@@ -144,6 +144,44 @@ defmodule EirinchanWeb.PostControllerTest do
     assert get_resp_header(thumb_conn, "content-type") == ["image/png; charset=utf-8"]
   end
 
+  test "posting accepts multi-file uploads and renders extra file thumbs", %{conn: conn} do
+    board = board_fixture()
+
+    create_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "files" => [
+          upload_fixture("first.png", "first"),
+          upload_fixture("second.gif", "second")
+        ],
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => id} = json_response(create_conn, 200)
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ "/#{board.uri}/thumb/#{id}s.png"
+    assert page =~ "/#{board.uri}/thumb/#{id}-1s.png"
+
+    thread_json =
+      conn
+      |> recycle()
+      |> put_req_header("accept", "application/json")
+      |> get("/api/#{board.uri}/res/#{id}")
+      |> json_response(200)
+
+    assert [op | _] = thread_json["posts"]
+    assert length(op["extra_files"]) == 1
+  end
+
   test "posting enforces required image uploads and file validation errors", %{conn: conn} do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
 

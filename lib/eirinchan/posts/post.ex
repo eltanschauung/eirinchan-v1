@@ -25,6 +25,7 @@ defmodule Eirinchan.Posts.Post do
 
     belongs_to :board, Eirinchan.Boards.BoardRecord
     belongs_to :thread, __MODULE__
+    has_many :extra_files, Eirinchan.Posts.PostFile
 
     timestamps(type: :utc_datetime)
   end

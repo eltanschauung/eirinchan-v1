@@ -8,6 +8,7 @@ defmodule Eirinchan.Posts do
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
   alias Eirinchan.Posts.Post
+  alias Eirinchan.Posts.PostFile
   alias Eirinchan.Repo
   alias Eirinchan.Runtime.Config
   alias Eirinchan.ThreadPaths
@@ -38,7 +39,7 @@ defmodule Eirinchan.Posts do
     request = Keyword.get(opts, :request, %{})
     attrs = normalize_attrs(attrs)
 
-    with {:ok, attrs} <- prepare_upload(attrs, config) do
+    with {:ok, attrs} <- prepare_uploads(attrs, config) do
       thread_param = blank_to_nil(Map.get(attrs, "thread"))
       op? = is_nil(thread_param)
       attrs = normalize_post_identity(attrs, config)
@@ -177,6 +178,7 @@ defmodule Eirinchan.Posts do
             limit: ^threads_per_page,
             offset: ^offset
         )
+        |> repo.preload(:extra_files)
 
       summaries = Enum.map(threads, &thread_summary(board, &1, config, repo))
       pages = build_pages(board, total_pages, config)
@@ -211,8 +213,9 @@ defmodule Eirinchan.Posts do
             where: post.board_id == ^board.id and post.thread_id == ^thread.id,
             order_by: [asc: post.inserted_at, asc: post.id]
         )
+        |> repo.preload(:extra_files)
 
-      {:ok, [thread | replies]}
+      {:ok, [repo.preload(thread, :extra_files) | replies]}
     else
       _ -> {:error, :not_found}
     end
@@ -249,14 +252,14 @@ defmodule Eirinchan.Posts do
     repo = Keyword.get(opts, :repo, Repo)
 
     with {:ok, [thread | replies]} <- get_thread(board, thread_id, repo: repo) do
-      reply_image_count = Enum.count(replies, &image_post?/1)
+      reply_image_count = Enum.sum(Enum.map(replies, &post_image_count/1))
 
       {:ok,
        %{
          thread: thread,
          replies: replies,
          reply_count: length(replies),
-         image_count: reply_image_count + image_count(thread),
+         image_count: reply_image_count + post_image_count(thread),
          omitted_posts: 0,
          omitted_images: 0,
          last_modified: thread.bump_at || thread.inserted_at
@@ -265,13 +268,11 @@ defmodule Eirinchan.Posts do
   end
 
   defp create_post_record(board, thread, attrs, repo, config, now) do
-    upload = Map.get(attrs, "file")
-    upload_metadata = Map.get(attrs, "__upload_metadata__")
+    upload_entries = Map.get(attrs, "__upload_entries__", [])
 
     case repo.transaction(fn ->
            with {:ok, post} <- insert_post(board, thread, attrs, repo, config, now),
-                {:ok, post} <-
-                  maybe_store_upload(board, post, upload, upload_metadata, repo, config) do
+                {:ok, post} <- maybe_store_uploads(board, post, upload_entries, repo, config) do
              maybe_bump_thread(thread, attrs, config, repo, now)
              maybe_cycle_thread(board, thread, config, repo)
              post
@@ -284,23 +285,68 @@ defmodule Eirinchan.Posts do
     end
   end
 
-  defp maybe_store_upload(_board, %Post{} = post, nil, _metadata, _repo, _config), do: {:ok, post}
+  defp maybe_store_uploads(_board, %Post{} = post, [], repo, _config),
+    do: {:ok, repo.preload(post, :extra_files)}
 
-  defp maybe_store_upload(board, %Post{} = post, %Plug.Upload{} = upload, metadata, repo, config) do
+  defp maybe_store_uploads(board, %Post{} = post, [primary | rest], repo, config) do
+    with {:ok, updated_post} <- store_primary_upload(board, post, primary, repo, config),
+         {:ok, _extra_files} <- store_extra_uploads(board, updated_post, rest, repo, config) do
+      {:ok, repo.preload(updated_post, :extra_files)}
+    end
+  end
+
+  defp store_primary_upload(board, post, %{upload: upload, metadata: metadata}, repo, config) do
     case Uploads.store(board, post, upload, config, metadata) do
-      {:ok, metadata} ->
-        case post |> Post.create_changeset(metadata) |> repo.update() do
+      {:ok, stored_metadata} ->
+        case post |> Post.create_changeset(stored_metadata) |> repo.update() do
           {:ok, updated_post} ->
             {:ok, updated_post}
 
           {:error, %Ecto.Changeset{} = changeset} ->
-            Uploads.remove(metadata.file_path)
-            Uploads.remove(metadata.thumb_path)
+            cleanup_stored_files([stored_metadata])
             {:error, changeset}
         end
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp store_extra_uploads(_board, _post, [], _repo, _config), do: {:ok, []}
+
+  defp store_extra_uploads(board, post, entries, repo, config) do
+    Enum.with_index(entries, 1)
+    |> Enum.reduce_while({:ok, []}, fn {entry, position}, {:ok, inserted} ->
+      case Uploads.store(
+             board,
+             post,
+             entry.upload,
+             config,
+             entry.metadata,
+             Integer.to_string(position)
+           ) do
+        {:ok, stored_metadata} ->
+          attrs =
+            stored_metadata
+            |> Map.put(:post_id, post.id)
+            |> Map.put(:position, position)
+
+          case %PostFile{} |> PostFile.create_changeset(attrs) |> repo.insert() do
+            {:ok, post_file} ->
+              {:cont, {:ok, [post_file | inserted]}}
+
+            {:error, %Ecto.Changeset{} = changeset} ->
+              cleanup_stored_files([stored_metadata])
+              {:halt, {:error, changeset}}
+          end
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+    |> case do
+      {:ok, files} -> {:ok, Enum.reverse(files)}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -340,17 +386,51 @@ defmodule Eirinchan.Posts do
     end)
   end
 
-  defp prepare_upload(attrs, config) do
-    case Map.get(attrs, "file") do
+  defp prepare_uploads(attrs, config) do
+    uploads = collect_uploads(attrs)
+
+    case Enum.reduce_while(uploads, {:ok, []}, fn upload, {:ok, entries} ->
+           case Uploads.describe(upload, config) do
+             {:ok, metadata} ->
+               {:cont, {:ok, entries ++ [%{upload: upload, metadata: metadata}]}}
+
+             {:error, reason} ->
+               {:halt, {:error, reason}}
+           end
+         end) do
+      {:ok, []} ->
+        {:ok, attrs |> Map.put("file", nil) |> Map.put("__upload_entries__", [])}
+
+      {:ok, [primary | _] = entries} ->
+        {:ok,
+         attrs
+         |> Map.put("file", primary.upload)
+         |> Map.put("__upload_metadata__", primary.metadata)
+         |> Map.put("__upload_entries__", entries)}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp collect_uploads(attrs) do
+    [Map.get(attrs, "file"), Map.get(attrs, "files"), Map.get(attrs, "files[]")]
+    |> Enum.flat_map(fn
+      nil ->
+        []
+
       %Plug.Upload{} = upload ->
-        case Uploads.describe(upload, config) do
-          {:ok, metadata} -> {:ok, Map.put(attrs, "__upload_metadata__", metadata)}
-          {:error, reason} -> {:error, reason}
-        end
+        [upload]
+
+      uploads when is_list(uploads) ->
+        Enum.filter(uploads, &match?(%Plug.Upload{}, &1))
+
+      uploads when is_map(uploads) ->
+        uploads |> Map.values() |> Enum.filter(&match?(%Plug.Upload{}, &1))
 
       _ ->
-        {:ok, attrs}
-    end
+        []
+    end)
   end
 
   defp blank_to_nil(nil), do: nil
@@ -466,21 +546,29 @@ defmodule Eirinchan.Posts do
   end
 
   defp validate_upload(op?, attrs, config) do
-    upload = Map.get(attrs, "file")
-    upload_metadata = Map.get(attrs, "__upload_metadata__")
+    entries = Map.get(attrs, "__upload_entries__", [])
 
     cond do
-      op? and config.force_image_op and is_nil(upload) ->
+      op? and config.force_image_op and entries == [] ->
         {:error, :file_required}
 
-      is_nil(upload) ->
+      entries == [] ->
         :ok
 
       true ->
-        with :ok <- validate_upload_type(upload, upload_metadata, config),
-             :ok <- validate_upload_size(upload_metadata, config) do
-          :ok
-        end
+        Enum.reduce_while(entries, :ok, fn %{upload: upload, metadata: metadata}, :ok ->
+          case validate_upload_entry(upload, metadata, config) do
+            :ok -> {:cont, :ok}
+            error -> {:halt, error}
+          end
+        end)
+    end
+  end
+
+  defp validate_upload_entry(upload, metadata, config) do
+    with :ok <- validate_upload_type(upload, metadata, config),
+         :ok <- validate_upload_size(metadata, config) do
+      :ok
     end
   end
 
@@ -515,11 +603,21 @@ defmodule Eirinchan.Posts do
   end
 
   defp validate_image_dimensions(attrs, _config)
-       when not is_map_key(attrs, "__upload_metadata__"),
+       when not is_map_key(attrs, "__upload_entries__"),
        do: :ok
 
   defp validate_image_dimensions(attrs, config) do
-    metadata = attrs["__upload_metadata__"]
+    attrs
+    |> Map.get("__upload_entries__", [])
+    |> Enum.reduce_while(:ok, fn %{metadata: metadata}, :ok ->
+      case validate_image_entry_dimensions(metadata, config) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp validate_image_entry_dimensions(metadata, config) do
     width = metadata.image_width || 0
     height = metadata.image_height || 0
 
@@ -569,15 +667,21 @@ defmodule Eirinchan.Posts do
   defp validate_image_limit(_board, nil, _attrs, _config, _repo), do: :ok
 
   defp validate_image_limit(_board, _thread, attrs, _config, _repo)
-       when not is_map_key(attrs, "file"),
+       when not is_map_key(attrs, "__upload_entries__"),
        do: :ok
 
-  defp validate_image_limit(_board, _thread, %{"file" => nil}, _config, _repo), do: :ok
+  defp validate_image_limit(_board, _thread, %{"__upload_entries__" => []}, _config, _repo),
+    do: :ok
 
-  defp validate_image_limit(board, thread, _attrs, config, repo) do
+  defp validate_image_limit(board, thread, attrs, config, repo) do
     if config.image_hard_limit in [0, nil] do
       :ok
     else
+      additional_images =
+        attrs
+        |> Map.get("__upload_entries__", [])
+        |> Enum.count(fn %{metadata: metadata} -> Uploads.image?(metadata) end)
+
       images =
         repo.aggregate(
           from(
@@ -591,39 +695,77 @@ defmodule Eirinchan.Posts do
           :id
         )
 
-      if images >= config.image_hard_limit, do: {:error, :image_hard_limit}, else: :ok
+      extra_images =
+        repo.aggregate(
+          from(
+            post_file in PostFile,
+            join: post in Post,
+            on: post_file.post_id == post.id,
+            where:
+              post.board_id == ^board.id and
+                (post.id == ^thread.id or post.thread_id == ^thread.id) and
+                like(post_file.file_type, "image/%")
+          ),
+          :count,
+          :id
+        )
+
+      if images + extra_images + additional_images > config.image_hard_limit,
+        do: {:error, :image_hard_limit},
+        else: :ok
     end
   end
 
   defp validate_duplicate_upload(_board, _thread, attrs, _config, _repo)
-       when not is_map_key(attrs, "__upload_metadata__"),
+       when not is_map_key(attrs, "__upload_entries__"),
        do: :ok
 
   defp validate_duplicate_upload(_board, thread, attrs, config, repo) do
-    md5 = get_in(attrs, ["__upload_metadata__", :file_md5])
+    md5s =
+      attrs
+      |> Map.get("__upload_entries__", [])
+      |> Enum.map(fn %{metadata: metadata} -> metadata.file_md5 end)
 
-    case config.duplicate_file_mode do
-      "global" ->
-        duplicate? =
-          repo.exists?(
-            from post in Post, where: post.file_md5 == ^md5 and not is_nil(post.file_md5)
-          )
+    if Enum.uniq(md5s) != md5s do
+      {:error, :duplicate_file}
+    else
+      Enum.reduce_while(md5s, :ok, fn md5, :ok ->
+        case config.duplicate_file_mode do
+          "global" ->
+            duplicate? =
+              repo.exists?(
+                from post in Post, where: post.file_md5 == ^md5 and not is_nil(post.file_md5)
+              ) or
+                repo.exists?(
+                  from post_file in PostFile,
+                    where: post_file.file_md5 == ^md5 and not is_nil(post_file.file_md5)
+                )
 
-        if duplicate?, do: {:error, :duplicate_file}, else: :ok
+            if duplicate?, do: {:halt, {:error, :duplicate_file}}, else: {:cont, :ok}
 
-      "thread" when not is_nil(thread) ->
-        duplicate? =
-          repo.exists?(
-            from post in Post,
-              where:
-                (post.id == ^thread.id or post.thread_id == ^thread.id) and
-                  post.file_md5 == ^md5 and not is_nil(post.file_md5)
-          )
+          "thread" when not is_nil(thread) ->
+            duplicate? =
+              repo.exists?(
+                from post in Post,
+                  where:
+                    (post.id == ^thread.id or post.thread_id == ^thread.id) and
+                      post.file_md5 == ^md5 and not is_nil(post.file_md5)
+              ) or
+                repo.exists?(
+                  from post_file in PostFile,
+                    join: post in Post,
+                    on: post_file.post_id == post.id,
+                    where:
+                      (post.id == ^thread.id or post.thread_id == ^thread.id) and
+                        post_file.file_md5 == ^md5 and not is_nil(post_file.file_md5)
+                )
 
-        if duplicate?, do: {:error, :duplicate_file}, else: :ok
+            if duplicate?, do: {:halt, {:error, :duplicate_file}}, else: {:cont, :ok}
 
-      _ ->
-        :ok
+          _ ->
+            {:cont, :ok}
+        end
+      end)
     end
   end
 
@@ -689,6 +831,7 @@ defmodule Eirinchan.Posts do
           order_by: [desc: post.inserted_at, desc: post.id],
           limit: ^preview_count
       )
+      |> repo.preload(:extra_files)
 
     replies = Enum.reverse(replies_desc)
 
@@ -711,6 +854,20 @@ defmodule Eirinchan.Posts do
         :id
       )
 
+    reply_extra_image_count =
+      repo.aggregate(
+        from(
+          post_file in PostFile,
+          join: post in Post,
+          on: post_file.post_id == post.id,
+          where:
+            post.board_id == ^board.id and post.thread_id == ^thread.id and
+              like(post_file.file_type, "image/%")
+        ),
+        :count,
+        :id
+      )
+
     last_modified =
       case replies_desc do
         [latest | _] -> latest.inserted_at
@@ -721,9 +878,14 @@ defmodule Eirinchan.Posts do
       thread: thread,
       replies: replies,
       reply_count: reply_count,
-      image_count: reply_image_count + image_count(thread),
+      image_count: reply_image_count + reply_extra_image_count + post_image_count(thread),
       omitted_posts: max(reply_count - length(replies), 0),
-      omitted_images: max(reply_image_count - Enum.count(replies, &image_post?/1), 0),
+      omitted_images:
+        max(
+          reply_image_count + reply_extra_image_count -
+            Enum.sum(Enum.map(replies, &post_image_count/1)),
+          0
+        ),
       last_modified: thread.bump_at || last_modified
     }
   end
@@ -732,27 +894,68 @@ defmodule Eirinchan.Posts do
     reply_paths =
       repo.all(
         from post in Post,
-          where: post.thread_id == ^thread_id and not is_nil(post.file_path),
+          where: post.thread_id == ^thread_id,
           select: {post.file_path, post.thumb_path}
+      )
+
+    extra_paths =
+      repo.all(
+        from post_file in PostFile,
+          join: post in Post,
+          on: post_file.post_id == post.id,
+          where: post.id == ^thread_id or post.thread_id == ^thread_id,
+          select: {post_file.file_path, post_file.thumb_path}
       )
 
     [
       thread.file_path,
       thread.thumb_path
-      | Enum.flat_map(reply_paths, fn {file_path, thumb_path} -> [file_path, thumb_path] end)
+      | Enum.flat_map(reply_paths ++ extra_paths, fn {file_path, thumb_path} ->
+          [file_path, thumb_path]
+        end)
     ]
     |> Enum.reject(&is_nil/1)
   end
 
-  defp post_delete_file_paths(%Post{} = post, _repo) do
-    Enum.reject([post.file_path, post.thumb_path], &is_nil/1)
+  defp post_delete_file_paths(%Post{} = post, repo) do
+    extra_paths =
+      repo.all(
+        from post_file in PostFile,
+          where: post_file.post_id == ^post.id,
+          select: {post_file.file_path, post_file.thumb_path}
+      )
+
+    [
+      post.file_path,
+      post.thumb_path
+      | Enum.flat_map(extra_paths, fn {file_path, thumb_path} -> [file_path, thumb_path] end)
+    ]
+    |> Enum.reject(&is_nil/1)
   end
 
   defp image_count(post), do: if(image_post?(post), do: 1, else: 0)
 
+  defp post_image_count(post) do
+    image_count(post) +
+      Enum.count(extra_files(post), fn file ->
+        is_binary(file.file_type) and String.starts_with?(file.file_type, "image/")
+      end)
+  end
+
   defp image_post?(%Post{file_path: file_path, file_type: file_type}) do
     is_binary(file_path) and file_path != "" and is_binary(file_type) and
       String.starts_with?(file_type, "image/")
+  end
+
+  defp extra_files(%{extra_files: %Ecto.Association.NotLoaded{}}), do: []
+  defp extra_files(%{extra_files: files}) when is_list(files), do: files
+  defp extra_files(_post), do: []
+
+  defp cleanup_stored_files(metadata_list) do
+    Enum.each(metadata_list, fn metadata ->
+      Uploads.remove(Map.get(metadata, :file_path))
+      Uploads.remove(Map.get(metadata, :thumb_path))
+    end)
   end
 
   defp build_pages(board, total_pages, config) do

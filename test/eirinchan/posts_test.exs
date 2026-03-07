@@ -119,6 +119,34 @@ defmodule Eirinchan.PostsTest do
     assert File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
   end
 
+  test "create_post stores extra files from a multi-file upload" do
+    board = board_fixture()
+
+    assert {:ok, thread, %{noko: false}} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "files" => [
+                   upload_fixture("first.png", "first"),
+                   upload_fixture("second.gif", "second")
+                 ],
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.file_name == "first.png"
+    assert length(thread.extra_files) == 1
+
+    [extra] = thread.extra_files
+    assert extra.position == 1
+    assert extra.file_name == "second.gif"
+    assert extra.file_path == "/#{board.uri}/src/#{thread.id}-1.gif"
+    assert extra.thumb_path == "/#{board.uri}/thumb/#{thread.id}-1s.png"
+  end
+
   test "create_post canonicalizes and truncates stored filenames" do
     board = board_fixture(%{config_overrides: %{max_filename_display_length: 12}})
 

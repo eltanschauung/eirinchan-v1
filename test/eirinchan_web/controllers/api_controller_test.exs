@@ -139,4 +139,28 @@ defmodule EirinchanWeb.ApiControllerTest do
     refute Map.has_key?(op, "w")
     refute Map.has_key?(op, "h")
   end
+
+  test "thread api exposes extra_files for multi-file posts", %{conn: conn} do
+    board = board_fixture()
+
+    thread =
+      thread_fixture(board, %{
+        body: "Thread body",
+        subject: "Thread subject",
+        files: [
+          upload_fixture("first.png", "first"),
+          upload_fixture("second.gif", "second")
+        ]
+      })
+
+    thread_json =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> get("/api/#{board.uri}/res/#{thread.id}")
+      |> json_response(200)
+
+    assert [op | _] = thread_json["posts"]
+    assert length(op["extra_files"]) == 1
+    assert hd(op["extra_files"])["ext"] == ".gif"
+  end
 end
