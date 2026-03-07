@@ -78,14 +78,15 @@ defmodule Eirinchan.Uploads do
 
     case File.cp(upload.path, destination) do
       :ok ->
-        case generate_thumbnail(destination, thumb_destination, config, metadata) do
-          :ok ->
-            {:ok,
-             Map.merge(metadata, %{
-               file_path: "/#{board.uri}/#{config.dir.img}#{storage_name}",
-               thumb_path: "/#{board.uri}/#{config.dir.thumb}#{thumb_name}"
-             })}
-
+        with :ok <- normalize_stored_upload(destination, config, metadata),
+             {:ok, stored_metadata} <- refresh_stored_metadata(destination, metadata),
+             :ok <- generate_thumbnail(destination, thumb_destination, config, stored_metadata) do
+          {:ok,
+           Map.merge(stored_metadata, %{
+             file_path: "/#{board.uri}/#{config.dir.img}#{storage_name}",
+             thumb_path: "/#{board.uri}/#{config.dir.thumb}#{thumb_name}"
+           })}
+        else
           {:error, reason} ->
             _ = File.rm(destination)
             _ = File.rm(thumb_destination)
@@ -166,6 +167,50 @@ defmodule Eirinchan.Uploads do
 
       _ ->
         MIME.from_path(normalized_name)
+    end
+  end
+
+  defp normalize_stored_upload(path, config, metadata) do
+    args = image_normalization_args(config, metadata)
+
+    if args == [] do
+      :ok
+    else
+      case System.cmd("mogrify", args ++ [path], stderr_to_stdout: true) do
+        {_output, 0} -> :ok
+        _ -> {:error, :upload_failed}
+      end
+    end
+  end
+
+  defp image_normalization_args(config, metadata) do
+    if image?(metadata) do
+      []
+      |> maybe_append_arg(config.auto_orient_images, "-auto-orient")
+      |> maybe_append_arg(config.strip_exif, "-strip")
+    else
+      []
+    end
+  end
+
+  defp maybe_append_arg(args, true, arg), do: args ++ [arg]
+  defp maybe_append_arg(args, _flag, _arg), do: args
+
+  defp refresh_stored_metadata(path, metadata) do
+    with {:ok, binary} <- File.read(path) do
+      file_type = detect_mime_type(path, metadata.file_name)
+      image_metadata = maybe_image_metadata(path, file_type)
+
+      {:ok,
+       metadata
+       |> Map.put(:binary, binary)
+       |> Map.put(:file_size, byte_size(binary))
+       |> Map.put(:file_type, file_type)
+       |> Map.put(:file_md5, :crypto.hash(:md5, binary) |> Base.encode64())
+       |> Map.put(:image_width, image_metadata.width)
+       |> Map.put(:image_height, image_metadata.height)}
+    else
+      {:error, _reason} -> {:error, :upload_failed}
     end
   end
 

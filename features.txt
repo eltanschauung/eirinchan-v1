@@ -81,10 +81,10 @@ thumbnail generation pipeline (gd/imagick/convert/gm): partial
 spoiler image handling parity: partial
 minimum_copy_resize optimization parity: incomplete
 image redraw mode behavior parity: incomplete
-EXIF stripping behavior parity: incomplete
-EXIF orientation correction behavior parity: incomplete
+EXIF stripping behavior parity: partial
+EXIF orientation correction behavior parity: partial
 use_exiftool path behavior parity: incomplete
-strip_exif + orientation interaction parity: incomplete
+strip_exif + orientation interaction parity: partial
 mime exploit detection rules parity: partial
 OCR pipeline integration (tesseract) parity: incomplete
 ocr text appending into moderation/filter pipeline: incomplete

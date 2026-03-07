@@ -62,12 +62,14 @@ defmodule Eirinchan.UploadsFixtures do
   defp normalize_opts(opts) when is_list(opts) do
     %{
       content: to_string(Keyword.get(opts, :content, "fixture")),
-      geometry: Keyword.get(opts, :geometry, "16x16")
+      geometry: Keyword.get(opts, :geometry, "16x16"),
+      artist: Keyword.get(opts, :artist),
+      orientation: Keyword.get(opts, :orientation)
     }
   end
 
   defp normalize_opts(content) do
-    %{content: to_string(content), geometry: "16x16"}
+    %{content: to_string(content), geometry: "16x16", artist: nil, orientation: nil}
   end
 
   defp create_image!(path, opts) do
@@ -77,7 +79,21 @@ defmodule Eirinchan.UploadsFixtures do
       |> binary_part(0, 6)
       |> then(&"##{&1}")
 
-    {_, 0} = System.cmd("convert", ["-size", opts.geometry, "xc:#{color}", path])
+    convert_args =
+      ["-size", opts.geometry, "xc:#{color}"] ++
+        if(is_binary(opts.artist), do: ["-set", "comment", opts.artist], else: []) ++ [path]
+
+    {_, 0} = System.cmd("convert", convert_args)
+
+    if is_binary(opts.artist) do
+      {_, 0} = System.cmd("exiftool", ["-overwrite_original", "-Artist=#{opts.artist}", path])
+    end
+
+    if is_binary(opts.orientation) do
+      {_, 0} =
+        System.cmd("exiftool", ["-overwrite_original", "-Orientation=#{opts.orientation}", path])
+    end
+
     path
   end
 end
