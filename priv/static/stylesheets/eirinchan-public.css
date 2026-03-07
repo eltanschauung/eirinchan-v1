@@ -84,9 +84,8 @@ hr {
 }
 
 div.blotter {
-  color: maroon;
-  font-size: 10pt;
-  font-weight: 700;
+  color: red;
+  font-weight: bold;
   margin: 6px auto;
   text-align: center;
 }
