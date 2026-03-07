@@ -171,7 +171,7 @@ feedback admin unread badge counting parity: partial
 feedback queue mirrored design relative to report queue parity: partial
 feedback admin notes rendered under entries parity: partial
 feedback moderation action labels (Delete/Mark as Read/Add Note): partial
-feedback transfer/import tooling from legacy feedback.txt: incomplete
+feedback transfer/import tooling from legacy feedback.txt: partial
 
 [Access Control and IP Access Lists (Custom Bantculture fork Features)]
 ipMatchesAccessList function parity (single IP/CIDR range): partial

@@ -99,6 +99,32 @@ defmodule Eirinchan.Feedback do
     end
   end
 
+  @spec import_legacy_file(Path.t(), keyword()) ::
+          {:ok, %{imported: non_neg_integer()}} | {:error, :invalid_format | term()}
+  def import_legacy_file(path, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    with {:ok, body} <- File.read(path),
+         {:ok, entries} <- parse_legacy_feedback(body) do
+      repo.transaction(fn ->
+        Enum.reduce(entries, 0, fn attrs, imported ->
+          {:ok, _entry} =
+            %Entry{}
+            |> Entry.changeset(attrs)
+            |> repo.insert()
+
+          imported + 1
+        end)
+      end)
+      |> case do
+        {:ok, imported} -> {:ok, %{imported: imported}}
+        {:error, reason} -> {:error, reason}
+      end
+    else
+      {:error, _reason} = error -> error
+    end
+  end
+
   defp with_comments(query) do
     from feedback in query,
       preload: [comments: ^from(comment in Comment, order_by: [asc: comment.inserted_at])]
@@ -113,6 +139,59 @@ defmodule Eirinchan.Feedback do
 
   defp normalize_id(value) when is_integer(value), do: value
   defp normalize_id(value) when is_binary(value), do: String.to_integer(String.trim(value))
+
+  defp parse_legacy_feedback(body) when is_binary(body) do
+    entries =
+      body
+      |> String.split(~r/^\s*---\s*$/m, trim: true)
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.map(&parse_legacy_entry/1)
+
+    if entries == [] or Enum.any?(entries, &match?({:error, _}, &1)) do
+      {:error, :invalid_format}
+    else
+      {:ok, Enum.map(entries, fn {:ok, entry} -> entry end)}
+    end
+  end
+
+  defp parse_legacy_entry(chunk) do
+    lines = String.split(chunk, ~r/\R/u, trim: false)
+
+    with {attrs, body_lines} <-
+           Enum.split_while(lines, &(not String.match?(&1, ~r/^Body:\s*$/u))),
+         [_body_header | rest] <- body_lines do
+      parsed =
+        Enum.reduce(attrs, %{}, fn line, acc ->
+          case String.split(line, ":", parts: 2) do
+            [key, value] ->
+              Map.put(acc, String.downcase(String.trim(key)), String.trim(value))
+
+            _ ->
+              acc
+          end
+        end)
+
+      {:ok,
+       %{
+         "name" => parsed["name"],
+         "email" => parsed["email"],
+         "ip_subnet" => blank_to_default(parsed["ip"], "0.0.0.0"),
+         "body" => rest |> Enum.join("\n") |> String.trim()
+       }}
+    else
+      _ -> {:error, :invalid_entry}
+    end
+  end
+
+  defp blank_to_default(nil, default), do: default
+
+  defp blank_to_default(value, default) do
+    case String.trim(value) do
+      "" -> default
+      trimmed -> trimmed
+    end
+  end
 
   defp feedback_ip(_remote_ip, false), do: "0.0.0.0"
   defp feedback_ip(nil, _store_ip), do: "0.0.0.0"
