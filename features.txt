@@ -200,13 +200,13 @@ proxy/IP header trust model parity: incomplete
 board create/edit workflow parity: partial
 board title/subtitle configuration parity: partial
 board URL and abbreviation formatting parity: partial
-board search box behavior parity: incomplete
+board search box behavior parity: partial
 global announcement/blotter behavior parity: partial
 custom pages CRUD parity: partial
 news pages parity: partial
 
 [Search]
-public search endpoint parity: incomplete
+public search endpoint parity: partial
 search enable/disable and board whitelist/blacklist behavior: incomplete
 search query rate limiting (per-IP and global) parity: incomplete
 search syntax filters (id/thread/subject/name) parity: incomplete

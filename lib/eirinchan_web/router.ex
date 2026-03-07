@@ -175,6 +175,7 @@ defmodule EirinchanWeb.Router do
 
     get "/", PageController, :home
     get "/news", PageController, :news
+    get "/search", SearchController, :show
     get "/pages/:slug", PageController, :page
     get "/feedback", FeedbackController, :show
     post "/feedback", FeedbackController, :create

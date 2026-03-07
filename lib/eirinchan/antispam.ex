@@ -66,20 +66,20 @@ defmodule Eirinchan.Antispam do
     else
       cutoff = DateTime.add(DateTime.utc_now(), -config.search_query_limit_window, :second)
 
-      query =
+      base_query =
         from(entry in SearchQuery,
           where:
             entry.ip_subnet == ^ip_subnet and entry.query == ^normalize_query(query) and
-              entry.inserted_at >= ^cutoff,
-          select: count(entry.id)
+              entry.inserted_at >= ^cutoff
         )
 
-      count =
+      scoped_query =
         case board_id do
-          nil -> repo.one(query)
-          _ -> repo.one(from(entry in query, where: entry.board_id == ^board_id))
+          nil -> base_query
+          _ -> from(entry in base_query, where: entry.board_id == ^board_id)
         end
 
+      count = repo.aggregate(scoped_query, :count, :id)
       count >= config.search_query_limit_count
     end
   end

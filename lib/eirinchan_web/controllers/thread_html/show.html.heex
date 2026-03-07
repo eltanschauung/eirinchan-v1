@@ -35,6 +35,14 @@
       <p><%= @announcement.body %></p>
     </article>
   </section>
+  <section>
+    <h2>Search</h2>
+    <form action={~p"/search"} method="get">
+      <input type="hidden" name="board" value={@board.uri} />
+      <input type="text" name="q" placeholder="Search /#{@board.uri}/" />
+      <button type="submit">Search</button>
+    </form>
+  </section>
   <%= if @summary.thread.file_path do %>
     <figure>
       <a href={@summary.thread.file_path}>

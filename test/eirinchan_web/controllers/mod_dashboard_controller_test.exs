@@ -4,7 +4,7 @@ defmodule EirinchanWeb.ModDashboardControllerTest do
   test "dashboard reports accessible board/report counts and unread feedback", %{conn: conn} do
     board = board_fixture()
     thread = thread_fixture(board)
-    moderator = moderator_fixture()
+    moderator = moderator_fixture(%{role: "mod"}) |> grant_board_access_fixture(board)
 
     conn
     |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")

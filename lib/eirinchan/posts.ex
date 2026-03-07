@@ -529,7 +529,9 @@ defmodule Eirinchan.Posts do
           pattern = "%#{term}%"
 
           from post in query,
-            where: ilike(post.body, ^pattern) or ilike(post.subject, ^pattern)
+            where:
+              ilike(post.body, ^pattern) or ilike(post.subject, ^pattern) or
+                ilike(post.name, ^pattern)
       end
 
     query =
