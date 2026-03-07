@@ -5,6 +5,7 @@ defmodule EirinchanWeb.BoardController do
   alias Eirinchan.Boards
   alias Eirinchan.Build
   alias Eirinchan.Posts
+  alias EirinchanWeb.BoardChrome
 
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show]
   plug EirinchanWeb.Plugs.LoadBoard when action in [:show_page]
@@ -31,6 +32,7 @@ defmodule EirinchanWeb.BoardController do
     case Posts.list_page_data(board, config: config) do
       {:ok, pages} ->
         threads = Enum.flat_map(pages, & &1.threads)
+        chrome = BoardChrome.for_board(board)
 
         render(conn, :catalog,
           layout: false,
@@ -39,7 +41,8 @@ defmodule EirinchanWeb.BoardController do
           announcement: Announcement.current(),
           threads: threads,
           config: config,
-          boards: Boards.list_boards()
+          boards: Boards.list_boards(),
+          board_chrome: chrome
         )
 
       {:error, :not_found} ->
@@ -54,6 +57,8 @@ defmodule EirinchanWeb.BoardController do
 
     case Posts.list_threads_page(board, page, config: config) do
       {:ok, page_data} ->
+        chrome = BoardChrome.for_board(board)
+
         render(conn, :show,
           layout: false,
           board: board,
@@ -63,6 +68,7 @@ defmodule EirinchanWeb.BoardController do
           page_data: page_data,
           config: config,
           boards: Boards.list_boards(),
+          board_chrome: chrome,
           body_class: board_body_class(conn),
           body_data_stylesheet: board_data_stylesheet(board),
           extra_stylesheets: board_extra_stylesheets(board),

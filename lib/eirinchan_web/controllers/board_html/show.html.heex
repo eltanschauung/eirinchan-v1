@@ -1,11 +1,12 @@
 <div class="boardlist">
-  <%= for group <- PostView.boardlist_groups(@boards) do %>
-    <span class="sub">
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
       [
-      <%= for {link, index} <- Enum.with_index(group) do %>
+      <%= for {link, index} <- Enum.with_index(links) do %>
         <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
                                                                                                                                     length(
-                                                                                                                                      group
+                                                                                                                                      links
                                                                                                                                     ) -
                                                                                                                                       1,
                                                                                                                                   do:
@@ -32,11 +33,15 @@
 
 <header>
   <h1><%= PostView.board_heading(@board) %></h1>
-  <div class="subtitle"><%= @board.subtitle %></div>
+  <div class="subtitle"><%= @board_chrome.subtitle || @board.subtitle %></div>
   <span style="display:none">/ <%= @board.uri %> / - <%= @board.title %></span>
 </header>
 
-<%= if @announcement do %>
+<%= if @board_chrome.top_news_html do %>
+  <%= raw(@board_chrome.top_news_html) %>
+<% end %>
+
+<%= if @board_chrome.show_default_announcement && @announcement do %>
   <div class="blotter">
     <strong><%= @announcement.title %></strong>: <%= @announcement.body %>
   </div>
@@ -230,6 +235,11 @@
   if (typeof rememberStuff === 'function') rememberStuff();
 </script>
 
+<%= if @board_chrome.post_form_blotter_html do %>
+  <hr />
+  <%= raw(@board_chrome.post_form_blotter_html) %>
+<% end %>
+
 <%= if is_binary(@config.global_message) and @config.global_message != "" do %>
   <hr />
   <div class="blotter"><%= raw(@config.global_message) %></div>
@@ -242,7 +252,13 @@
     <input type="text" style="max-width:40%;" name="q" placeholder="Search" />
     <input type="hidden" name="board" value={@board.uri} />
     <input type="submit" value="Search" style="margin-right:4px;" />
-    <a style="text-decoration:none;" href={"/#{@board.uri}/catalog.html"}>[Orin]</a>
+    <%= if @board_chrome.search_links do %>
+      <%= for link <- @board_chrome.search_links do %>
+        <a style="text-decoration:none;" href={link.href}><%= link.label %></a>
+      <% end %>
+    <% else %>
+      <a style="text-decoration:none;" href={"/#{@board.uri}/catalog.html"}>[Orin]</a>
+    <% end %>
   </p>
 </form>
 
@@ -529,13 +545,14 @@
 
 <a name="bottom"></a>
 <div class="boardlist bottom">
-  <%= for group <- PostView.boardlist_groups(@boards) do %>
-    <span class="sub">
+  <%= for group <- (@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards)) do %>
+    <% links = group[:links] || group %>
+    <span class="sub" data-description={group[:description]}>
       [
-      <%= for {link, index} <- Enum.with_index(group) do %>
+      <%= for {link, index} <- Enum.with_index(links) do %>
         <a href={link.href} title={link.title}><%= link.label %></a><span style="display:none">/ <%= link.label %> /</span><%= if index <
                                                                                                                                     length(
-                                                                                                                                      group
+                                                                                                                                      links
                                                                                                                                     ) -
                                                                                                                                       1,
                                                                                                                                   do:
@@ -547,3 +564,7 @@
     </span>
   <% end %>
 </div>
+
+<%= if @board_chrome.footer_html do %>
+  <%= raw(@board_chrome.footer_html) %>
+<% end %>
