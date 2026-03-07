@@ -189,4 +189,27 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ ~s(name="files[]")
     assert page =~ "multiple"
   end
+
+  test "board page renders user flag select with the configured default", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          default_user_flag: "spc",
+          user_flags: %{"sau" => "Sauce", "spc" => "Space"}
+        }
+      })
+
+    page =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    document = Floki.parse_document!(page)
+
+    assert Floki.find(document, ~s(select[name="user_flag"])) != []
+    assert Floki.find(document, ~s(option[value="spc"][selected])) != []
+    assert page =~ "Sauce"
+    assert page =~ "Space"
+  end
 end

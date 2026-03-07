@@ -733,6 +733,72 @@ defmodule Eirinchan.PostsTest do
              )
   end
 
+  test "create_post stores a normalized allowed user flag" do
+    board =
+      board_fixture(%{
+        config_overrides: %{user_flag: true, user_flags: %{"sau" => "Sauce", "spc" => "Space"}}
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "user_flag" => "  SAU ",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.flag_codes == ["sau"]
+    assert thread.flag_alts == ["Sauce"]
+  end
+
+  test "create_post applies default_user_flag when it is allowed" do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          default_user_flag: "spc",
+          user_flags: %{"sau" => "Sauce", "spc" => "Space"}
+        }
+      })
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.flag_codes == ["spc"]
+    assert thread.flag_alts == ["Space"]
+  end
+
+  test "create_post rejects user flags outside the allowlist" do
+    board =
+      board_fixture(%{
+        config_overrides: %{user_flag: true, user_flags: %{"sau" => "Sauce", "spc" => "Space"}}
+      })
+
+    assert {:error, :invalid_user_flag} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "first post",
+                 "user_flag" => "invalid",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
   test "create_post enforces required OP files and upload validation" do
     board = board_fixture(%{config_overrides: %{force_image_op: true}})
     config = post_config(board.config_overrides)

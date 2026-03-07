@@ -87,4 +87,29 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert Floki.find(reply_form, ~s(input[name="password"])) == []
     assert Floki.find(reply_form, ~s(input[name="files[]"][multiple])) != []
   end
+
+  test "thread pages render stored user flag labels", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{user_flag: true, user_flags: %{"sau" => "Sauce", "spc" => "Space"}}
+      })
+
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "user_flag" => "sau",
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: %{referer: "http://www.example.com/#{board.uri}/index.html"}
+             )
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+
+    assert page =~ "Flags: Sauce"
+  end
 end

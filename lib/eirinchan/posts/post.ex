@@ -8,6 +8,8 @@ defmodule Eirinchan.Posts.Post do
     field :subject, :string
     field :password, :string
     field :body, :string
+    field :flag_codes, {:array, :string}, default: []
+    field :flag_alts, {:array, :string}, default: []
     field :file_name, :string
     field :file_path, :string
     field :thumb_path, :string
@@ -41,6 +43,8 @@ defmodule Eirinchan.Posts.Post do
       :subject,
       :password,
       :body,
+      :flag_codes,
+      :flag_alts,
       :file_name,
       :file_path,
       :thumb_path,
