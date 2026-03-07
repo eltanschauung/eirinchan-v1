@@ -175,7 +175,7 @@ feedback transfer/import tooling from legacy feedback.txt: incomplete
 
 [Access Control and IP Access Lists (Custom Bantculture fork Features)]
 ipMatchesAccessList function parity (single IP/CIDR range): partial
-access.conf path configurability parity: incomplete
+access.conf path configurability parity: partial
 useIpAccessList toggle parity (default disabled): partial
 security gate near post OP multi-image path parity: partial
 OP multi-image allowance rules under access-list security parity: partial
