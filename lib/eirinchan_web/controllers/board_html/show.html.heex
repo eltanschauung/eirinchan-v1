@@ -257,11 +257,12 @@
         <%= for file <- PostView.all_files(thread) do %>
           <div
             class={PostView.file_class(thread)}
-            style={
-              PostView.multifile_style(file, @config,
-                multifile: length(PostView.all_files(thread)) > 1
-              )
-            }
+            {case PostView.multifile_style(file, @config,
+                    multifile: length(PostView.all_files(thread)) > 1
+                  ) do
+              nil -> []
+              style -> [style: style]
+            end}
           >
             <p class="fileinfo">
               File: <a href={file.file_path}><%= PostView.stored_file_name(file) %></a>
@@ -285,7 +286,14 @@
         <% end %>
       </div>
 
-      <div class="post op" id={"op_#{thread.id}"} style={PostView.post_container_style(thread)}>
+      <div
+        class="post op"
+        id={"op_#{thread.id}"}
+        {case PostView.post_container_style(thread) do
+          nil -> []
+          style -> [style: style]
+        end}
+      >
         <p class="intro">
           <input
             type="checkbox"
@@ -387,11 +395,12 @@
             <%= for file <- PostView.all_files(reply) do %>
               <div
                 class={PostView.file_class(reply)}
-                style={
-                  PostView.multifile_style(file, @config,
-                    multifile: length(PostView.all_files(reply)) > 1
-                  )
-                }
+                {case PostView.multifile_style(file, @config,
+                        multifile: length(PostView.all_files(reply)) > 1
+                      ) do
+                  nil -> []
+                  style -> [style: style]
+                end}
               >
                 <p class="fileinfo">
                   File:
@@ -417,7 +426,13 @@
               </div>
             <% end %>
           </div>
-          <div class="body" style={PostView.reply_body_style(reply)}>
+          <div
+            class="body"
+            {case PostView.reply_body_style(reply) do
+              nil -> []
+              style -> [style: style]
+            end}
+          >
             <%= raw(PostView.body_html(reply, @board, thread, @config)) %>
           </div>
         </div>

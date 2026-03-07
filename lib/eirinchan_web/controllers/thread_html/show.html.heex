@@ -218,11 +218,12 @@
       <%= for file <- PostView.all_files(post) do %>
         <div
           class={PostView.file_class(post)}
-          style={
-            PostView.multifile_style(file, @config,
-              multifile: length(PostView.all_files(post)) > 1
-            )
-          }
+          {case PostView.multifile_style(file, @config,
+                  multifile: length(PostView.all_files(post)) > 1
+                ) do
+            nil -> []
+            style -> [style: style]
+          end}
         >
           <p class="fileinfo">
             File: <a href={file.file_path}><%= PostView.stored_file_name(file) %></a>
@@ -249,7 +250,10 @@
     <div
       class="post op"
       id={"op_#{post.id}"}
-      style={if length(PostView.all_files(post)) > 1, do: "clear:both", else: nil}
+      {case PostView.post_container_style(post) do
+        nil -> []
+        style -> [style: style]
+      end}
     >
       <p class="intro">
         <input
@@ -364,11 +368,12 @@
           <%= for file <- PostView.all_files(reply) do %>
             <div
               class={PostView.file_class(reply)}
-              style={
-                PostView.multifile_style(file, @config,
-                  multifile: length(PostView.all_files(reply)) > 1
-                )
-              }
+              {case PostView.multifile_style(file, @config,
+                      multifile: length(PostView.all_files(reply)) > 1
+                    ) do
+                nil -> []
+                style -> [style: style]
+              end}
             >
               <p class="fileinfo">
                 File:
@@ -395,7 +400,13 @@
           <% end %>
         </div>
 
-        <div class="body" style={PostView.reply_body_style(reply)}>
+        <div
+          class="body"
+          {case PostView.reply_body_style(reply) do
+            nil -> []
+            style -> [style: style]
+          end}
+        >
           <%= raw(PostView.body_html(reply, @board, post, @config)) %>
           <span :if={reply.tag} class="tag-line">
             Tag: <%= if is_map(@config.allowed_tags),
