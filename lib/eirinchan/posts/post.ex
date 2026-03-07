@@ -12,6 +12,7 @@ defmodule Eirinchan.Posts.Post do
     field :flag_alts, {:array, :string}, default: []
     field :tag, :string
     field :proxy, :string
+    field :ip_subnet, :string
     field :tripcode, :string
     field :capcode, :string
     field :raw_html, :boolean, default: false
@@ -52,6 +53,7 @@ defmodule Eirinchan.Posts.Post do
       :flag_alts,
       :tag,
       :proxy,
+      :ip_subnet,
       :tripcode,
       :capcode,
       :raw_html,

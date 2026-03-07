@@ -35,4 +35,29 @@ defmodule Eirinchan.ModerationTest do
     refute Moderation.board_access?(moderator, other_board)
     assert Enum.map(Moderation.list_accessible_boards(moderator), & &1.id) == [board.id]
   end
+
+  test "ip notes and ip post history can be queried by moderators" do
+    board = board_fixture()
+    moderator = moderator_fixture(%{role: "mod"})
+
+    thread =
+      thread_fixture(board, %{
+        body: "IP tracked body"
+      })
+
+    {:ok, _updated_thread} =
+      Repo.update(Ecto.Changeset.change(thread, ip_subnet: "203.0.113.10"))
+
+    assert {:ok, note} =
+             Moderation.add_ip_note("203.0.113.10", %{
+               body: "Known spammer",
+               board_id: board.id,
+               mod_user_id: moderator.id
+             })
+
+    assert [%{body: "Known spammer"}] = Moderation.list_ip_notes("203.0.113.10", board_id: board.id)
+    assert [%{id: post_id, ip_subnet: "203.0.113.10"}] = Moderation.list_ip_posts("203.0.113.10", board_ids: [board.id])
+    assert post_id == thread.id
+    assert note.ip_subnet == "203.0.113.10"
+  end
 end

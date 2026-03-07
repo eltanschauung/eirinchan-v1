@@ -6,7 +6,8 @@ defmodule Eirinchan.Moderation do
   import Ecto.Query, only: [from: 2]
 
   alias Eirinchan.Boards.BoardRecord
-  alias Eirinchan.Moderation.{ModBoardAccess, ModUser}
+  alias Eirinchan.Moderation.{IpNote, ModBoardAccess, ModUser}
+  alias Eirinchan.Posts.Post
   alias Eirinchan.Repo
 
   @spec create_user(map(), keyword()) :: {:ok, ModUser.t()} | {:error, Ecto.Changeset.t()}
@@ -107,4 +108,70 @@ defmodule Eirinchan.Moderation do
 
     updated
   end
+
+  @spec add_ip_note(String.t(), map(), keyword()) ::
+          {:ok, IpNote.t()} | {:error, Ecto.Changeset.t()}
+  def add_ip_note(ip_subnet, attrs, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+
+    %IpNote{}
+    |> IpNote.changeset(
+      attrs
+      |> Enum.into(%{})
+      |> Map.put(:ip_subnet, normalize_ip(ip_subnet))
+    )
+    |> repo.insert()
+  end
+
+  @spec list_ip_notes(String.t(), keyword()) :: [IpNote.t()]
+  def list_ip_notes(ip_subnet, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    board_id = Keyword.get(opts, :board_id)
+
+    query =
+      from note in IpNote,
+        where: note.ip_subnet == ^normalize_ip(ip_subnet),
+        order_by: [asc: note.inserted_at],
+        preload: [:board, :mod_user]
+
+    query =
+      if board_id do
+        from note in query, where: is_nil(note.board_id) or note.board_id == ^board_id
+      else
+        query
+      end
+
+    repo.all(query)
+  end
+
+  @spec list_ip_posts(String.t(), keyword()) :: [Post.t()]
+  def list_ip_posts(ip_subnet, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    board_ids = Keyword.get(opts, :board_ids)
+
+    query =
+      from post in Post,
+        where: post.ip_subnet == ^normalize_ip(ip_subnet),
+        order_by: [desc: post.inserted_at, desc: post.id]
+
+    query =
+      case board_ids do
+        ids when is_list(ids) -> from post in query, where: post.board_id in ^ids
+        _ -> query
+      end
+
+    repo.all(query)
+  end
+
+  defp normalize_ip(ip) when is_binary(ip), do: String.trim(ip)
+
+  defp normalize_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
+
+  defp normalize_ip({a, b, c, d, e, f, g, h}) do
+    [a, b, c, d, e, f, g, h]
+    |> Enum.map(&Integer.to_string(&1, 16))
+    |> Enum.join(":")
+  end
+
+  defp normalize_ip(_ip), do: nil
 end

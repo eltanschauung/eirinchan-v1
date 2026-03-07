@@ -591,6 +591,7 @@ defmodule Eirinchan.Posts do
       attrs
       |> Map.put("board_id", board.id)
       |> Map.put("thread_id", nil)
+      |> Map.put("ip_subnet", request_ip_string(attrs))
       |> Map.put("bump_at", now)
       |> Map.put("sticky", false)
       |> Map.put("locked", false)
@@ -608,6 +609,7 @@ defmodule Eirinchan.Posts do
       attrs
       |> Map.put("board_id", board.id)
       |> Map.put("thread_id", thread.id)
+      |> Map.put("ip_subnet", request_ip_string(attrs))
 
     %Post{}
     |> Post.create_changeset(attrs)
@@ -744,6 +746,7 @@ defmodule Eirinchan.Posts do
       attrs
       |> normalize_post_identity(config)
       |> normalize_noko_email()
+      |> put_request_ip(request)
       |> normalize_post_text(config)
 
     with {:ok, attrs} <- normalize_country_flag(attrs, config, request),
@@ -1959,4 +1962,24 @@ defmodule Eirinchan.Posts do
     do: file_path != ""
 
   defp has_primary_file?(_post), do: false
+
+  defp put_request_ip(attrs, request) do
+    case Map.get(request, :remote_ip) || Map.get(request, "remote_ip") do
+      nil -> attrs
+      ip -> Map.put(attrs, "ip_subnet", normalize_request_ip(ip))
+    end
+  end
+
+  defp request_ip_string(attrs), do: Map.get(attrs, "ip_subnet")
+
+  defp normalize_request_ip({a, b, c, d}), do: Enum.join([a, b, c, d], ".")
+
+  defp normalize_request_ip({a, b, c, d, e, f, g, h}) do
+    [a, b, c, d, e, f, g, h]
+    |> Enum.map(&Integer.to_string(&1, 16))
+    |> Enum.join(":")
+  end
+
+  defp normalize_request_ip(ip) when is_binary(ip), do: String.trim(ip)
+  defp normalize_request_ip(_ip), do: nil
 end
