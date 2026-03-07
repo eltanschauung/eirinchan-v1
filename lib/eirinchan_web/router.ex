@@ -59,6 +59,10 @@ defmodule EirinchanWeb.Router do
     get "/announcement/browser", ManagePageController, :announcement
     post "/announcement/browser", ManagePageController, :upsert_announcement
     delete "/announcement/browser", ManagePageController, :delete_announcement
+    get "/pages/browser", ManagePageController, :pages
+    post "/pages/browser", ManagePageController, :create_page
+    patch "/pages/browser/:id", ManagePageController, :update_page
+    delete "/pages/browser/:id", ManagePageController, :delete_page
     get "/news/browser", ManagePageController, :news
     post "/news/browser", ManagePageController, :create_news
     patch "/news/browser/:id", ManagePageController, :update_news
@@ -171,6 +175,7 @@ defmodule EirinchanWeb.Router do
 
     get "/", PageController, :home
     get "/news", PageController, :news
+    get "/pages/:slug", PageController, :page
     get "/feedback", FeedbackController, :show
     post "/feedback", FeedbackController, :create
     get "/:board/thumb/:filename", UploadedFileController, :show_thumb

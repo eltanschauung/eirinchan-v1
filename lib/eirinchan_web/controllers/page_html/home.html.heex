@@ -12,6 +12,9 @@
   <a href={~p"/news"}>News</a>
   <a href={~p"/manage/login"}>Manage</a>
   <a href={~p"/feedback"}>Feedback</a>
+  <%= for page <- @custom_pages do %>
+    <a href={"/pages/#{page.slug}"}><%= page.title %></a>
+  <% end %>
 </nav>
 
 <section :if={@announcement}>

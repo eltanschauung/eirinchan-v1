@@ -5,6 +5,7 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.Boards
   alias Eirinchan.Build
   alias Eirinchan.Bans
+  alias Eirinchan.CustomPages
   alias Eirinchan.Installation
   alias Eirinchan.Moderation
   alias Eirinchan.News
@@ -48,6 +49,7 @@ defmodule EirinchanWeb.ManagePageController do
         moderator: moderator,
         boards: Moderation.list_accessible_boards(moderator),
         announcement: Announcement.current(),
+        custom_pages: CustomPages.list_pages(),
         news_entries: News.list_entries(limit: 10),
         error: nil,
         params: %{"uri" => nil, "title" => nil, "subtitle" => nil}
@@ -170,6 +172,83 @@ defmodule EirinchanWeb.ManagePageController do
 
       {:error, :forbidden} ->
         render_announcement_error(conn, "Moderator access required.")
+    end
+  end
+
+  def pages(conn, _params) do
+    with {:ok, moderator} <- ensure_moderator(conn) do
+      render(conn, :pages,
+        moderator: moderator,
+        pages: CustomPages.list_pages(),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} -> redirect(conn, to: ~p"/manage/login")
+    end
+  end
+
+  def create_page(conn, %{"slug" => slug, "title" => title, "body" => body}) do
+    with {:ok, moderator} <- ensure_news_editor(conn),
+         {:ok, _page} <-
+           CustomPages.create_page(%{
+             slug: slug,
+             title: title,
+             body: body,
+             mod_user_id: moderator.id
+           }) do
+      conn
+      |> put_flash(:info, "Custom page created.")
+      |> redirect(to: ~p"/manage/pages/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_pages_error(conn, "Moderator access required.")
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_pages_error(conn, format_changeset(changeset), :unprocessable_entity)
+    end
+  end
+
+  def update_page(conn, %{"id" => id, "slug" => slug, "title" => title, "body" => body}) do
+    with {:ok, _moderator} <- ensure_news_editor(conn),
+         %CustomPages.Page{} = page <- load_custom_page(id),
+         {:ok, _page} <- CustomPages.update_page(page, %{slug: slug, title: title, body: body}) do
+      conn
+      |> put_flash(:info, "Custom page updated.")
+      |> redirect(to: ~p"/manage/pages/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_pages_error(conn, "Moderator access required.")
+
+      nil ->
+        render_pages_error(conn, "Custom page not found.", :not_found)
+
+      {:error, %Ecto.Changeset{} = changeset} ->
+        render_pages_error(conn, format_changeset(changeset), :unprocessable_entity)
+    end
+  end
+
+  def delete_page(conn, %{"id" => id}) do
+    with {:ok, _moderator} <- ensure_news_editor(conn),
+         %CustomPages.Page{} = page <- load_custom_page(id),
+         {:ok, _page} <- CustomPages.delete_page(page) do
+      conn
+      |> put_flash(:info, "Custom page deleted.")
+      |> redirect(to: ~p"/manage/pages/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_pages_error(conn, "Moderator access required.")
+
+      nil ->
+        render_pages_error(conn, "Custom page not found.", :not_found)
     end
   end
 
@@ -581,6 +660,7 @@ defmodule EirinchanWeb.ManagePageController do
           moderator: conn.assigns[:current_moderator],
           boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
           announcement: Announcement.current(),
+          custom_pages: CustomPages.list_pages(),
           news_entries: News.list_entries(limit: 10),
           error: "Administrator access required.",
           params: Map.take(stringify(params), ["uri", "title", "subtitle"])
@@ -593,6 +673,7 @@ defmodule EirinchanWeb.ManagePageController do
           moderator: conn.assigns.current_moderator,
           boards: Moderation.list_accessible_boards(conn.assigns.current_moderator),
           announcement: Announcement.current(),
+          custom_pages: CustomPages.list_pages(),
           news_entries: News.list_entries(limit: 10),
           error: format_changeset(changeset),
           params: Map.take(stringify(params), ["uri", "title", "subtitle"])
@@ -701,6 +782,7 @@ defmodule EirinchanWeb.ManagePageController do
       moderator: conn.assigns[:current_moderator],
       boards: Moderation.list_accessible_boards(conn.assigns[:current_moderator]),
       announcement: Announcement.current(),
+      custom_pages: CustomPages.list_pages(),
       news_entries: News.list_entries(limit: 10),
       error: message,
       params: Map.take(stringify(params), ["uri", "title", "subtitle"])
@@ -723,6 +805,16 @@ defmodule EirinchanWeb.ManagePageController do
     |> render(:announcement,
       moderator: conn.assigns[:current_moderator],
       announcement: Announcement.current(),
+      error: message
+    )
+  end
+
+  defp render_pages_error(conn, message, status \\ :forbidden) do
+    conn
+    |> put_status(status)
+    |> render(:pages,
+      moderator: conn.assigns[:current_moderator],
+      pages: CustomPages.list_pages(),
       error: message
     )
   end
@@ -751,6 +843,8 @@ defmodule EirinchanWeb.ManagePageController do
   defp config_map(boards, host) do
     Map.new(boards, fn board -> {board.id, board_config(board, host)} end)
   end
+
+  defp load_custom_page(id), do: Eirinchan.Repo.get(Eirinchan.CustomPages.Page, id)
 
   defp format_changeset(changeset) do
     changeset.errors

@@ -7,6 +7,7 @@
 <nav>
   <a href={~p"/"}>Home</a>
   <a href={~p"/manage/announcement/browser"}>Announcement</a>
+  <a href={~p"/manage/pages/browser"}>Pages</a>
   <a href={~p"/news"}>News</a>
   <a href={~p"/manage/news/browser"}>Manage News</a>
   <a href={~p"/manage/recent-posts/browser"}>Recent Posts</a>
@@ -70,6 +71,20 @@
     </article>
   <% else %>
     <p>No announcement is active.</p>
+  <% end %>
+</section>
+
+<section>
+  <h2>Custom Pages</h2>
+  <%= if @custom_pages == [] do %>
+    <p>No custom pages yet.</p>
+  <% else %>
+    <%= for page <- @custom_pages do %>
+      <article>
+        <h3><a href={"/pages/#{page.slug}"}><%= page.title %></a></h3>
+        <p>Slug: <%= page.slug %></p>
+      </article>
+    <% end %>
   <% end %>
 </section>
 

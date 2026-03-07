@@ -3,6 +3,7 @@ defmodule EirinchanWeb.PageController do
 
   alias Eirinchan.Announcement
   alias Eirinchan.Boards
+  alias Eirinchan.CustomPages
   alias Eirinchan.Installation
   alias Eirinchan.News
 
@@ -14,6 +15,7 @@ defmodule EirinchanWeb.PageController do
         layout: false,
         boards: Boards.list_boards(),
         announcement: Announcement.current(),
+        custom_pages: CustomPages.list_pages(),
         news_entries: News.list_entries(limit: 5)
       )
     end
@@ -27,8 +29,29 @@ defmodule EirinchanWeb.PageController do
         layout: false,
         boards: Boards.list_boards(),
         announcement: Announcement.current(),
+        custom_pages: CustomPages.list_pages(),
         news_entries: News.list_entries()
       )
+    end
+  end
+
+  def page(conn, %{"slug" => slug}) do
+    if Installation.setup_required?() do
+      redirect(conn, to: ~p"/setup")
+    else
+      case CustomPages.get_page_by_slug(slug) do
+        nil ->
+          send_resp(conn, :not_found, "Page not found")
+
+        page ->
+          render(conn, :page,
+            layout: false,
+            boards: Boards.list_boards(),
+            announcement: Announcement.current(),
+            custom_pages: CustomPages.list_pages(),
+            page: page
+          )
+      end
     end
   end
 end
