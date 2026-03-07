@@ -18,62 +18,33 @@ defmodule EirinchanWeb.ThemeManagementControllerTest do
     :ok
   end
 
-  test "admin can install, select, and uninstall custom themes", %{conn: conn} do
+  test "admin can browse available vichan themes and open a theme config page", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
 
-    install_conn =
-      conn
-      |> login_moderator(moderator)
-      |> post("/manage/themes/browser", %{
-        "name" => "ocean",
-        "label" => "Ocean",
-        "stylesheet" => "/stylesheets/ocean.css"
-      })
-
-    assert redirected_to(install_conn) == "/manage/themes/browser"
-
     themes_page =
-      install_conn
-      |> recycle()
+      conn
       |> login_moderator(moderator)
       |> get("/manage/themes/browser")
       |> html_response(200)
 
-    assert themes_page =~ "Theme Registry"
-    assert themes_page =~ "Ocean"
+    assert themes_page =~ "Manage Themes"
+    assert themes_page =~ "Catalog"
+    assert themes_page =~ "Overboard (Ukko)"
+    assert themes_page =~ "Install"
 
-    select_conn =
+    theme_page =
       conn
       |> recycle()
       |> login_moderator(moderator)
-      |> patch("/manage/themes/browser/ocean", %{"default_theme" => "ocean"})
-
-    assert redirected_to(select_conn) == "/manage/themes/browser"
-    assert Eirinchan.Settings.default_theme() == "ocean"
-
-    themed_page =
-      conn
-      |> recycle()
-      |> get("/search", %{"q" => ""})
+      |> get("/manage/themes/browser/catalog")
       |> html_response(200)
 
-    assert themed_page =~ ~s(var selectedstyle = "Ocean")
-    assert themed_page =~ ~s("Ocean":{"name":"ocean","uri":"/stylesheets/ocean.css"})
-    assert themed_page =~ ~s(id="stylesheet" href="/stylesheets/ocean.css)
-
-    uninstall_conn =
-      conn
-      |> recycle()
-      |> login_moderator(moderator)
-      |> delete("/manage/themes/browser/ocean")
-
-    assert redirected_to(uninstall_conn) == "/manage/themes/browser"
-    refute Enum.any?(Eirinchan.Settings.installed_themes(), &(&1.name == "ocean"))
+    assert theme_page =~ "Configuring theme: Catalog"
+    assert theme_page =~ "Included boards"
+    assert theme_page =~ "Use tooltipster"
   end
 
-  test "admin can enable catalog from themes page and legacy mod.php?/themes redirects there", %{
-    conn: conn
-  } do
+  test "admin can install, rebuild, and uninstall catalog from the themes page", %{conn: conn} do
     moderator = moderator_fixture(%{role: "admin"})
     board = board_fixture(%{uri: "meta#{System.unique_integer([:positive])}", title: "Meta"})
     thread_fixture(board, %{subject: "Catalog thread", body: "Body"})
@@ -92,24 +63,27 @@ defmodule EirinchanWeb.ThemeManagementControllerTest do
 
     assert response(disabled_conn, 404)
 
-    enable_conn =
+    install_conn =
       conn
       |> recycle()
       |> login_moderator(moderator)
-      |> patch("/manage/themes/browser/pages/catalog", %{"enabled" => "true"})
+      |> post("/manage/themes/browser/catalog", %{
+        "title" => "Catalog",
+        "boards" => "*",
+        "update_on_posts" => "on",
+        "use_tooltipster" => "on"
+      })
 
-    assert redirected_to(enable_conn) == "/manage/themes/browser"
+    assert redirected_to(install_conn) == "/manage/themes/browser/catalog"
+    assert Eirinchan.Themes.page_theme_enabled?("catalog")
 
-    themes_page =
-      enable_conn
+    rebuilt_conn =
+      conn
       |> recycle()
       |> login_moderator(moderator)
-      |> get("/manage/themes/browser")
-      |> html_response(200)
+      |> post("/manage/themes/browser/catalog/rebuild")
 
-    assert themes_page =~ "Page Themes"
-    assert themes_page =~ "Catalog"
-    assert themes_page =~ "Enabled"
+    assert redirected_to(rebuilt_conn) == "/manage/themes/browser/catalog"
 
     catalog_page =
       conn
@@ -118,5 +92,21 @@ defmodule EirinchanWeb.ThemeManagementControllerTest do
       |> html_response(200)
 
     assert catalog_page =~ "Catalog thread"
+
+    uninstall_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> delete("/manage/themes/browser/catalog")
+
+    assert redirected_to(uninstall_conn) == "/manage/themes/browser"
+    refute Eirinchan.Themes.page_theme_enabled?("catalog")
+
+    missing_catalog_conn =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/catalog.html")
+
+    assert response(missing_catalog_conn, 404)
   end
 end

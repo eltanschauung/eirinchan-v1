@@ -1,89 +1,67 @@
 <.flash_group flash={@flash} />
-<section>
-  <h1>Theme Registry</h1>
-  <p><a href={~p"/manage"}>Back to dashboard</a></p>
-  <p :if={@error}><%= @error %></p>
-</section>
+<h1>Manage Themes</h1>
+<p><a href={~p"/manage"}>Back to dashboard</a></p>
+<p :if={@error} class="error"><%= @error %></p>
 
-<section>
-  <h2>Install Theme</h2>
-  <form action={~p"/manage/themes/browser"} method="post">
-    <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-    <label>
-      <span>Name</span>
-      <input type="text" name="name" />
-    </label>
-    <label>
-      <span>Label</span>
-      <input type="text" name="label" />
-    </label>
-    <label>
-      <span>Stylesheet</span>
-      <input type="text" name="stylesheet" placeholder="/stylesheets/custom.css" />
-    </label>
-    <button type="submit">Install Theme</button>
-  </form>
-</section>
-
-<section>
-  <h2>Installed Themes</h2>
-  <%= for theme <- @themes do %>
-    <article id={"theme-#{theme.name}"}>
-      <h3><%= theme.label %></h3>
-      <p>Name: <%= theme.name %></p>
-      <p>Stylesheet: <%= inspect(theme.stylesheet) %></p>
-
-      <form action={"/manage/themes/browser/#{theme.name}"} method="post">
-        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-        <input type="hidden" name="_method" value="patch" />
-        <input type="hidden" name="default_theme" value={theme.name} />
-        <button type="submit" disabled={@default_theme == theme.name}>
-          <%= if @default_theme == theme.name, do: "Default Theme", else: "Make Default" %>
-        </button>
-      </form>
-
-      <%= if theme.name not in ["default", "vichan", "contrast", "feedback", "ipaccessauth"] do %>
-        <form action={"/manage/themes/browser/#{theme.name}"} method="post">
-          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-          <input type="hidden" name="_method" value="patch" />
-          <input type="hidden" name="name" value={theme.name} />
-          <label>
-            <span>Label</span>
-            <input type="text" name="label" value={theme.label} />
-          </label>
-          <label>
-            <span>Stylesheet</span>
-            <input type="text" name="stylesheet" value={theme.stylesheet} />
-          </label>
-          <button type="submit">Update Theme</button>
-        </form>
-
-        <form action={"/manage/themes/browser/#{theme.name}"} method="post">
-          <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-          <input type="hidden" name="_method" value="delete" />
-          <button type="submit">Uninstall Theme</button>
-        </form>
-      <% end %>
-    </article>
-  <% end %>
-</section>
-
-<section>
-  <h2>Page Themes</h2>
-  <%= for theme <- @page_themes do %>
-    <article id={"page-theme-#{theme.name}"}>
-      <h3><%= theme.label %></h3>
-      <p><%= theme.description %></p>
-      <p>Status: <strong><%= if theme.enabled, do: "Enabled", else: "Disabled" %></strong></p>
-
-      <form action={"/manage/themes/browser/pages/#{theme.name}"} method="post">
-        <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
-        <input type="hidden" name="_method" value="patch" />
-        <input type="hidden" name="enabled" value={if theme.enabled, do: "false", else: "true"} />
-        <button type="submit">
-          <%= if theme.enabled, do: "Disable Theme", else: "Enable Theme" %>
-        </button>
-      </form>
-    </article>
-  <% end %>
-</section>
+<%= if Enum.empty?(@themes) do %>
+  <p class="unimportant">(There are no themes available.)</p>
+<% else %>
+  <table class="modlog">
+    <%= for theme <- @themes do %>
+      <tr>
+        <th class="minimal">Name</th>
+        <td><%= theme.title %></td>
+      </tr>
+      <tr>
+        <th class="minimal">Version</th>
+        <td><%= theme.version %></td>
+      </tr>
+      <tr>
+        <th class="minimal">Description</th>
+        <td><%= theme.description %></td>
+      </tr>
+      <tr>
+        <th class="minimal">Thumbnail</th>
+        <td>
+          <img
+            style={"float:none;margin:4px" <> if(theme.installed, do: ";border:2px solid red;padding:4px", else: "")}
+            src={theme.thumb_uri}
+            alt={"#{theme.title} thumbnail"}
+          />
+        </td>
+      </tr>
+      <tr>
+        <th class="minimal">Actions</th>
+        <td>
+          <ul style="padding:0 20px">
+            <li>
+              <a href={"/manage/themes/browser/#{theme.name}"}>
+                <%= if theme.installed, do: "Reconfigure", else: "Install" %>
+              </a>
+            </li>
+            <li :if={theme.installed and theme.supported}>
+              <form action={"/manage/themes/browser/#{theme.name}/rebuild"} method="post" style="display:inline">
+                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                <button type="submit">Rebuild</button>
+              </form>
+            </li>
+            <li :if={theme.installed}>
+              <form
+                action={"/manage/themes/browser/#{theme.name}"}
+                method="post"
+                style="display:inline"
+                onsubmit="return confirm('Are you sure you want to uninstall this theme?');"
+              >
+                <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+                <input type="hidden" name="_method" value="delete" />
+                <button type="submit">Uninstall</button>
+              </form>
+            </li>
+            <li :if={!theme.supported}>Unsupported in Eirinchan</li>
+          </ul>
+        </td>
+      </tr>
+      <tr style="height:40px"><td colspan="2"><hr /></td></tr>
+    <% end %>
+  </table>
+<% end %>

@@ -14,7 +14,6 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.Settings
   alias Eirinchan.Themes
   alias EirinchanWeb.ManageSecurity
-  alias EirinchanWeb.ThemeRegistry
 
   plug :assign_manage_shell
 
@@ -208,9 +207,7 @@ defmodule EirinchanWeb.ManagePageController do
     with {:ok, moderator} <- ensure_admin(conn) do
       render(conn, :themes,
         moderator: moderator,
-        themes: ThemeRegistry.all(),
-        page_themes: Themes.page_themes(),
-        default_theme: ThemeRegistry.default_theme(),
+        themes: Themes.all_themes(),
         error: nil
       )
     else
@@ -222,17 +219,14 @@ defmodule EirinchanWeb.ManagePageController do
     end
   end
 
-  def create_theme(conn, params) do
-    with {:ok, _moderator} <- ensure_admin(conn),
-         {:ok, _theme} <-
-           Settings.upsert_theme(%{
-             name: params["name"],
-             label: params["label"],
-             stylesheet: params["stylesheet"]
-           }) do
-      conn
-      |> put_flash(:info, "Theme installed.")
-      |> redirect(to: ~p"/manage/themes/browser")
+  def theme(conn, %{"name" => name}) do
+    with {:ok, moderator} <- ensure_admin(conn),
+         %{} = theme <- Enum.find(Themes.all_themes(), &(&1.name == String.trim(name))) do
+      render(conn, :theme,
+        moderator: moderator,
+        theme: theme,
+        error: nil
+      )
     else
       {:error, :unauthorized} ->
         redirect(conn, to: ~p"/manage/login")
@@ -240,20 +234,37 @@ defmodule EirinchanWeb.ManagePageController do
       {:error, :forbidden} ->
         render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
 
-      {:error, :invalid_theme} ->
-        render_themes_error(
-          conn,
-          "Theme requires name, label, and stylesheet.",
-          :unprocessable_entity
-        )
+      nil ->
+        render_themes_error(conn, "Theme not found.", :not_found)
     end
   end
 
-  def update_page_theme(conn, %{"name" => name, "enabled" => enabled}) do
+  def install_theme(conn, %{"name" => name} = params) do
     with {:ok, _moderator} <- ensure_admin(conn),
-         {:ok, _name} <- toggle_page_theme(name, enabled) do
+         {:ok, _theme} <- Themes.install_theme(name, params) do
       conn
-      |> put_flash(:info, "Theme updated.")
+      |> put_flash(:info, "Theme installed.")
+      |> redirect(to: "/manage/themes/browser/#{name}")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :unsupported} ->
+        render_theme_error(conn, name, "This theme is not implemented in Eirinchan.", :unprocessable_entity)
+
+      {:error, :not_found} ->
+        render_themes_error(conn, "Theme not found.", :not_found)
+    end
+  end
+
+  def delete_theme(conn, %{"name" => name}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         :ok <- Themes.uninstall_theme(name) do
+      conn
+      |> put_flash(:info, "Theme uninstalled.")
       |> redirect(to: ~p"/manage/themes/browser")
     else
       {:error, :unauthorized} ->
@@ -261,6 +272,30 @@ defmodule EirinchanWeb.ManagePageController do
 
       {:error, :forbidden} ->
         render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :unsupported} ->
+        render_theme_error(conn, name, "This theme is not implemented in Eirinchan.", :unprocessable_entity)
+
+      {:error, :not_found} ->
+        render_themes_error(conn, "Theme not found.", :not_found)
+    end
+  end
+
+  def rebuild_theme(conn, %{"name" => name}) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         :ok <- Themes.rebuild_theme(name) do
+      conn
+      |> put_flash(:info, "Theme rebuilt.")
+      |> redirect(to: "/manage/themes/browser/#{name}")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
+
+      {:error, :unsupported} ->
+        render_theme_error(conn, name, "This theme does not support rebuilds in Eirinchan.", :unprocessable_entity)
 
       {:error, :not_found} ->
         render_themes_error(conn, "Theme not found.", :not_found)
@@ -278,83 +313,6 @@ defmodule EirinchanWeb.ManagePageController do
     |> assign(:skip_app_stylesheet, true)
     |> assign(:skip_flash_group, true)
     |> assign(:hide_theme_switcher, true)
-  end
-
-  defp toggle_page_theme(name, enabled) do
-    if enabled in ["true", "1", "on"] do
-      case Themes.enable_page_theme(name) do
-        :ok -> {:ok, name}
-        error -> error
-      end
-    else
-      case Themes.disable_page_theme(name) do
-        :ok -> {:ok, name}
-        error -> error
-      end
-    end
-  end
-
-  def update_theme(conn, %{"name" => _name, "default_theme" => default_theme}) do
-    with {:ok, _moderator} <- ensure_admin(conn),
-         :ok <- Settings.set_default_theme(default_theme) do
-      conn
-      |> put_flash(:info, "Default theme updated.")
-      |> redirect(to: ~p"/manage/themes/browser")
-    else
-      {:error, :unauthorized} ->
-        redirect(conn, to: ~p"/manage/login")
-
-      {:error, :forbidden} ->
-        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
-
-      {:error, :invalid_theme} ->
-        render_themes_error(conn, "Invalid theme selection.", :unprocessable_entity)
-    end
-  end
-
-  def update_theme(conn, %{"name" => name} = params) do
-    with {:ok, _moderator} <- ensure_admin(conn),
-         {:ok, _theme} <-
-           Settings.upsert_theme(%{
-             name: name,
-             label: params["label"],
-             stylesheet: params["stylesheet"]
-           }) do
-      conn
-      |> put_flash(:info, "Theme updated.")
-      |> redirect(to: ~p"/manage/themes/browser")
-    else
-      {:error, :unauthorized} ->
-        redirect(conn, to: ~p"/manage/login")
-
-      {:error, :forbidden} ->
-        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
-
-      {:error, :invalid_theme} ->
-        render_themes_error(
-          conn,
-          "Theme requires name, label, and stylesheet.",
-          :unprocessable_entity
-        )
-    end
-  end
-
-  def delete_theme(conn, %{"name" => name}) do
-    with {:ok, _moderator} <- ensure_admin(conn),
-         :ok <- Settings.delete_theme(name) do
-      conn
-      |> put_flash(:info, "Theme removed.")
-      |> redirect(to: ~p"/manage/themes/browser")
-    else
-      {:error, :unauthorized} ->
-        redirect(conn, to: ~p"/manage/login")
-
-      {:error, :forbidden} ->
-        render_dashboard_error(conn, "Administrator access required.", %{}, :forbidden)
-
-      {:error, :not_found} ->
-        render_themes_error(conn, "Theme not found.", :not_found)
-    end
   end
 
   def create_news(conn, %{"title" => title, "body" => body}) do
@@ -1115,10 +1073,25 @@ defmodule EirinchanWeb.ManagePageController do
     |> put_status(status)
     |> render(:themes,
       moderator: conn.assigns[:current_moderator],
-      themes: ThemeRegistry.all(),
-      default_theme: ThemeRegistry.default_theme(),
+      themes: Themes.all_themes(),
       error: message
     )
+  end
+
+  defp render_theme_error(conn, name, message, status) do
+    case Enum.find(Themes.all_themes(), &(&1.name == String.trim(to_string(name)))) do
+      nil ->
+        render_themes_error(conn, message, status)
+
+      theme ->
+        conn
+        |> put_status(status)
+        |> render(:theme,
+          moderator: conn.assigns[:current_moderator],
+          theme: theme,
+          error: message
+        )
+    end
   end
 
   defp render_config_error(conn, message, status \\ :forbidden, config_json \\ "{}") do
