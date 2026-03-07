@@ -1,5 +1,6 @@
 defmodule EirinchanWeb.PageController do
   use EirinchanWeb, :controller
+  import Ecto.Query
 
   alias Eirinchan.Announcement
   alias Eirinchan.Boards
@@ -8,25 +9,32 @@ defmodule EirinchanWeb.PageController do
   alias Eirinchan.Installation
   alias Eirinchan.News
   alias Eirinchan.Posts
+  alias Eirinchan.Posts.{Post, PostFile}
+  alias Eirinchan.Repo
   alias Eirinchan.Runtime.Config
   alias Eirinchan.Settings
   alias Eirinchan.Themes
   alias EirinchanWeb.BoardChrome
+  alias EirinchanWeb.PostView
   alias EirinchanWeb.PublicShell
 
   def home(conn, _params) do
     if Installation.setup_required?() do
       redirect(conn, to: ~p"/setup")
     else
-      render(
-        conn,
-        :home,
-        Keyword.merge(
-          public_page_assigns(conn, "active-page", "index"),
-          layout: false,
-          news_entries: News.list_entries(limit: 5)
+      if Themes.page_theme_enabled?("recent") do
+        render_recent_theme(conn, "index")
+      else
+        render(
+          conn,
+          :home,
+          Keyword.merge(
+            public_page_assigns(conn, "active-page", "index"),
+            layout: false,
+            news_entries: News.list_entries(limit: 5)
+          )
         )
-      )
+      end
     end
   end
 
@@ -91,15 +99,7 @@ defmodule EirinchanWeb.PageController do
       redirect(conn, to: ~p"/setup")
     else
       if Themes.page_theme_enabled?("recent") do
-        render(
-          conn,
-          :recent,
-          Keyword.merge(
-            public_page_assigns(conn, "active-page", "recent"),
-            layout: false,
-            posts: Posts.list_recent_posts(limit: 50)
-          )
-        )
+        render_recent_theme(conn, "recent")
       else
         send_resp(conn, :not_found, "Page not found")
       end
@@ -197,6 +197,187 @@ defmodule EirinchanWeb.PageController do
 
   defp public_extra_stylesheets(_board),
     do: ["/stylesheets/eirinchan-public.css", "/stylesheets/eirinchan-bant.css"]
+
+  defp render_recent_theme(conn, active_page) do
+    settings = Themes.theme_settings("recent")
+
+    render(
+      conn,
+      :recent,
+      Keyword.merge(
+        recent_theme_assigns(conn, active_page, settings),
+        layout: false,
+        recent_settings: settings,
+        recent_images: recent_theme_images(settings),
+        recent_posts: recent_theme_posts(settings),
+        stats: recent_theme_stats(settings)
+      )
+    )
+  end
+
+  defp recent_theme_assigns(conn, active_page, _settings) do
+    boards = Boards.list_boards()
+
+    [
+      boards: boards,
+      boardlist_top_html: PostView.boardlist_html(PostView.boardlist_groups(boards)),
+      footer_html: "<footer><p class=\"unimportant\" style=\"margin-top:20px;text-align:center;\">Powered by Eirinchan.</p></footer>",
+      public_shell: true,
+      viewport_content: "width=device-width, initial-scale=1, user-scalable=yes",
+      base_stylesheet: "/stylesheets/style.css",
+      body_class: nil,
+      body_data_stylesheet: public_data_stylesheet(conn),
+      head_html:
+        PublicShell.head_html(active_page,
+          theme_label: conn.assigns[:theme_label],
+          theme_options: conn.assigns[:theme_options]
+        ),
+      javascript_urls: PublicShell.javascript_urls(active_page),
+      body_end_html: PublicShell.body_end_html(),
+      primary_stylesheet: public_primary_stylesheet(conn),
+      primary_stylesheet_id: "stylesheet",
+      extra_stylesheets: ["/recent.css"],
+      hide_theme_switcher: true,
+      skip_app_stylesheet: true
+    ]
+  end
+
+  defp recent_theme_images(settings) do
+    limit = recent_integer_setting(settings, "limit_images", 3)
+    board_ids = recent_board_ids(settings)
+
+    Posts.list_recent_posts(limit: max(limit * 25, limit), board_ids: board_ids)
+    |> Enum.filter(&recent_image_post?/1)
+    |> Enum.take(limit)
+    |> Enum.map(&recent_image_summary/1)
+  end
+
+  defp recent_theme_posts(settings) do
+    limit = recent_integer_setting(settings, "limit_posts", 30)
+    board_ids = recent_board_ids(settings)
+
+    Posts.list_recent_posts(limit: limit, board_ids: board_ids)
+    |> Enum.map(&recent_post_summary/1)
+  end
+
+  defp recent_theme_stats(settings) do
+    board_ids = recent_board_ids(settings)
+
+    total_posts =
+      Repo.aggregate(from(post in Post, where: post.board_id in ^board_ids), :count, :id)
+
+    unique_posters =
+      Repo.one(
+        from post in Post,
+          where: post.board_id in ^board_ids and not is_nil(post.ip_subnet),
+          select: count(post.ip_subnet, :distinct)
+      ) || 0
+
+    primary_bytes =
+      Repo.one(
+        from post in Post,
+          where: post.board_id in ^board_ids and not is_nil(post.file_size),
+          select: sum(post.file_size)
+      ) || 0
+
+    extra_bytes =
+      Repo.one(
+        from file in PostFile,
+          join: post in Post,
+          on: post.id == file.post_id,
+          where: post.board_id in ^board_ids and not is_nil(file.file_size),
+          select: sum(file.file_size)
+      ) || 0
+
+    %{
+      total_posts: number_with_delimiters(total_posts),
+      unique_posters: number_with_delimiters(unique_posters),
+      active_content: PostView.file_size_text(%{file_size: primary_bytes + extra_bytes})
+    }
+  end
+
+  defp recent_board_ids(settings) do
+    excluded =
+      settings
+      |> Map.get("exclude", "")
+      |> to_string()
+      |> String.split(~r/\s+/, trim: true)
+      |> MapSet.new()
+
+    Boards.list_boards()
+    |> Enum.reject(&MapSet.member?(excluded, &1.uri))
+    |> Enum.map(& &1.id)
+  end
+
+  defp recent_image_post?(post) do
+    is_binary(post.thumb_path) and String.starts_with?(post.file_type || "", "image/")
+  end
+
+  defp recent_image_summary(post) do
+    {thumbwidth, thumbheight} = fit_recent_thumb(post.image_width, post.image_height)
+
+    %{
+      link: "/#{post.board.uri}/res/#{post.thread_id || post.id}.html##{post.id}",
+      src: "/#{post.board.uri}/thumb/#{Path.basename(post.thumb_path)}",
+      thumbwidth: thumbwidth,
+      thumbheight: thumbheight,
+      alt: post.subject || post.body || ""
+    }
+  end
+
+  defp recent_post_summary(post) do
+    %{
+      board_name: post.board.title,
+      link: "/#{post.board.uri}/res/#{post.thread_id || post.id}.html##{post.id}",
+      snippet: recent_snippet(post.body)
+    }
+  end
+
+  defp recent_snippet(nil), do: "<em>(no comment)</em>"
+
+  defp recent_snippet(body) do
+    body
+    |> String.replace(~r/\s+/, " ")
+    |> String.trim()
+    |> String.split(" ", trim: true)
+    |> Enum.take(30)
+    |> Enum.join(" ")
+    |> case do
+      "" -> "<em>(no comment)</em>"
+      snippet -> Phoenix.HTML.html_escape(snippet) |> Phoenix.HTML.safe_to_string()
+    end
+  end
+
+  defp recent_integer_setting(settings, key, default) do
+    case Integer.parse(to_string(Map.get(settings, key, default))) do
+      {value, _} when value >= 0 -> value
+      _ -> default
+    end
+  end
+
+  defp number_with_delimiters(value) when is_integer(value) do
+    value
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.replace(~r/.{1,3}/, "\\0,")
+    |> String.trim_trailing(",")
+    |> String.reverse()
+  end
+
+  defp fit_recent_thumb(width, height)
+       when is_integer(width) and width > 0 and is_integer(height) and height > 0 do
+    max_width = 150
+    max_height = 150
+    scale = min(max_width / width, max_height / height)
+
+    if scale >= 1 do
+      {width, height}
+    else
+      {max(trunc(width * scale), 1), max(trunc(height * scale), 1)}
+    end
+  end
+
+  defp fit_recent_thumb(_, _), do: {125, 125}
 
   defp global_catalog_threads do
     Boards.list_boards()

@@ -241,8 +241,8 @@ defmodule EirinchanWeb.ManagePageControllerTest do
       |> get("/")
       |> html_response(200)
 
-    assert home_page =~ "Banner Updated"
-    assert home_page =~ "Important notice updated"
+    assert home_page =~ "Recent Posts"
+    assert home_page =~ "Stats"
 
     delete_conn =
       conn

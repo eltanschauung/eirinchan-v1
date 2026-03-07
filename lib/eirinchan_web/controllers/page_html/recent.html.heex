@@ -1,51 +1,52 @@
-<%= raw(
-  PostView.boardlist_html(@board_chrome.boardlist_groups || PostView.boardlist_groups(@boards))
-) %>
-
-<script type="text/javascript">
-  if (typeof do_boardlist !== 'undefined') do_boardlist();
-</script>
-
-<img
-  :if={@primary_board && @primary_board.uri == "bant"}
-  class="board_image"
-  style="width:300px;height:100px"
-  src="/b.php"
-  alt=""
-/>
+<%= raw(@boardlist_top_html) %>
 
 <header>
-  <h1>Recent Posts</h1>
-  <div class="subtitle"><%= @board_chrome.subtitle || "Cross-board activity" %></div>
+  <h1><%= @recent_settings["title"] %></h1>
+  <div class="subtitle"></div>
 </header>
 
-<div class="pages top">
-  [<a href={~p"/"}>Home</a>]
-  <span :if={Eirinchan.Themes.page_theme_enabled?("catalog")}>[<a href={~p"/catalog"}>Catalog</a>]</span>
-  <span :if={Eirinchan.Themes.page_theme_enabled?("ukko")}>[<a href={~p"/ukko"}>Ukko</a>]</span>
+<div class="box-wrap">
+  <div class="box left">
+    <h2>Recent Images</h2>
+    <ul>
+      <%= for post <- @recent_images do %>
+        <li>
+          <a href={post.link}>
+            <img
+              src={post.src}
+              style={"width:#{post.thumbwidth}px;height:#{post.thumbheight}px"}
+              alt={post.alt}
+            />
+          </a>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+
+  <div class="box right">
+    <h2>Latest Posts</h2>
+    <ul>
+      <%= for post <- @recent_posts do %>
+        <li>
+          <strong><%= post.board_name %></strong>:
+          <a href={post.link}>
+            <%= raw(post.snippet) %>
+          </a>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+
+  <div class="box right">
+    <h2>Stats</h2>
+    <ul>
+      <li>Total posts: <%= @stats.total_posts %></li>
+      <li>Unique posters: <%= @stats.unique_posters %></li>
+      <li>Active content: <%= @stats.active_content %></li>
+    </ul>
+  </div>
 </div>
 
-<section class="public-panel">
-  <%= if @posts == [] do %>
-    <p>No recent posts yet.</p>
-  <% else %>
-    <%= for post <- @posts do %>
-      <% thread_id = post.thread_id || post.id %>
-      <article id={"recent-#{post.id}"} class="news-entry">
-        <h2>
-          <a href={"/#{post.board.uri}/res/#{thread_id}.html##{post.id}"}>
-            /<%= post.board.uri %>/ #<%= post.id %>
-          </a>
-        </h2>
-        <div class="body">
-          <%= raw(PostView.body_html(post, post.board, %{id: thread_id}, %{fileboard: false})) %>
-        </div>
-      </article>
-      <hr />
-    <% end %>
-  <% end %>
-</section>
+<hr />
 
-<%= if @board_chrome.footer_html do %>
-  <%= raw(@board_chrome.footer_html) %>
-<% end %>
+<%= raw(@footer_html) %>
