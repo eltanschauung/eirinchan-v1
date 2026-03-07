@@ -174,12 +174,12 @@ feedback moderation action labels (Delete/Mark as Read/Add Note): partial
 feedback transfer/import tooling from legacy feedback.txt: incomplete
 
 [Access Control and IP Access Lists (Custom Bantculture fork Features)]
-ipMatchesAccessList function parity (single IP/CIDR range): incomplete
+ipMatchesAccessList function parity (single IP/CIDR range): partial
 access.conf path configurability parity: incomplete
-useIpAccessList toggle parity (default disabled): incomplete
-security gate near post OP multi-image path parity: incomplete
-OP multi-image allowance rules under access-list security parity: incomplete
-IPv6 range matching behavior for access lists: incomplete
+useIpAccessList toggle parity (default disabled): partial
+security gate near post OP multi-image path parity: partial
+OP multi-image allowance rules under access-list security parity: partial
+IPv6 range matching behavior for access lists: partial
 IpAccessAuth theme install/build lifecycle parity: incomplete
 IpAccessAuth password list configuration (comma-separated): incomplete
 IpAccessAuth default passwords bootstrap behavior: incomplete

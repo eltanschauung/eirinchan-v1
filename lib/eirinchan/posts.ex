@@ -6,6 +6,7 @@ defmodule Eirinchan.Posts do
   import Ecto.Query, only: [from: 2]
 
   alias Eirinchan.Antispam
+  alias Eirinchan.AccessList
   alias Eirinchan.Bans
   alias Eirinchan.Build
   alias Eirinchan.Boards.BoardRecord
@@ -44,6 +45,7 @@ defmodule Eirinchan.Posts do
              | :file_required
              | :invalid_file_type
              | :file_too_large
+             | :access_list
              | :upload_failed}
           | {:error, Ecto.Changeset.t()}
   def create_post(%BoardRecord{} = board, attrs, opts \\ []) do
@@ -71,7 +73,7 @@ defmodule Eirinchan.Posts do
            :ok <- Antispam.check_post(board, attrs, request, config, repo: repo),
            :ok <- validate_body(op?, attrs, config),
            :ok <- validate_body_limits(attrs, config),
-           :ok <- validate_upload(op?, attrs, config),
+           :ok <- validate_upload(op?, attrs, config, request),
            :ok <- validate_image_dimensions(attrs, config),
            :ok <- validate_reply_limit(board, thread, config, repo),
            :ok <- validate_image_limit(board, thread, attrs, config, repo),
@@ -1661,12 +1663,16 @@ defmodule Eirinchan.Posts do
     end
   end
 
-  defp validate_upload(op?, attrs, config) do
+  defp validate_upload(op?, attrs, config, request) do
     entries = Map.get(attrs, "__upload_entries__", [])
 
     cond do
       op? and config.force_image_op and entries == [] ->
         {:error, :file_required}
+
+      op? and length(entries) > 1 and AccessList.enabled?() and
+          not AccessList.allowed?(request[:remote_ip] || request["remote_ip"]) ->
+        {:error, :access_list}
 
       entries == [] ->
         :ok
