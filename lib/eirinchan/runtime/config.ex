@@ -80,7 +80,8 @@ defmodule Eirinchan.Runtime.Config do
       locked: "Thread locked. You may not reply at this time.",
       reply_hard_limit: "Thread has reached its maximum reply limit.",
       image_hard_limit: "Thread has reached its maximum image limit.",
-      board_locked: "Board is locked."
+      board_locked: "Board is locked.",
+      password: "Incorrect password."
     }
   }
 

@@ -93,9 +93,11 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     assert first_page =~ "Newer"
     assert first_page =~ "/#{board.uri}/2.html"
+    assert first_page =~ ~s(name="delete_post_id")
     assert second_page =~ "Older"
     assert second_page =~ "1 posts"
     assert second_page =~ "Reply two"
+    assert second_page =~ ~s(name="delete_post_id")
   end
 
   test "catalog page renders thread summaries across board pages", %{conn: conn} do
@@ -127,5 +129,6 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert catalog_page =~ "Catalog"
     assert catalog_page =~ "First thread"
     assert catalog_page =~ "Second thread"
+    assert catalog_page =~ ~s(name="delete_post_id")
   end
 end

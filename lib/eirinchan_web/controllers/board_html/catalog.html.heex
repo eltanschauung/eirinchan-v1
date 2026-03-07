@@ -27,6 +27,11 @@
             <%= if summary.thread.sage, do: " [Bumplocked]" %>
           </p>
           <p><%= summary.thread.body %></p>
+          <form action={~p"/#{@board.uri}/post"} method="post">
+            <input type="hidden" name="delete_post_id" value={summary.thread.id} />
+            <input type="password" name="password" placeholder="Password" />
+            <button type="submit">Delete</button>
+          </form>
           <p><%= summary.reply_count %> replies</p>
         </article>
       <% end %>

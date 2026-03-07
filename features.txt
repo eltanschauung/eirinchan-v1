@@ -34,7 +34,7 @@ flood table writes and repeat checks: incomplete
 thread bump logic and bump-limit behavior: partial
 reply_hard_limit/image_hard_limit enforcement: partial
 report creation branch inside post endpoint parity: partial
-post deletion branch inside post endpoint parity: incomplete
+post deletion branch inside post endpoint parity: partial
 ban appeal submission branch inside post endpoint parity: incomplete
 JSON response mode for ajax posting: partial
 redirect response mode for classic posting: partial

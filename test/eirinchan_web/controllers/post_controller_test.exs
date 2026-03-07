@@ -155,4 +155,83 @@ defmodule EirinchanWeb.PostControllerTest do
 
     assert %{"error" => "Post not found"} = json_response(conn, 404)
   end
+
+  test "delete branch removes replies and returns thread redirect metadata", %{conn: conn} do
+    board = board_fixture(%{config_overrides: %{slugify: true}})
+
+    thread =
+      thread_fixture(board, %{subject: "Delete target", body: "Thread body", password: "threadpw"})
+
+    reply_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post("/#{board.uri}/post", %{
+        "thread" => Integer.to_string(thread.id),
+        "body" => "Reply body",
+        "password" => "replypw",
+        "json_response" => "1",
+        "post" => "New Reply"
+      })
+
+    assert %{"id" => reply_id} = json_response(reply_conn, 200)
+
+    delete_conn =
+      conn
+      |> recycle()
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post("/#{board.uri}/post", %{
+        "delete_post_id" => Integer.to_string(reply_id),
+        "password" => "replypw",
+        "json_response" => "1"
+      })
+
+    assert %{
+             "deleted_post_id" => ^reply_id,
+             "thread_deleted" => false,
+             "redirect" => redirect
+           } = json_response(delete_conn, 200)
+
+    assert redirect =~ "/#{board.uri}/res/#{thread.id}-delete-target.html"
+  end
+
+  test "delete branch removes threads and redirects to the board", %{conn: conn} do
+    board = board_fixture()
+
+    thread =
+      thread_fixture(board, %{subject: "Delete thread", body: "Thread body", password: "threadpw"})
+
+    delete_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post("/#{board.uri}/post", %{
+        "delete_post_id" => Integer.to_string(thread.id),
+        "password" => "threadpw",
+        "json_response" => "1"
+      })
+
+    assert %{
+             "deleted_post_id" => deleted_post_id,
+             "thread_deleted" => true,
+             "redirect" => redirect
+           } = json_response(delete_conn, 200)
+
+    assert deleted_post_id == thread.id
+    assert redirect == "/#{board.uri}"
+  end
+
+  test "delete branch rejects incorrect passwords", %{conn: conn} do
+    board = board_fixture()
+    thread = thread_fixture(board, %{password: "threadpw"})
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post("/#{board.uri}/post", %{
+        "delete_post_id" => Integer.to_string(thread.id),
+        "password" => "wrong",
+        "json_response" => "1"
+      })
+
+    assert %{"error" => "Incorrect password."} = json_response(conn, 403)
+  end
 end

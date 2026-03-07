@@ -69,6 +69,37 @@ defmodule Eirinchan.Posts do
     end
   end
 
+  @spec delete_post(BoardRecord.t(), String.t() | integer(), String.t() | nil, keyword()) ::
+          {:ok, map()} | {:error, :post_not_found | :invalid_password | Ecto.Changeset.t()}
+  def delete_post(%BoardRecord{} = board, post_id, password, opts \\ []) do
+    repo = Keyword.get(opts, :repo, Repo)
+    config = Keyword.get(opts, :config, Config.compose())
+    password = trim_to_nil(password)
+
+    with {:ok, normalized_post_id} <- normalize_thread_id(post_id),
+         %Post{} = post <- repo.get_by(Post, id: normalized_post_id, board_id: board.id),
+         :ok <- validate_delete_password(post, password),
+         {:ok, _deleted_post} <- repo.delete(post) do
+      result =
+        if is_nil(post.thread_id) do
+          _ = Build.rebuild_after_delete(board, {:thread, post}, config: config, repo: repo)
+          %{deleted_post_id: post.id, thread_id: post.id, thread_deleted: true}
+        else
+          _ =
+            Build.rebuild_after_delete(board, {:reply, post.thread_id}, config: config, repo: repo)
+
+          %{deleted_post_id: post.id, thread_id: post.thread_id, thread_deleted: false}
+        end
+
+      {:ok, result}
+    else
+      :error -> {:error, :post_not_found}
+      nil -> {:error, :post_not_found}
+      {:error, :invalid_password} -> {:error, :invalid_password}
+      {:error, %Ecto.Changeset{} = changeset} -> {:error, changeset}
+    end
+  end
+
   @spec list_threads(BoardRecord.t(), keyword()) :: [Post.t()]
   def list_threads(%BoardRecord{} = board, opts \\ []) do
     config = Keyword.get(opts, :config, Config.compose())
@@ -359,6 +390,14 @@ defmodule Eirinchan.Posts do
       {:error, :body_required}
     else
       :ok
+    end
+  end
+
+  defp validate_delete_password(%Post{password: stored_password}, provided_password) do
+    if trim_to_nil(stored_password) == provided_password and not is_nil(provided_password) do
+      :ok
+    else
+      {:error, :invalid_password}
     end
   end
 
