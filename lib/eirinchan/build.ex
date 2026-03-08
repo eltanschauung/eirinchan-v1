@@ -378,7 +378,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}#{render_fileboard_summary(summary.thread, config)}#{render_post_body(summary.thread, body, config)}#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}#{omitted}#{replies}</article>)
+        ~s(<article id="p#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}#{render_fileboard_summary(summary.thread, config)}#{render_post_body(summary.thread, body, config)}#{render_post_flags(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}#{omitted}#{replies}</article>)
       end)
 
     nav = render_pages(page_data.pages, page_data.page)
@@ -408,7 +408,7 @@ defmodule Eirinchan.Build do
         media = render_media(reply, config)
         delete_form = render_delete_form(board, reply.id)
 
-        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}#{render_post_identity(reply)}#{render_fileboard_summary(reply, config)}#{render_post_body(reply, body, config)}#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
+        ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}#{render_post_identity(reply)}#{render_fileboard_summary(reply, config)}#{render_post_body(reply, body, config)}#{render_post_flags(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
       end)
 
     """
@@ -425,7 +425,6 @@ defmodule Eirinchan.Build do
     #{render_fileboard_summary(summary.thread, config)}
     #{render_post_body(summary.thread, render_body(summary.thread, board, summary.thread, config), config)}
     #{render_post_flags(summary.thread)}
-    #{render_post_capcode(summary.thread)}
     #{render_post_tag(summary.thread, config)}
     #{render_delete_form(board, summary.thread.id)}
     </article>
@@ -449,7 +448,7 @@ defmodule Eirinchan.Build do
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
 
-        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}#{render_fileboard_summary(summary.thread, config)}#{render_post_body(summary.thread, body, config)}#{render_post_flags(summary.thread)}#{render_post_capcode(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
+        ~s(<article id="catalog-#{summary.thread.id}"><h2><a href="#{thread_path}">#{title}</a></h2>#{badges}#{media}#{render_post_identity(summary.thread)}#{render_fileboard_summary(summary.thread, config)}#{render_post_body(summary.thread, body, config)}#{render_post_flags(summary.thread)}#{render_post_tag(summary.thread, config)}#{delete_form}<p>#{summary.reply_count} replies</p></article>)
       end)
 
     """
@@ -514,12 +513,6 @@ defmodule Eirinchan.Build do
 
   defp render_post_flags(_post), do: ""
 
-  defp render_post_capcode(%{capcode: nil}), do: ""
-  defp render_post_capcode(%{capcode: ""}), do: ""
-
-  defp render_post_capcode(%{capcode: capcode}),
-    do: ~s(<p class="post-capcode">Capcode: #{html_escape(capcode)}</p>)
-
   defp render_post_identity(%{name: nil, tripcode: nil}), do: ""
 
   defp render_post_identity(post) do
@@ -549,7 +542,7 @@ defmodule Eirinchan.Build do
       body = render_body(reply, board, thread, config)
       media = render_media(reply, config)
 
-      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}#{render_post_identity(reply)}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, %{})}</div>)
+      ~s(<div class="reply-preview" id="p#{reply.id}">#{media}#{render_post_identity(reply)}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_tag(reply, %{})}</div>)
     end)
   end
 

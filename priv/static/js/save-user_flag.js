@@ -5,7 +5,8 @@ function user_flag() {
 	}
 
 	var flagStorage = "flag_" + boardField.value;
-	var $field = $('input[name="user_flag"], select[name="user_flag"]').first();
+	var selector = 'input[name="user_flag"], textarea[name="user_flag"], select[name="user_flag"]';
+	var $field = $(selector).first();
 	if (!$field.length) {
 		return;
 	}
@@ -23,13 +24,13 @@ function user_flag() {
 		$field.val(item);
 	}
 
-	$(document).on('change input', 'input[name="user_flag"], select[name="user_flag"]', function() {
+	$(document).on('change input', selector, function() {
 		window.localStorage.setItem(flagStorage, $(this).val());
 	});
 
 	$(window).on('quick-reply', function() {
-		var value = $('input[name="user_flag"], select[name="user_flag"]').first().val();
-		$('form#quick-reply input[name="user_flag"], form#quick-reply select[name="user_flag"]').val(value);
+		var value = $(selector).first().val();
+		$('form#quick-reply input[name="user_flag"], form#quick-reply textarea[name="user_flag"], form#quick-reply select[name="user_flag"]').val(value);
 	});
 }
 if (active_page == 'thread' || active_page == 'index') {

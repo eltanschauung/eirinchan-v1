@@ -122,7 +122,6 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
         config_overrides: %{
           user_flag: true,
           user_flags: %{"sau" => "Sauce"},
-          post_form_flags: true,
           enable_embedding: true,
           post_form_embed: false
         }
@@ -326,7 +325,6 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
       board_fixture(%{
         config_overrides: %{
           user_flag: true,
-          post_form_flags: true,
           default_user_flag: "spc",
           user_flags: %{"sau" => "Sauce", "spc" => "Space"}
         }
@@ -345,12 +343,11 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ "Space"
   end
 
-  test "board page renders freeform user flag input when multiple_flags is enabled", %{conn: conn} do
+  test "board page renders freeform user flag textarea when multiple_flags is enabled", %{conn: conn} do
     board =
       board_fixture(%{
         config_overrides: %{
           user_flag: true,
-          post_form_flags: true,
           multiple_flags: true,
           default_user_flag: "country,sau",
           user_flags: %{"country" => "Country", "sau" => "Sauce", "spc" => "Space"}
@@ -364,7 +361,8 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     document = Floki.parse_document!(page)
 
-    assert Floki.find(document, ~s(input[name="user_flag"][value="country,sau"])) != []
+    assert Floki.find(document, ~s(textarea[name="user_flag"])) != []
+    assert page =~ "country,sau"
     assert Floki.find(document, ~s(select[name="user_flag"])) == []
   end
 
@@ -417,7 +415,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert page =~ "Music"
   end
 
-  test "board page exposes moderator posting controls for logged-in moderators", %{conn: conn} do
+  test "board page does not expose raw html or capcode posting controls", %{conn: conn} do
     board = board_fixture()
     moderator = moderator_fixture()
 
@@ -429,8 +427,8 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
     document = Floki.parse_document!(page)
 
-    assert Floki.find(document, ~s(input[name="capcode"])) != []
-    assert Floki.find(document, ~s(input[name="raw"][type="checkbox"])) != []
+    assert Floki.find(document, ~s(input[name="capcode"])) == []
+    assert Floki.find(document, ~s(input[name="raw"][type="checkbox"])) == []
   end
 
   test "board page renders antispam and captcha inputs when enabled", %{conn: conn} do

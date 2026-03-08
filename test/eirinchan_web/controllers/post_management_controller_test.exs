@@ -45,14 +45,12 @@ defmodule EirinchanWeb.PostManagementControllerTest do
       |> put_secure_manage_token()
       |> put_req_header("accept", "application/json")
       |> patch("/manage/boards/#{board.uri}/posts/#{thread_id}", %{
-        "body" => "<strong>Updated</strong>",
-        "raw_html" => "1"
+        "body" => "<strong>Updated</strong>"
       })
 
     assert %{
              "data" => %{
                "id" => ^thread_id,
-               "raw_html" => true,
                "body" => "<strong>Updated</strong>"
              }
            } = json_response(update_conn, 200)

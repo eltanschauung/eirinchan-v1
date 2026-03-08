@@ -12,7 +12,6 @@ defmodule EirinchanWeb.PostManagementJSON do
       email: post.email,
       subject: post.subject,
       body: post.body,
-      raw_html: post.raw_html,
       file_path: post.file_path,
       thumb_path: post.thumb_path,
       spoiler: post.spoiler,

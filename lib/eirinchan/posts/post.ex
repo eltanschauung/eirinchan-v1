@@ -15,8 +15,6 @@ defmodule Eirinchan.Posts.Post do
     field :proxy, :string
     field :ip_subnet, :string
     field :tripcode, :string
-    field :capcode, :string
-    field :raw_html, :boolean, default: false
     field :file_name, :string
     field :file_path, :string
     field :thumb_path, :string
@@ -57,8 +55,6 @@ defmodule Eirinchan.Posts.Post do
       :proxy,
       :ip_subnet,
       :tripcode,
-      :capcode,
-      :raw_html,
       :file_name,
       :file_path,
       :thumb_path,

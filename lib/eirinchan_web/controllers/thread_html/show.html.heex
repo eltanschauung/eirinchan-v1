@@ -150,20 +150,17 @@
         <input type="text" name="h-captcha-response" placeholder="hCaptcha" data-captcha-lazy />
       </td>
     </tr>
-    <tr :if={@config.user_flag && Map.get(@config, :post_form_flags, false)}>
-      <th>Flags</th>
+    <tr :if={@config.user_flag}>
+      <th>Flag</th>
       <td>
-        <input
+        <textarea
           :if={@config.user_flag && @config.multiple_flags}
-          style="float:left;"
           name="user_flag"
-          type="text"
-          size="25"
-          maxlength="300"
-          autocomplete="off"
           id="user_flag_reply"
-          value={@config.default_user_flag}
-        />
+          rows="2"
+          cols="24"
+          autocomplete="off"
+        ><%= @config.default_user_flag %></textarea>
         <select
           :if={@config.user_flag && !@config.multiple_flags}
           name="user_flag"
@@ -201,16 +198,6 @@
       <th>Embed</th>
       <td>
         <input type="text" name="embed" value="" size="30" maxlength="120" autocomplete="off" />
-      </td>
-    </tr>
-    <tr :if={@current_moderator}>
-      <th>Flags</th>
-      <td>
-        <span class="mod-flag">
-          <input id="raw_reply" type="checkbox" name="raw" value="1" />
-          <label for="raw_reply">Raw HTML</label>
-        </span>
-        <input type="text" name="capcode" placeholder="Capcode" size="16" />
       </td>
     </tr>
     <tr :if={!@config.field_disable_password}>
@@ -310,7 +297,6 @@
           <span :if={post.subject} class="subject"><%= post.subject %></span>
           <span class="name"><%= PostView.display_name(post, @config) %></span>
           <span :if={post.tripcode} class="trip"><%= post.tripcode %></span>
-          <span :if={post.capcode} class="capcode"><%= post.capcode %></span>
           <%= for flag <- PostView.post_flags(post, @config) do %>
             <img
               class="flag"
@@ -366,7 +352,6 @@
         </span>
       </div>
       <p :if={@config.display_flags && post.flag_alts != []}>Flags: <%= Enum.join(post.flag_alts, ", ") %></p>
-      <p :if={post.capcode}>Capcode: <%= post.capcode %></p>
     </div>
 
     <%= for reply <- @summary.replies do %>
@@ -385,7 +370,6 @@
             <span :if={reply.subject} class="subject"><%= reply.subject %></span>
             <span class="name"><%= PostView.display_name(reply, @config) %></span>
             <span :if={reply.tripcode} class="trip"><%= reply.tripcode %></span>
-            <span :if={reply.capcode} class="capcode"><%= reply.capcode %></span>
             <%= for flag <- PostView.post_flags(reply, @config) do %>
               <img
                 class="flag"
@@ -480,7 +464,6 @@
           </span>
         </div>
         <p :if={@config.display_flags && reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
-        <p :if={reply.capcode}>Capcode: <%= reply.capcode %></p>
       </div>
       <br />
     <% end %>

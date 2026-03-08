@@ -336,17 +336,13 @@ defmodule EirinchanWeb.PostView do
   end
 
   def body_html(post, board, thread, config) do
-    if post.raw_html do
-      post.body || ""
-    else
-      post.body
-      |> Kernel.||("")
-      |> html_escape()
-      |> safe_to_string()
-      |> String.split("\n", trim: false)
-      |> Enum.map(&format_body_line(&1, board, thread, config))
-      |> Enum.join("<br/>")
-    end
+    post.body
+    |> Kernel.||("")
+    |> html_escape()
+    |> safe_to_string()
+    |> String.split("\n", trim: false)
+    |> Enum.map(&format_body_line(&1, board, thread, config))
+    |> Enum.join("<br/>")
   end
 
   def has_embed?(%{embed: embed}) when is_binary(embed), do: String.trim(embed) != ""
