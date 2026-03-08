@@ -8,6 +8,7 @@ defmodule Eirinchan.Posts.Post do
     field :subject, :string
     field :password, :string
     field :body, :string
+    field :embed, :string
     field :flag_codes, {:array, :string}, default: []
     field :flag_alts, {:array, :string}, default: []
     field :tag, :string
@@ -49,6 +50,7 @@ defmodule Eirinchan.Posts.Post do
       :subject,
       :password,
       :body,
+      :embed,
       :flag_codes,
       :flag_alts,
       :tag,
@@ -78,6 +80,8 @@ defmodule Eirinchan.Posts.Post do
     |> update_change(:subject, &normalize_string/1)
     |> update_change(:password, &normalize_string/1)
     |> update_change(:body, &normalize_body/1)
+    |> update_change(:embed, &normalize_string/1)
+    |> ensure_body()
     |> validate_required([:board_id])
     |> foreign_key_constraint(:board_id)
     |> foreign_key_constraint(:thread_id)
@@ -99,6 +103,14 @@ defmodule Eirinchan.Posts.Post do
     end
   end
 
-  defp normalize_body(nil), do: nil
+  defp normalize_body(nil), do: ""
   defp normalize_body(value), do: String.trim(value)
+
+  defp ensure_body(changeset) do
+    if get_field(changeset, :body) == nil do
+      put_change(changeset, :body, "")
+    else
+      changeset
+    end
+  end
 end

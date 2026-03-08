@@ -204,6 +204,60 @@ defmodule Eirinchan.PostsTest do
            )
   end
 
+  test "create_post accepts configured YouTube embeds without files" do
+    board = board_fixture()
+
+    assert {:ok, thread, %{noko: false}} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "watch this",
+                 "embed" => "https://youtu.be/dQw4w9WgXcQ",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+
+    assert thread.embed == "https://youtu.be/dQw4w9WgXcQ"
+    assert is_nil(thread.file_path)
+    assert is_nil(thread.thumb_path)
+  end
+
+  test "create_post rejects invalid embed urls" do
+    board = board_fixture()
+
+    assert {:error, :invalid_embed} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "watch this",
+                 "embed" => "https://example.com/not-youtube",
+                 "post" => "New Topic"
+               },
+               config: post_config(board.config_overrides),
+               request: post_request(board.uri)
+             )
+  end
+
+  test "create_post allows embed-only OPs when force_image_op is enabled" do
+    board = board_fixture(%{config_overrides: %{force_image_op: true, force_body_op: false}})
+    config = post_config(board.config_overrides)
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "embed" => "https://youtu.be/dQw4w9WgXcQ",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: post_request(board.uri)
+             )
+
+    assert thread.embed == "https://youtu.be/dQw4w9WgXcQ"
+  end
+
   test "create_post moves upload temp files into board storage" do
     board = board_fixture()
     upload = upload_fixture("moved.png", "move-me")

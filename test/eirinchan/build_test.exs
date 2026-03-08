@@ -147,6 +147,36 @@ defmodule Eirinchan.BuildTest do
     assert op["h"] == 16
   end
 
+  test "embed posts rebuild into static html and api outputs" do
+    File.rm_rf!(Build.board_root())
+
+    board = board_fixture(%{config_overrides: %{api: %{enabled: true}}})
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "example.test")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening post body",
+                 "embed" => "https://youtu.be/dQw4w9WgXcQ",
+                 "post" => config.button_newtopic
+               },
+               config: config,
+               request: %{referer: "http://example.test/#{board.uri}/index.html"}
+             )
+
+    board_dir = Path.join(Build.board_root(), board.uri)
+    index_path = Path.join(board_dir, config.file_index)
+    thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
+    thread_json_path = Path.join([board_dir, config.dir.res, "#{thread.id}.json"])
+
+    assert File.read!(index_path) =~ ~s(class="video-container")
+    assert File.read!(thread_path) =~ "img.youtube.com/vi/dQw4w9WgXcQ/0.jpg"
+
+    assert %{"posts" => [op]} = Jason.decode!(File.read!(thread_json_path))
+    assert op["embed"] == "https://youtu.be/dQw4w9WgXcQ"
+  end
+
   test "non-image uploads build placeholder thumb references and omit image dimensions in api" do
     File.rm_rf!(Build.board_root())
 

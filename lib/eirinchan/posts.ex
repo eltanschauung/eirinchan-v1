@@ -30,6 +30,7 @@ defmodule Eirinchan.Posts do
              :thread_not_found
              | :invalid_post_mode
              | :invalid_referer
+             | :invalid_embed
              | :dnsbl
              | :antispam
              | :invalid_captcha
@@ -58,7 +59,8 @@ defmodule Eirinchan.Posts do
     request = Keyword.get(opts, :request, %{})
     attrs = normalize_attrs(attrs)
 
-    with {:ok, attrs} <- prepare_uploads(attrs, config) do
+    with {:ok, attrs} <- normalize_embed(attrs, config),
+         {:ok, attrs} <- prepare_uploads(attrs, config) do
       thread_param = blank_to_nil(Map.get(attrs, "thread"))
       op? = is_nil(thread_param)
       noko = noko?(attrs["email"], config)
@@ -824,6 +826,7 @@ defmodule Eirinchan.Posts do
       attrs
       |> Map.put("board_id", board.id)
       |> Map.put("thread_id", nil)
+      |> Map.update("body", "", &(&1 || ""))
       |> Map.put("ip_subnet", request_ip_string(attrs))
       |> Map.put("bump_at", now)
       |> Map.put("sticky", false)
@@ -842,6 +845,7 @@ defmodule Eirinchan.Posts do
       attrs
       |> Map.put("board_id", board.id)
       |> Map.put("thread_id", thread.id)
+      |> Map.update("body", "", &(&1 || ""))
       |> Map.put("ip_subnet", request_ip_string(attrs))
 
     %Post{}
@@ -900,6 +904,18 @@ defmodule Eirinchan.Posts do
   end
 
   defp prepare_uploads(attrs, config) do
+    if present_embed?(attrs) do
+      {:ok,
+       attrs
+       |> Map.put("file", nil)
+       |> Map.put("__upload_entries__", [])
+       |> Map.put("__upload_metadata__", nil)}
+    else
+      prepare_file_uploads(attrs, config)
+    end
+  end
+
+  defp prepare_file_uploads(attrs, config) do
     with {:ok, attrs, uploads} <- maybe_add_remote_upload(attrs, config) do
       case Enum.reduce_while(uploads, {:ok, []}, fn upload, {:ok, entries} ->
              case Uploads.describe(upload, config) do
@@ -924,6 +940,80 @@ defmodule Eirinchan.Posts do
           {:error, reason}
       end
     end
+  end
+
+  defp normalize_embed(attrs, %{enable_embedding: false}) do
+    {:ok, Map.put(attrs, "embed", nil)}
+  end
+
+  defp normalize_embed(attrs, config) do
+    case trim_to_nil(Map.get(attrs, "embed")) do
+      nil ->
+        {:ok, Map.put(attrs, "embed", nil)}
+
+      embed ->
+        if valid_embed?(embed, config) do
+          {:ok, Map.put(attrs, "embed", embed)}
+        else
+          {:error, :invalid_embed}
+        end
+    end
+  end
+
+  defp valid_embed?(embed, config) do
+    Enum.any?(List.wrap(Map.get(config, :embedding, [])), fn rule ->
+      case normalize_embedding_rule(rule) do
+        {:ok, regex, _html} -> Regex.match?(regex, embed)
+        :error -> false
+      end
+    end)
+  end
+
+  defp normalize_embedding_rule([pattern, html]) when is_binary(html),
+    do: compile_embedding_regex(pattern, html)
+
+  defp normalize_embedding_rule(%{"pattern" => pattern, "html" => html}),
+    do: compile_embedding_regex(pattern, html)
+
+  defp normalize_embedding_rule(%{pattern: pattern, html: html}),
+    do: compile_embedding_regex(pattern, html)
+
+  defp normalize_embedding_rule(_rule), do: :error
+
+  defp compile_embedding_regex(%Regex{} = regex, html), do: {:ok, regex, html}
+
+  defp compile_embedding_regex(pattern, html) when is_binary(pattern) and is_binary(html) do
+    case parse_regex(pattern) do
+      {:ok, regex} -> {:ok, regex, html}
+      :error -> :error
+    end
+  end
+
+  defp compile_embedding_regex(_pattern, _html), do: :error
+
+  defp parse_regex("/" <> rest) do
+    with [source, modifiers] <-
+           Regex.run(~r{\A/(.*)/([a-z]*)\z}s, "/" <> rest, capture: :all_but_first),
+         options <- regex_options(modifiers),
+         {:ok, regex} <- Regex.compile(source, options) do
+      {:ok, regex}
+    else
+      _ -> :error
+    end
+  end
+
+  defp parse_regex(_pattern), do: :error
+
+  defp regex_options(modifiers) do
+    modifiers
+    |> String.graphemes()
+    |> Enum.reduce("", fn
+      "i", acc -> acc <> "i"
+      "m", acc -> acc <> "m"
+      "s", acc -> acc <> "s"
+      "u", acc -> acc <> "u"
+      _, acc -> acc
+    end)
   end
 
   defp collect_uploads(attrs) do
@@ -1721,8 +1811,9 @@ defmodule Eirinchan.Posts do
 
   defp validate_body(op?, attrs, config) do
     require_body = if(op?, do: config.force_body_op, else: config.force_body)
+    has_media = present_embed?(attrs) or Map.get(attrs, "__upload_entries__", []) != []
 
-    if require_body and is_nil(trim_to_nil(attrs["body"])) do
+    if (require_body or not has_media) and is_nil(trim_to_nil(attrs["body"])) do
       {:error, :body_required}
     else
       :ok
@@ -1748,9 +1839,10 @@ defmodule Eirinchan.Posts do
 
   defp validate_upload(op?, attrs, config, request) do
     entries = Map.get(attrs, "__upload_entries__", [])
+    embed? = present_embed?(attrs)
 
     cond do
-      op? and config.force_image_op and entries == [] ->
+      op? and config.force_image_op and entries == [] and not embed? ->
         {:error, :file_required}
 
       op? and length(entries) > 1 and AccessList.enabled?() and
@@ -1771,6 +1863,13 @@ defmodule Eirinchan.Posts do
              :ok <- validate_total_upload_size(entries, config) do
           :ok
         end
+    end
+  end
+
+  defp present_embed?(attrs) when is_map(attrs) do
+    case Map.get(attrs, "embed") do
+      value when is_binary(value) -> String.trim(value) != ""
+      _ -> false
     end
   end
 

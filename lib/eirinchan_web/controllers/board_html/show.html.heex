@@ -281,36 +281,41 @@
   <%= for summary <- @page_data.threads do %>
     <% thread = summary.thread %>
     <div class="thread" id={"thread_#{thread.id}"} data-board={@board.uri}>
-      <div class="files">
-        <%= for file <- PostView.all_files(thread) do %>
-          <div
-            class={PostView.file_class(thread)}
-            {case PostView.multifile_style(file, @config,
+      <div :if={PostView.has_embed?(thread) || PostView.all_files(thread) != []} class="files">
+        <%= if PostView.has_embed?(thread) do %>
+          <%= raw(PostView.embed_html(thread, @config)) %>
+        <% end %>
+        <%= if !PostView.has_embed?(thread) do %>
+          <%= for file <- PostView.all_files(thread) do %>
+            <div
+              class={PostView.file_class(thread)}
+              {case PostView.multifile_style(file, @config,
                     multifile: length(PostView.all_files(thread)) > 1
                   ) do
               nil -> []
               style -> [style: style]
             end}
-          >
-            <p class="fileinfo">
-              File: <a href={file.file_path}><%= PostView.stored_file_name(file) %></a>
-              <span>
-                (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
-                  do: raw(", " <> PostView.file_dimensions(file)) %>, <span
-                  class="postfilename"
-                  title={PostView.original_file_name(file)}
-                ><%= PostView.display_file_name(file, @config) %></span>)
-              </span>
-            </p>
-            <a href={file.file_path}>
-              <img
-                class="post-image"
-                src={file.thumb_path || file.file_path}
-                style={PostView.thumb_style(file, @config, op?: true)}
-                alt=""
-              />
-            </a>
-          </div>
+            >
+              <p class="fileinfo">
+                File: <a href={file.file_path}><%= PostView.stored_file_name(file) %></a>
+                <span>
+                  (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
+                    do: raw(", " <> PostView.file_dimensions(file)) %>, <span
+                    class="postfilename"
+                    title={PostView.original_file_name(file)}
+                  ><%= PostView.display_file_name(file, @config) %></span>)
+                </span>
+              </p>
+              <a href={file.file_path}>
+                <img
+                  class="post-image"
+                  src={file.thumb_path || file.file_path}
+                  style={PostView.thumb_style(file, @config, op?: true)}
+                  alt=""
+                />
+              </a>
+            </div>
+          <% end %>
         <% end %>
       </div>
 
@@ -419,39 +424,44 @@
               <%= reply.id %>
             </a>
           </p>
-          <div class="files">
-            <%= for file <- PostView.all_files(reply) do %>
-              <div
-                class={PostView.file_class(reply)}
-                {case PostView.multifile_style(file, @config,
+          <div :if={PostView.has_embed?(reply) || PostView.all_files(reply) != []} class="files">
+            <%= if PostView.has_embed?(reply) do %>
+              <%= raw(PostView.embed_html(reply, @config)) %>
+            <% end %>
+            <%= if !PostView.has_embed?(reply) do %>
+              <%= for file <- PostView.all_files(reply) do %>
+                <div
+                  class={PostView.file_class(reply)}
+                  {case PostView.multifile_style(file, @config,
                         multifile: length(PostView.all_files(reply)) > 1
                       ) do
                   nil -> []
                   style -> [style: style]
                 end}
-              >
-                <p class="fileinfo">
-                  File:
+                >
+                  <p class="fileinfo">
+                    File:
+                    <a href={file.file_path}>
+                      <%= PostView.stored_file_name(file) %>
+                    </a>
+                    <span>
+                      (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
+                        do: raw(", " <> PostView.file_dimensions(file)) %>, <span
+                        class="postfilename"
+                        title={PostView.original_file_name(file)}
+                      ><%= PostView.display_file_name(file, @config) %></span>)
+                    </span>
+                  </p>
                   <a href={file.file_path}>
-                    <%= PostView.stored_file_name(file) %>
+                    <img
+                      class="post-image"
+                      src={file.thumb_path || file.file_path}
+                      style={PostView.thumb_style(file, @config)}
+                      alt=""
+                    />
                   </a>
-                  <span>
-                    (<%= PostView.file_size_text(file) %><%= if PostView.file_dimensions(file),
-                      do: raw(", " <> PostView.file_dimensions(file)) %>, <span
-                      class="postfilename"
-                      title={PostView.original_file_name(file)}
-                    ><%= PostView.display_file_name(file, @config) %></span>)
-                  </span>
-                </p>
-                <a href={file.file_path}>
-                  <img
-                    class="post-image"
-                    src={file.thumb_path || file.file_path}
-                    style={PostView.thumb_style(file, @config)}
-                    alt=""
-                  />
-                </a>
-              </div>
+                </div>
+              <% end %>
             <% end %>
           </div>
           <div
