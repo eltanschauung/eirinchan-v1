@@ -138,6 +138,89 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert persisted =~ "\"198.51.100.0/24\""
   end
 
+  test "admin can update flags configuration from the dashboard", %{conn: conn} do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+
+    path =
+      Path.join(System.tmp_dir!(), "eirinchan-flags-#{System.unique_integer([:positive])}.json")
+
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    moderator = moderator_fixture(%{role: "admin"})
+
+    dashboard =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage")
+      |> html_response(200)
+
+    assert dashboard =~ "Flags Configuration"
+
+    update_conn =
+      conn
+      |> recycle()
+      |> login_moderator(moderator)
+      |> patch("/manage/flags/browser", %{
+        "country_flags" => "false",
+        "allow_no_country" => "false",
+        "country_flags_condensed" => "false",
+        "country_flags_condensed_css" => "static/flags/flags.css",
+        "display_flags" => "true",
+        "uri_flags" => "../../static/flags/bantflags/%s.png",
+        "flag_style" => "width:16px;height:11px;",
+        "user_flag" => "true",
+        "multiple_flags" => "true",
+        "default_user_flag" => "country",
+        "user_flags_json" => ~s({"country":"Country","pisces":"Pisces","aquarius":"Aquarius"})
+      })
+
+    assert redirected_to(update_conn) == "/manage/flags/browser"
+
+    persisted = File.read!(path)
+    assert persisted =~ "\"uri_flags\": \"../../static/flags/bantflags/%s.png\""
+    assert persisted =~ "\"user_flag\": true"
+    assert persisted =~ "\"multiple_flags\": true"
+    assert persisted =~ "\"country\": \"Country\""
+    assert persisted =~ "\"pisces\": \"Pisces\""
+  end
+
+  test "flags editor shows vichan defaults before overrides exist", %{conn: conn} do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-flags-defaults-#{System.unique_integer([:positive])}.json"
+      )
+
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    moderator = moderator_fixture(%{role: "admin"})
+
+    page =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage/flags/browser")
+      |> html_response(200)
+
+    assert page =~ "Flags Configuration"
+    assert page =~ "/static/flags/%s.png"
+    assert page =~ "width:16px;height:11px;"
+    assert page =~ "Example user_flags:"
+  end
+
   test "dnsbl editor shows vichan defaults before overrides exist", %{conn: conn} do
     original_path = Application.get_env(:eirinchan, :instance_config_path)
 

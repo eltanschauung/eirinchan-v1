@@ -147,6 +147,21 @@ defmodule EirinchanWeb.PostView do
   end
 
   def post_flags(post, config) do
+    if Map.get(config, :display_flags, true) do
+      do_post_flags(post, config)
+    else
+      []
+    end
+  end
+
+  def flag_style(config) do
+    case Map.get(config, :flag_style) do
+      value when is_binary(value) and value != "" -> value
+      _ -> nil
+    end
+  end
+
+  defp do_post_flags(post, config) do
     Enum.zip(post.flag_codes || [], post.flag_alts || [])
     |> Enum.map(fn {code, alt} ->
       %{
