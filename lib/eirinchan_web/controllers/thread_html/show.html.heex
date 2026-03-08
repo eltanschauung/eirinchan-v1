@@ -312,7 +312,13 @@
           <span :if={post.tripcode} class="trip"><%= post.tripcode %></span>
           <span :if={post.capcode} class="capcode"><%= post.capcode %></span>
           <%= for flag <- PostView.post_flags(post, @config) do %>
-            <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
+            <img
+              class="flag"
+              src={flag.src}
+              alt={flag.alt}
+              title={flag.alt}
+              style={PostView.flag_style(@config)}
+            />
           <% end %>
           <time datetime={PostView.iso_timestamp(post)}>
             <%= PostView.formatted_timestamp(post) %>
@@ -359,7 +365,7 @@
           Fileboard: <%= PostView.fileboard_summary(post) %>
         </span>
       </div>
-      <p :if={post.flag_alts != []}>Flags: <%= Enum.join(post.flag_alts, ", ") %></p>
+      <p :if={@config.display_flags && post.flag_alts != []}>Flags: <%= Enum.join(post.flag_alts, ", ") %></p>
       <p :if={post.capcode}>Capcode: <%= post.capcode %></p>
     </div>
 
@@ -381,7 +387,13 @@
             <span :if={reply.tripcode} class="trip"><%= reply.tripcode %></span>
             <span :if={reply.capcode} class="capcode"><%= reply.capcode %></span>
             <%= for flag <- PostView.post_flags(reply, @config) do %>
-              <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
+              <img
+                class="flag"
+                src={flag.src}
+                alt={flag.alt}
+                title={flag.alt}
+                style={PostView.flag_style(@config)}
+              />
             <% end %>
             <time datetime={PostView.iso_timestamp(reply)}>
               <%= PostView.formatted_timestamp(reply) %>
@@ -467,7 +479,7 @@
             Fileboard: <%= PostView.fileboard_summary(reply) %>
           </span>
         </div>
-        <p :if={reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
+        <p :if={@config.display_flags && reply.flag_alts != []}>Flags: <%= Enum.join(reply.flag_alts, ", ") %></p>
         <p :if={reply.capcode}>Capcode: <%= reply.capcode %></p>
       </div>
       <br />

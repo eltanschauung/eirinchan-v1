@@ -342,7 +342,13 @@
             <span class="name"><%= PostView.display_name(thread, @config) %></span>
             <span :if={thread.tripcode} class="trip"><%= thread.tripcode %></span>
             <%= for flag <- PostView.post_flags(thread, @config) do %>
-              <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
+              <img
+                class="flag"
+                src={flag.src}
+                alt={flag.alt}
+                title={flag.alt}
+                style={PostView.flag_style(@config)}
+              />
             <% end %>
             <time datetime={PostView.iso_timestamp(thread)}>
               <%= PostView.formatted_timestamp(thread) %>
@@ -402,9 +408,15 @@
               <span :if={reply.subject} class="subject"><%= reply.subject %></span>
               <span class="name"><%= PostView.display_name(reply, @config) %></span>
               <span :if={reply.tripcode} class="trip"><%= reply.tripcode %></span>
-              <%= for flag <- PostView.post_flags(reply, @config) do %>
-                <img class="flag" src={flag.src} alt={flag.alt} title={flag.alt} />
-              <% end %>
+            <%= for flag <- PostView.post_flags(reply, @config) do %>
+                <img
+                  class="flag"
+                  src={flag.src}
+                  alt={flag.alt}
+                  title={flag.alt}
+                  style={PostView.flag_style(@config)}
+                />
+            <% end %>
               <time datetime={PostView.iso_timestamp(reply)}>
                 <%= PostView.formatted_timestamp(reply) %>
               </time>

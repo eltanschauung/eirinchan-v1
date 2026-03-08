@@ -133,6 +133,37 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ "Flags: Sauce"
   end
 
+  test "thread pages hide rendered flags when display_flags is disabled", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          display_flags: false,
+          user_flags: %{"sau" => "Sauce"},
+          uri_flags: "/static/flags/%s.png"
+        }
+      })
+
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "user_flag" => "sau",
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: %{referer: "http://www.example.com/#{board.uri}/index.html"}
+             )
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+
+    refute page =~ "Flags: Sauce"
+    refute page =~ ~s(class="flag")
+  end
+
   test "thread pages render configured embed rows and stored youtube embeds", %{conn: conn} do
     board = board_fixture()
     config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")

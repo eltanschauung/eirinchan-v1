@@ -8,6 +8,7 @@ defmodule EirinchanWeb.ManagePageController do
   alias Eirinchan.Bans
   alias Eirinchan.CustomPages
   alias Eirinchan.DNSBLConfig
+  alias Eirinchan.FlagsConfig
   alias Eirinchan.Installation
   alias Eirinchan.Moderation
   alias Eirinchan.News
@@ -110,6 +111,58 @@ defmodule EirinchanWeb.ManagePageController do
 
       {:error, :forbidden} ->
         render_dnsbl_error(conn, "Administrator access required.")
+    end
+  end
+
+  def flags(conn, _params) do
+    with {:ok, moderator} <- ensure_admin(conn) do
+      render(conn, :flags,
+        moderator: moderator,
+        form: FlagsConfig.form_values(),
+        error: nil
+      )
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_flags_error(conn, "Administrator access required.")
+    end
+  end
+
+  def update_flags(conn, params) do
+    with {:ok, _moderator} <- ensure_admin(conn),
+         {:ok, _config} <- FlagsConfig.update(params) do
+      conn
+      |> put_flash(:info, "Flags configuration updated.")
+      |> redirect(to: ~p"/manage/flags/browser")
+    else
+      {:error, :unauthorized} ->
+        redirect(conn, to: ~p"/manage/login")
+
+      {:error, :forbidden} ->
+        render_flags_error(conn, "Administrator access required.")
+
+      {:error, :invalid_json} ->
+        render_flags_error(
+          conn,
+          "User flags must be valid JSON.",
+          :unprocessable_entity,
+          %{
+            country_flags: Map.get(params, "country_flags", "false") in ["true", "1", "on"],
+            allow_no_country: Map.get(params, "allow_no_country", "false") in ["true", "1", "on"],
+            country_flags_condensed:
+              Map.get(params, "country_flags_condensed", "false") in ["true", "1", "on"],
+            country_flags_condensed_css: Map.get(params, "country_flags_condensed_css", ""),
+            display_flags: Map.get(params, "display_flags", "false") in ["true", "1", "on"],
+            uri_flags: Map.get(params, "uri_flags", ""),
+            flag_style: Map.get(params, "flag_style", ""),
+            user_flag: Map.get(params, "user_flag", "false") in ["true", "1", "on"],
+            multiple_flags: Map.get(params, "multiple_flags", "false") in ["true", "1", "on"],
+            default_user_flag: Map.get(params, "default_user_flag", ""),
+            user_flags_json: Map.get(params, "user_flags_json", "")
+          }
+        )
     end
   end
 
@@ -1224,6 +1277,16 @@ defmodule EirinchanWeb.ManagePageController do
       moderator: conn.assigns[:current_moderator],
       dnsbl_json: dnsbl_json,
       dnsbl_exceptions: dnsbl_exceptions,
+      error: message
+    )
+  end
+
+  defp render_flags_error(conn, message, status \\ :forbidden, form \\ FlagsConfig.form_values()) do
+    conn
+    |> put_status(status)
+    |> render(:flags,
+      moderator: conn.assigns[:current_moderator],
+      form: form,
       error: message
     )
   end

@@ -1,0 +1,117 @@
+<.flash_group flash={@flash} />
+<h1>Flags Configuration</h1>
+<p><a href={~p"/manage"}>Back to dashboard</a></p>
+<p :if={@error} class="error"><%= @error %></p>
+
+<p>
+  Configure poster flags using the same core knobs vichan exposes in <code>config.php</code> and
+  instance config: country flags, user-selectable flags, flag URI path, and display/style behavior.
+</p>
+
+<pre>Example user_flags:
+{
+  "country": "Country",
+  "pisces": "Pisces",
+  "aquarius": "Aquarius",
+  "japeyed": "Japan"
+}</pre>
+
+<form action={~p"/manage/flags/browser"} method="post">
+  <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+  <input type="hidden" name="_method" value="patch" />
+
+  <table class="mod-form-table">
+    <tr>
+      <th>Country Flags</th>
+      <td>
+        <input type="hidden" name="country_flags" value="false" />
+        <input type="checkbox" name="country_flags" value="true" checked={@form.country_flags} />
+      </td>
+    </tr>
+    <tr>
+      <th>Allow No Country</th>
+      <td>
+        <input type="hidden" name="allow_no_country" value="false" />
+        <input
+          type="checkbox"
+          name="allow_no_country"
+          value="true"
+          checked={@form.allow_no_country}
+        />
+      </td>
+    </tr>
+    <tr>
+      <th>Country Flags Condensed</th>
+      <td>
+        <input type="hidden" name="country_flags_condensed" value="false" />
+        <input
+          type="checkbox"
+          name="country_flags_condensed"
+          value="true"
+          checked={@form.country_flags_condensed}
+        />
+      </td>
+    </tr>
+    <tr>
+      <th>Condensed CSS</th>
+      <td>
+        <input
+          type="text"
+          name="country_flags_condensed_css"
+          value={@form.country_flags_condensed_css}
+          style="width:100%"
+        />
+      </td>
+    </tr>
+    <tr>
+      <th>Display Flags</th>
+      <td>
+        <input type="hidden" name="display_flags" value="false" />
+        <input type="checkbox" name="display_flags" value="true" checked={@form.display_flags} />
+      </td>
+    </tr>
+    <tr>
+      <th>URI Flags Path</th>
+      <td><input type="text" name="uri_flags" value={@form.uri_flags} style="width:100%" /></td>
+    </tr>
+    <tr>
+      <th>Flag Style</th>
+      <td><input type="text" name="flag_style" value={@form.flag_style} style="width:100%" /></td>
+    </tr>
+    <tr>
+      <th>User Flag</th>
+      <td>
+        <input type="hidden" name="user_flag" value="false" />
+        <input type="checkbox" name="user_flag" value="true" checked={@form.user_flag} />
+      </td>
+    </tr>
+    <tr>
+      <th>Multiple Flags</th>
+      <td>
+        <input type="hidden" name="multiple_flags" value="false" />
+        <input
+          type="checkbox"
+          name="multiple_flags"
+          value="true"
+          checked={@form.multiple_flags}
+        />
+      </td>
+    </tr>
+    <tr>
+      <th>Default User Flag</th>
+      <td>
+        <input
+          type="text"
+          name="default_user_flag"
+          value={@form.default_user_flag}
+          style="width:100%"
+        />
+      </td>
+    </tr>
+  </table>
+
+  <p><strong>User Flags JSON</strong></p>
+  <textarea name="user_flags_json" rows="18" style="width:100%"><%= @form.user_flags_json %></textarea>
+
+  <p><input type="submit" value="Update flags configuration" /></p>
+</form>
