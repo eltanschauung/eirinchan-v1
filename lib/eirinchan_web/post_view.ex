@@ -334,6 +334,56 @@ defmodule EirinchanWeb.PostView do
     end
   end
 
+  def has_embed?(%{embed: embed}) when is_binary(embed), do: String.trim(embed) != ""
+  def has_embed?(_post), do: false
+
+  def embed_html(%{embed: embed}, config), do: embed_html(embed, config)
+
+  def embed_html(embed, config) when is_binary(embed) do
+    cond do
+      embed == "" ->
+        nil
+
+      String.starts_with?(embed, "<") ->
+        embed
+
+      true ->
+        config
+        |> Map.get(:embedding, [])
+        |> Enum.find_value(fn rule ->
+          case normalize_embedding_rule(rule) do
+            {:ok, regex, template} ->
+              case Regex.run(regex, embed) do
+                nil -> nil
+                captures -> apply_embedding_template(template, captures, config)
+              end
+
+            :error ->
+              nil
+          end
+        end)
+        |> Kernel.||("Embedding error.")
+    end
+  end
+
+  def embed_html(_embed, _config), do: nil
+
+  def catalog_media_path(post, config) do
+    cond do
+      has_embed?(post) ->
+        youtube_thumbnail(post.embed)
+
+      present?(post.thumb_path) ->
+        post.thumb_path
+
+      present?(post.file_path) ->
+        post.file_path
+
+      true ->
+        Map.get(config, :image_deleted)
+    end
+  end
+
   def omitted_text(summary) do
     parts =
       []
@@ -392,6 +442,69 @@ defmodule EirinchanWeb.PostView do
       href = ThreadPaths.thread_path(board, thread, config) <> "##{id}"
       "<a onclick=\"highlightReply('#{id}', event);\" href=\"#{href}\">&gt;&gt;#{id}</a>"
     end)
+  end
+
+  defp normalize_embedding_rule([pattern, html]) when is_binary(html),
+    do: compile_embedding_regex(pattern, html)
+
+  defp normalize_embedding_rule(%{"pattern" => pattern, "html" => html}),
+    do: compile_embedding_regex(pattern, html)
+
+  defp normalize_embedding_rule(%{pattern: pattern, html: html}),
+    do: compile_embedding_regex(pattern, html)
+
+  defp normalize_embedding_rule(_rule), do: :error
+
+  defp compile_embedding_regex(%Regex{} = regex, html), do: {:ok, regex, html}
+
+  defp compile_embedding_regex(pattern, html) when is_binary(pattern) and is_binary(html) do
+    case Regex.run(~r{\A/(.*)/([a-z]*)\z}s, pattern, capture: :all_but_first) do
+      [source, modifiers] ->
+        case Regex.compile(source, regex_options(modifiers)) do
+          {:ok, regex} -> {:ok, regex, html}
+          _ -> :error
+        end
+
+      _ ->
+        :error
+    end
+  end
+
+  defp compile_embedding_regex(_pattern, _html), do: :error
+
+  defp regex_options(modifiers) do
+    modifiers
+    |> String.graphemes()
+    |> Enum.reduce("", fn
+      "i", acc -> acc <> "i"
+      "m", acc -> acc <> "m"
+      "s", acc -> acc <> "s"
+      "u", acc -> acc <> "u"
+      _, acc -> acc
+    end)
+  end
+
+  defp apply_embedding_template(template, captures, config) do
+    rendered =
+      captures
+      |> Enum.with_index()
+      |> Enum.reduce(template, fn {value, index}, acc ->
+        String.replace(acc, "$#{index}", value || "")
+      end)
+
+    rendered
+    |> String.replace("%%tb_width%%", to_string(Map.get(config, :embed_width, 300)))
+    |> String.replace("%%tb_height%%", to_string(Map.get(config, :embed_height, 246)))
+  end
+
+  defp youtube_thumbnail(embed) do
+    case Regex.run(
+           ~r/^https?:\/\/(\w+\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9\-_]{10,11})(&.+)?$/i,
+           embed
+         ) do
+      [_, _prefix, video_id | _rest] -> "//img.youtube.com/vi/#{video_id}/0.jpg"
+      _ -> nil
+    end
   end
 
   defp html_escape_to_string(value) do

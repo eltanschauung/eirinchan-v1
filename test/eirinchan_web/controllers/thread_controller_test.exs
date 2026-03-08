@@ -7,7 +7,13 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
   setup do
     original_path = Application.get_env(:eirinchan, :instance_config_path)
-    path = Path.join(System.tmp_dir!(), "eirinchan-thread-themes-#{System.unique_integer([:positive])}.json")
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-thread-themes-#{System.unique_integer([:positive])}.json"
+      )
+
     File.rm(path)
     Application.put_env(:eirinchan, :instance_config_path, path)
 
@@ -125,6 +131,29 @@ defmodule EirinchanWeb.ThreadControllerTest do
     page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
 
     assert page =~ "Flags: Sauce"
+  end
+
+  test "thread pages render configured embed rows and stored youtube embeds", %{conn: conn} do
+    board = board_fixture()
+    config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")
+
+    assert {:ok, thread, _meta} =
+             Posts.create_post(
+               board,
+               %{
+                 "body" => "Opening body",
+                 "embed" => "https://youtu.be/dQw4w9WgXcQ",
+                 "post" => "New Topic"
+               },
+               config: config,
+               request: %{referer: "http://www.example.com/#{board.uri}/index.html"}
+             )
+
+    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
+
+    assert page =~ ~s(name="embed")
+    assert page =~ ~s(class="video-container")
+    assert page =~ "img.youtube.com/vi/dQw4w9WgXcQ/0.jpg"
   end
 
   test "thread pages render stored OP tags", %{conn: conn} do

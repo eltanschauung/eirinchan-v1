@@ -370,9 +370,9 @@ defmodule Eirinchan.Build do
     items =
       Enum.map_join(page_data.threads, "\n", fn summary ->
         title = html_escape(PostView.post_title(board, summary.thread, config))
-        body = render_body(summary.thread)
-        media = render_media(summary.thread)
-        replies = render_preview_replies(summary.replies)
+        body = render_body(summary.thread, board, summary.thread, config)
+        media = render_media(summary.thread, config)
+        replies = render_preview_replies(summary.replies, board, summary.thread, config)
         omitted = render_omitted(summary)
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
         badges = render_thread_badges(summary.thread)
@@ -404,8 +404,8 @@ defmodule Eirinchan.Build do
     replies_html =
       Enum.map_join(summary.replies, "\n", fn reply ->
         subject = html_escape(PostView.post_title(board, reply, config))
-        body = render_body(reply)
-        media = render_media(reply)
+        body = render_body(reply, board, summary.thread, config)
+        media = render_media(reply, config)
         delete_form = render_delete_form(board, reply.id)
 
         ~s(<article id="p#{reply.id}"><h3>#{subject}</h3>#{media}#{render_post_identity(reply)}#{render_fileboard_summary(reply, config)}#{render_post_body(reply, body, config)}#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, config)}#{delete_form}</article>)
@@ -420,10 +420,10 @@ defmodule Eirinchan.Build do
     <h1>/#{html_escape(board.uri)}/ - #{html_escape(PostView.post_title(board, summary.thread, config))}</h1>
     #{boardlist}
     #{render_thread_badges(summary.thread)}
-    #{render_media(summary.thread)}
+    #{render_media(summary.thread, config)}
     #{render_post_identity(summary.thread)}
     #{render_fileboard_summary(summary.thread, config)}
-    #{render_post_body(summary.thread, render_body(summary.thread), config)}
+    #{render_post_body(summary.thread, render_body(summary.thread, board, summary.thread, config), config)}
     #{render_post_flags(summary.thread)}
     #{render_post_capcode(summary.thread)}
     #{render_post_tag(summary.thread, config)}
@@ -443,8 +443,8 @@ defmodule Eirinchan.Build do
       |> Enum.flat_map(& &1.threads)
       |> Enum.map_join("\n", fn summary ->
         title = html_escape(PostView.post_title(board, summary.thread, config))
-        body = render_body(summary.thread)
-        media = render_media(summary.thread)
+        body = render_body(summary.thread, board, summary.thread, config)
+        media = render_media(summary.thread, config)
         thread_path = ThreadPaths.thread_path(board, summary.thread, config)
         badges = render_thread_badges(summary.thread)
         delete_form = render_delete_form(board, summary.thread.id)
@@ -544,10 +544,10 @@ defmodule Eirinchan.Build do
     ~s(<p class="post-tag">Tag: #{html_escape(tag)}</p>)
   end
 
-  defp render_preview_replies(replies) do
+  defp render_preview_replies(replies, board, thread, config) do
     Enum.map_join(replies, "\n", fn reply ->
-      body = render_body(reply)
-      media = render_media(reply)
+      body = render_body(reply, board, thread, config)
+      media = render_media(reply, config)
 
       ~s(<div class="reply-preview" id="p#{reply.id}">#{media}#{render_post_identity(reply)}<p>#{body}</p>#{render_post_flags(reply)}#{render_post_capcode(reply)}#{render_post_tag(reply, %{})}</div>)
     end)
@@ -571,16 +571,22 @@ defmodule Eirinchan.Build do
 
   defp render_fileboard_summary(_post, _config), do: ""
 
-  defp render_media(post) do
-    post
-    |> media_entries()
-    |> Enum.map_join("", fn file ->
-      full_src = html_escape(file.file_path)
-      thumb_src = html_escape(file.thumb_path || file.file_path)
-      label = html_escape(file.file_name || Path.basename(file.file_path))
+  defp render_media(post, config) do
+    cond do
+      PostView.has_embed?(post) ->
+        PostView.embed_html(post, config) || ""
 
-      ~s(<figure class="post-file"><a href="#{full_src}"><img src="#{thumb_src}" alt="#{label}" loading="lazy" /></a><figcaption><a href="#{full_src}">#{label}</a></figcaption></figure>)
-    end)
+      true ->
+        post
+        |> media_entries()
+        |> Enum.map_join("", fn file ->
+          full_src = html_escape(file.file_path)
+          thumb_src = html_escape(file.thumb_path || file.file_path)
+          label = html_escape(file.file_name || Path.basename(file.file_path))
+
+          ~s(<figure class="post-file"><a href="#{full_src}"><img src="#{thumb_src}" alt="#{label}" loading="lazy" /></a><figcaption><a href="#{full_src}">#{label}</a></figcaption></figure>)
+        end)
+    end
   end
 
   defp media_entries(%{file_path: nil, extra_files: files}) when is_list(files), do: files
@@ -628,8 +634,8 @@ defmodule Eirinchan.Build do
     |> PostView.boardlist_html()
   end
 
-  defp render_body(%{raw_html: true, body: body}) when is_binary(body), do: body
-  defp render_body(%{body: body}), do: html_escape(body || "")
+  defp render_body(post, board, thread, config),
+    do: PostView.body_html(post, board, thread, config)
 
   defp html_escape(nil), do: ""
 

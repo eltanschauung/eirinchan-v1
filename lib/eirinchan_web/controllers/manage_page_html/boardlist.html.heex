@@ -4,14 +4,13 @@
 <p :if={@error} class="error"><%= @error %></p>
 
 <p>Configure boardlist groups as JSON arrays. Use board URIs as strings or label-to-URL maps.</p>
-
-<pre>Example:
+<br />
+<p>See this example:</p>
+<pre>
 [
-  ["bant", "trp", "cp", "j3", "qa"],
-  {"rizz": "/bant/rizz"},
+  ["a", "b", "c", "j", "qa"],
+  {"rules": "/rules"},
   {"faq": "/faq", "format": "/formatting"},
-  {"booru": "https://gyate.net"},
-  {"opia": "https://tf2.gyate.net"},
   {"Home": "/"}
 ]</pre>
 

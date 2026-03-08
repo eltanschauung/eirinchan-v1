@@ -88,6 +88,23 @@ defmodule Eirinchan.Runtime.Config do
     button_reply: "Reply",
     allowed_tags: false,
     proxy_save: false,
+    enable_embedding: true,
+    embed_width: 300,
+    embed_height: 246,
+    youtube_js_html:
+      "<div class=\"video-container\" data-video=\"$2\">" <>
+        "<a href=\"https://youtu.be/$2\" target=\"_blank\" class=\"file\">" <>
+        "<img style=\"width:208px;height:auto;\" src=\"//img.youtube.com/vi/$2/0.jpg\" class=\"post-image yt-embed\"/>" <>
+        "</a></div>",
+    embedding: [
+      [
+        "/^https?:\\/\\/(\\w+\\.)?(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/)([a-zA-Z0-9\\-_]{10,11})(&.+)?$/i",
+        "<div class=\"video-container\" data-video=\"$2\">" <>
+          "<a href=\"https://youtu.be/$2\" target=\"_blank\" class=\"file\">" <>
+          "<img style=\"width:208px;height:auto;\" src=\"//img.youtube.com/vi/$2/0.jpg\" class=\"post-image yt-embed\"/>" <>
+          "</a></div>"
+      ]
+    ],
     dnsbl: [["rbl.efnetrbl.org", 4]],
     dnsbl_exceptions: ["127.0.0.1"],
     country_flags: false,
@@ -176,6 +193,7 @@ defmodule Eirinchan.Runtime.Config do
       antispam: "Spam filter triggered.",
       dnsbl: "Your IP address is listed in %s.",
       captcha: "Captcha validation failed.",
+      invalid_embed: "Couldn't make sense of the URL of the video you tried to embed.",
       banned: "You are banned.",
       locked: "Thread locked. You may not reply at this time.",
       reply_hard_limit: "Thread has reached its maximum reply limit.",

@@ -165,6 +165,48 @@ defmodule EirinchanWeb.PostControllerTest do
     assert get_resp_header(thumb_conn, "content-type") == ["image/png; charset=utf-8"]
   end
 
+  test "posting accepts YouTube embeds and renders the lazy embed block", %{conn: conn} do
+    board = board_fixture()
+
+    create_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "embed body",
+        "embed" => "https://youtu.be/dQw4w9WgXcQ",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => id, "thread_id" => id} = json_response(create_conn, 200)
+
+    page =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}")
+      |> html_response(200)
+
+    assert page =~ ~s(class="video-container")
+    assert page =~ "img.youtube.com/vi/dQw4w9WgXcQ/0.jpg"
+  end
+
+  test "posting rejects invalid embed urls", %{conn: conn} do
+    board = board_fixture()
+
+    conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "embed body",
+        "embed" => "https://example.com/not-youtube",
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"error" => error, "error_code" => "invalid_embed"} = json_response(conn, 422)
+    assert error =~ "Couldn't make sense"
+  end
+
   test "posting serves allowed non-image uploads with placeholder thumbs", %{conn: conn} do
     board =
       board_fixture(%{

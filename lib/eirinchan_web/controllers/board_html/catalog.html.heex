@@ -74,8 +74,8 @@
               Eirinchan.ThreadPaths.thread_path(template.board, template.post, template.config)
             }>
               <img
-                :if={post.thumb_path || post.file_path || @config.image_deleted}
-                src={post.thumb_path || post.file_path || @config.image_deleted}
+                :if={PostView.catalog_media_path(post, @config)}
+                src={PostView.catalog_media_path(post, @config)}
                 loading="lazy"
                 id={"img-#{post.id}"}
                 data-subject={post.subject || ""}
