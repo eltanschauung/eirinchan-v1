@@ -164,6 +164,21 @@ defmodule Eirinchan.Runtime.ConfigTest do
     assert config.search_query_global_limit_count == 0
   end
 
+  test "provides post form row defaults" do
+    config =
+      Config.compose(
+        %{
+          root: "/",
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    refute config.post_form_flags
+    assert config.post_form_embed
+  end
+
   test "matches vichan dnsbl defaults" do
     config =
       Config.compose(

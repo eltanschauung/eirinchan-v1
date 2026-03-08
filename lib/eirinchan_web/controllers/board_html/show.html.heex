@@ -147,7 +147,7 @@
         <input type="text" name="h-captcha-response" placeholder="hCaptcha" data-captcha-lazy />
       </td>
     </tr>
-    <tr :if={@config.user_flag}>
+    <tr :if={@config.user_flag && Map.get(@config, :post_form_flags, false)}>
       <th>Flags</th>
       <td>
         <input
@@ -197,7 +197,10 @@
         </div>
       </td>
     </tr>
-    <tr :if={Map.get(@config, :enable_embedding, false)} id="upload_embed">
+    <tr
+      :if={Map.get(@config, :enable_embedding, false) && Map.get(@config, :post_form_embed, true)}
+      id="upload_embed"
+    >
       <th>Embed</th>
       <td>
         <input type="text" name="embed" value="" size="30" maxlength="120" autocomplete="off" />
