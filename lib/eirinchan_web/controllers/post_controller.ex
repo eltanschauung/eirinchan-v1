@@ -111,13 +111,19 @@ defmodule EirinchanWeb.PostController do
     thread_id = post.thread_id || post.id
     config = conn.assigns.current_board_config
     conn = put_post_success_cookie(conn, board, post)
+    op? = is_nil(post.thread_id)
 
     redirect_path =
-      if meta.noko do
-        suffix = if post.thread_id, do: "#p#{post.id}", else: ""
-        "#{thread_redirect_path(board, post, thread_id, config)}#{suffix}"
-      else
-        "/#{board.uri}"
+      cond do
+        op? ->
+          thread_redirect_path(board, post, thread_id, config)
+
+        meta.noko ->
+          suffix = if post.thread_id, do: "#p#{post.id}", else: ""
+          "#{thread_redirect_path(board, post, thread_id, config)}#{suffix}"
+
+        true ->
+          "/#{board.uri}"
       end
 
     if params["json_response"] == "1" do

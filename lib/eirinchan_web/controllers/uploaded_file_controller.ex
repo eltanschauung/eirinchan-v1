@@ -19,6 +19,7 @@ defmodule EirinchanWeb.UploadedFileController do
 
       if File.exists?(path) do
         conn
+        |> maybe_put_immutable_cache(bucket)
         |> put_resp_content_type(MIME.from_path(path))
         |> send_file(200, path)
       else
@@ -26,4 +27,10 @@ defmodule EirinchanWeb.UploadedFileController do
       end
     end
   end
+
+  defp maybe_put_immutable_cache(conn, "thumb") do
+    put_resp_header(conn, "cache-control", "public, max-age=31536000, immutable")
+  end
+
+  defp maybe_put_immutable_cache(conn, _bucket), do: conn
 end

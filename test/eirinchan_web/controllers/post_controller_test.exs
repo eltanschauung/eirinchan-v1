@@ -16,7 +16,12 @@ defmodule EirinchanWeb.PostControllerTest do
         "post" => "New Topic"
       })
 
-    assert redirected_to(conn) == "/#{board.uri}"
+    thread_path = redirected_to(conn)
+    thread_page = conn |> recycle() |> get(thread_path) |> html_response(200)
+
+    assert thread_path =~ ~r|/#{board.uri}/res/\d+\.html|
+    assert thread_page =~ "first post"
+    assert thread_page =~ "launch"
 
     conn =
       conn
