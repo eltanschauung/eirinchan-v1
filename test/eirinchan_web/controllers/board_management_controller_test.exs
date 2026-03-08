@@ -3,7 +3,13 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
 
   setup do
     original_path = Application.get_env(:eirinchan, :instance_config_path)
-    path = Path.join(System.tmp_dir!(), "eirinchan-board-themes-#{System.unique_integer([:positive])}.json")
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-board-themes-#{System.unique_integer([:positive])}.json"
+      )
+
     File.rm(path)
     Application.put_env(:eirinchan, :instance_config_path, path)
 
@@ -106,6 +112,29 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
     assert response =~ ~s(action="/search.php")
     assert response =~ ~s(name="board" value="#{board.uri}")
     assert response =~ "No threads yet."
+    refute response =~ ~s(name="user_flag")
+    assert response =~ ~s(name="embed")
+  end
+
+  test "board pages honor explicit post form row toggles", %{conn: conn} do
+    board =
+      board_fixture(%{
+        config_overrides: %{
+          user_flag: true,
+          user_flags: %{"sau" => "Sauce"},
+          post_form_flags: true,
+          enable_embedding: true,
+          post_form_embed: false
+        }
+      })
+
+    response =
+      conn
+      |> get(~p"/#{board.uri}")
+      |> html_response(200)
+
+    assert response =~ ~s(name="user_flag")
+    refute response =~ ~s(name="embed")
   end
 
   test "board pages render previews, omitted counts, and pagination", %{conn: conn} do
@@ -297,6 +326,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
       board_fixture(%{
         config_overrides: %{
           user_flag: true,
+          post_form_flags: true,
           default_user_flag: "spc",
           user_flags: %{"sau" => "Sauce", "spc" => "Space"}
         }
@@ -320,6 +350,7 @@ defmodule EirinchanWeb.BoardManagementControllerTest do
       board_fixture(%{
         config_overrides: %{
           user_flag: true,
+          post_form_flags: true,
           multiple_flags: true,
           default_user_flag: "country,sau",
           user_flags: %{"country" => "Country", "sau" => "Sauce", "spc" => "Space"}

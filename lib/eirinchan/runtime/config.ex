@@ -66,6 +66,8 @@ defmodule Eirinchan.Runtime.Config do
     field_disable_subject: false,
     field_disable_reply_subject: false,
     field_disable_password: false,
+    post_form_flags: false,
+    post_form_embed: true,
     ip_access_auth: %{
       auth_path: "/auth",
       passwords: "password,nigel,whitehouse",
@@ -234,6 +236,8 @@ defmodule Eirinchan.Runtime.Config do
     "fieldDisableSubject" => :field_disable_subject,
     "fieldDisableReplySubject" => :field_disable_reply_subject,
     "fieldDisablePassword" => :field_disable_password,
+    "postFormFlags" => :post_form_flags,
+    "postFormEmbed" => :post_form_embed,
     "floodTimeIp" => :flood_time_ip,
     "floodTimeSame" => :flood_time_same,
     "searchEnabled" => :search_enabled,
