@@ -119,7 +119,7 @@ defmodule Eirinchan.Runtime.Config do
     geoip2_database_path: nil,
     geoip2_lookup_bin: "mmdblookup",
     display_flags: true,
-    uri_flags: "/static/flags/%s.png",
+    uri_flags: "static/flags/%s.png",
     flag_style: "width:16px;height:11px;",
     user_flag: false,
     multiple_flags: false,

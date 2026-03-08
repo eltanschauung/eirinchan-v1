@@ -53,7 +53,7 @@ defmodule EirinchanWeb.ProxyRequestControllerTest do
       |> get("/#{board.uri}/res/#{thread_id}.html")
       |> html_response(200)
 
-    assert thread_page =~ "Flags: Mexico"
+    assert thread_page =~ ~s(title="Mexico")
   end
 
   test "untrusted proxies do not affect posting metadata", %{conn: conn} do

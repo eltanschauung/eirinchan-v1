@@ -130,7 +130,7 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
 
-    assert page =~ "Flags: Sauce"
+    assert page =~ ~s(title="Sauce")
   end
 
   test "thread pages hide rendered flags when display_flags is disabled", %{conn: conn} do
@@ -140,7 +140,7 @@ defmodule EirinchanWeb.ThreadControllerTest do
           user_flag: true,
           display_flags: false,
           user_flags: %{"sau" => "Sauce"},
-          uri_flags: "/static/flags/%s.png"
+          uri_flags: "static/flags/%s.png"
         }
       })
 
@@ -160,7 +160,7 @@ defmodule EirinchanWeb.ThreadControllerTest do
 
     page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
 
-    refute page =~ "Flags: Sauce"
+    refute page =~ ~s(title="Sauce")
     refute page =~ ~s(class="flag")
   end
 

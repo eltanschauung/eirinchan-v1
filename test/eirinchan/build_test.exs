@@ -313,8 +313,8 @@ defmodule Eirinchan.BuildTest do
     index_path = Path.join(board_dir, config.file_index)
     thread_path = Path.join([board_dir, config.dir.res, "#{thread.id}.html"])
 
-    assert File.read!(index_path) =~ "Flags: Sauce"
-    assert File.read!(thread_path) =~ "Flags: Sauce"
+    refute File.read!(index_path) =~ "Flags:"
+    refute File.read!(thread_path) =~ "Flags:"
   end
 
   test "static outputs render stored OP tags" do

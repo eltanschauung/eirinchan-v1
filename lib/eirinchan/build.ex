@@ -508,7 +508,7 @@ defmodule Eirinchan.Build do
   end
 
   defp render_post_flags(%{flag_alts: flag_alts}) when is_list(flag_alts) and flag_alts != [] do
-    ~s(<p class="post-flags">Flags: #{html_escape(Enum.join(flag_alts, ", "))}</p>)
+    ""
   end
 
   defp render_post_flags(_post), do: ""
