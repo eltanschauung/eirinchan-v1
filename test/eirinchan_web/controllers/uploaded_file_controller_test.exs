@@ -1,6 +1,31 @@
 defmodule EirinchanWeb.UploadedFileControllerTest do
   use EirinchanWeb.ConnCase, async: true
 
+  test "thumbnail route sends immutable cache headers for existing thumbs", %{conn: conn} do
+    board = board_fixture()
+    upload = upload_fixture("thumb-cache.png", "thumb-cache")
+
+    create_conn =
+      conn
+      |> put_req_header("referer", "http://www.example.com/#{board.uri}/index.html")
+      |> post(~p"/#{board.uri}/post", %{
+        "body" => "first post",
+        "file" => upload,
+        "json_response" => "1",
+        "post" => "New Topic"
+      })
+
+    assert %{"id" => id} = json_response(create_conn, 200)
+
+    conn =
+      conn
+      |> recycle()
+      |> get("/#{board.uri}/thumb/#{id}s.png")
+
+    assert response(conn, 200) != ""
+    assert get_resp_header(conn, "cache-control") == ["public, max-age=31536000, immutable"]
+  end
+
   test "uploaded file route returns not found for missing files", %{conn: conn} do
     board = board_fixture()
 
