@@ -3,7 +3,10 @@ defmodule Eirinchan.DNSBL do
 
   alias Eirinchan.IpMatching
 
-  def check(ip, config, opts \\ []) do
+  def check(ip, config, opts \\ [])
+  def check(ip, _config, _opts) when ip in [nil, ""], do: :ok
+
+  def check(ip, config, opts) do
     resolver = Keyword.get(opts, :resolver, &default_lookup/1)
     exceptions = List.wrap(Map.get(config, :dnsbl_exceptions, []))
     lists = List.wrap(Map.get(config, :dnsbl, []))

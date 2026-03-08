@@ -164,6 +164,21 @@ defmodule Eirinchan.Runtime.ConfigTest do
     assert config.search_query_global_limit_count == 0
   end
 
+  test "matches vichan dnsbl defaults" do
+    config =
+      Config.compose(
+        %{
+          root: "/",
+          dir: %{img: "img/", thumb: "thumb/", res: "res/"}
+        },
+        %{},
+        %{}
+      )
+
+    assert config.dnsbl == [["rbl.efnetrbl.org", 4]]
+    assert config.dnsbl_exceptions == ["127.0.0.1"]
+  end
+
   test "normalizes deprecated camelCase feature switches" do
     config =
       Config.compose(
