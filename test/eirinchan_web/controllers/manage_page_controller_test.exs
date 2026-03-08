@@ -172,7 +172,7 @@ defmodule EirinchanWeb.ManagePageControllerTest do
         "country_flags_condensed" => "false",
         "country_flags_condensed_css" => "static/flags/flags.css",
         "display_flags" => "true",
-        "uri_flags" => "../../static/flags/bantflags/%s.png",
+        "uri_flags" => "static/flags/%s.png",
         "flag_style" => "width:16px;height:11px;",
         "user_flag" => "true",
         "multiple_flags" => "true",
@@ -183,7 +183,7 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert redirected_to(update_conn) == "/manage/flags/browser"
 
     persisted = File.read!(path)
-    assert persisted =~ "\"uri_flags\": \"../../static/flags/bantflags/%s.png\""
+    assert persisted =~ "\"uri_flags\": \"static/flags/%s.png\""
     assert persisted =~ "\"user_flag\": true"
     assert persisted =~ "\"multiple_flags\": true"
     assert persisted =~ "\"country\": \"Country\""
@@ -216,7 +216,7 @@ defmodule EirinchanWeb.ManagePageControllerTest do
       |> html_response(200)
 
     assert page =~ "Flags Configuration"
-    assert page =~ "/static/flags/%s.png"
+    assert page =~ "static/flags/%s.png"
     assert page =~ "width:16px;height:11px;"
     assert page =~ "Example user_flags:"
   end

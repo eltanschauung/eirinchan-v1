@@ -421,10 +421,21 @@ defmodule EirinchanWeb.PostView do
 
   defp flag_path(code, config) when is_binary(code) do
     config.uri_flags
+    |> normalize_flag_base_path()
     |> String.replace("%s", code)
   end
 
   defp flag_path(_code, _config), do: nil
+
+  defp normalize_flag_base_path(path) when is_binary(path) do
+    trimmed = String.trim(path)
+
+    cond do
+      trimmed == "" -> trimmed
+      String.starts_with?(trimmed, ["/", "http://", "https://", "../", "./"]) -> trimmed
+      true -> "/" <> trimmed
+    end
+  end
 
   defp maybe_add_icon(icons, true, path, title) when is_binary(path) and path != "" do
     icons ++ [%{path: path, title: title}]

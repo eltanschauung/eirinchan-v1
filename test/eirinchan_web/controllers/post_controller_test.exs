@@ -707,7 +707,8 @@ defmodule EirinchanWeb.PostControllerTest do
       |> get("/#{board.uri}/res/#{thread_id}.html")
       |> html_response(200)
 
-    assert thread_page =~ "Flags: Sauce, Space"
+    assert thread_page =~ ~s(title="Sauce")
+    assert thread_page =~ ~s(title="Space")
   end
 
   test "posting auto-injects country flags from connection metadata", %{conn: conn} do
@@ -737,7 +738,7 @@ defmodule EirinchanWeb.PostControllerTest do
       |> get("/#{board.uri}/res/#{thread_id}.html")
       |> html_response(200)
 
-    assert thread_page =~ "Flags: Mexico"
+    assert thread_page =~ ~s(title="Mexico")
   end
 
   test "posting rejects invalid captcha responses", %{conn: conn} do

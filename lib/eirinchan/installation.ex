@@ -8,6 +8,7 @@ defmodule Eirinchan.Installation do
   alias Eirinchan.Moderation
   alias Eirinchan.Moderation.ModUser
   alias Eirinchan.Repo
+  alias Eirinchan.Settings
 
   @type setup_result ::
           {:ok, ModUser.t()}
@@ -65,7 +66,8 @@ defmodule Eirinchan.Installation do
          :ok <- persist_repo_config(repo_config),
          :ok <- reconfigure_repo(repo_config),
          :ok <- migrate(),
-         {:ok, admin} <- create_initial_admin(admin_attrs) do
+         {:ok, admin} <- create_initial_admin(admin_attrs),
+         :ok <- initialize_instance_config() do
       {:ok, admin}
     end
   end
@@ -262,6 +264,16 @@ defmodule Eirinchan.Installation do
           {:error, changeset} -> {:error, %{errors: changeset_errors(changeset)}}
         end
     end
+  end
+
+  defp initialize_instance_config do
+    current = Settings.current_instance_config()
+
+    defaults =
+      current
+      |> Map.put_new(:uri_flags, "static/flags/%s.png")
+
+    Settings.persist_instance_config(defaults)
   end
 
   defp table_exists?(table_name) do
