@@ -4,6 +4,7 @@ defmodule Eirinchan.DNSBLConfig do
   """
 
   alias Eirinchan.Settings
+  alias Eirinchan.Runtime.Config
 
   @spec encode_entries_for_edit() :: binary()
   def encode_entries_for_edit do
@@ -37,13 +38,13 @@ defmodule Eirinchan.DNSBLConfig do
 
   defp current_entries do
     Settings.current_instance_config()
-    |> Map.get(:dnsbl, [])
+    |> Map.get(:dnsbl, Config.default_config().dnsbl)
     |> List.wrap()
   end
 
   defp current_exceptions do
     Settings.current_instance_config()
-    |> Map.get(:dnsbl_exceptions, [])
+    |> Map.get(:dnsbl_exceptions, Config.default_config().dnsbl_exceptions)
     |> List.wrap()
     |> Enum.map(&to_string/1)
     |> Enum.map(&String.trim/1)

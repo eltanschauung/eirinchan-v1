@@ -138,6 +138,35 @@ defmodule EirinchanWeb.ManagePageControllerTest do
     assert persisted =~ "\"198.51.100.0/24\""
   end
 
+  test "dnsbl editor shows vichan defaults before overrides exist", %{conn: conn} do
+    original_path = Application.get_env(:eirinchan, :instance_config_path)
+
+    path =
+      Path.join(
+        System.tmp_dir!(),
+        "eirinchan-dnsbl-defaults-#{System.unique_integer([:positive])}.json"
+      )
+
+    File.rm(path)
+    Application.put_env(:eirinchan, :instance_config_path, path)
+
+    on_exit(fn ->
+      Application.put_env(:eirinchan, :instance_config_path, original_path)
+      File.rm(path)
+    end)
+
+    moderator = moderator_fixture(%{role: "admin"})
+
+    page =
+      conn
+      |> login_moderator(moderator)
+      |> get("/manage/dnsbl/browser")
+      |> html_response(200)
+
+    assert page =~ "rbl.efnetrbl.org"
+    assert page =~ "127.0.0.1"
+  end
+
   test "browser dashboard redirects to login when admin exists but session is missing", %{
     conn: conn
   } do
