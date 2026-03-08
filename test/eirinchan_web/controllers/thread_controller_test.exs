@@ -212,33 +212,6 @@ defmodule EirinchanWeb.ThreadControllerTest do
     assert page =~ "Tag: Anime"
   end
 
-  test "thread pages render moderator raw html and capcodes", %{conn: conn} do
-    board = board_fixture()
-    moderator = moderator_fixture(%{role: "admin"}) |> grant_board_access_fixture(board)
-    config = Config.compose(nil, %{}, board.config_overrides, request_host: "www.example.com")
-
-    assert {:ok, thread, _meta} =
-             Posts.create_post(
-               board,
-               %{
-                 "body" => "<strong>mod notice</strong>",
-                 "capcode" => "admin",
-                 "raw" => "1",
-                 "post" => "New Topic"
-               },
-               config: config,
-               request: %{
-                 referer: "http://www.example.com/#{board.uri}/index.html",
-                 moderator: moderator
-               }
-             )
-
-    page = conn |> get("/#{board.uri}/res/#{thread.id}.html") |> html_response(200)
-
-    assert page =~ "<strong>mod notice</strong>"
-    assert page =~ "Capcode: Admin"
-  end
-
   test "thread pages render the boardlist", %{conn: conn} do
     board_fixture(%{uri: "meta", title: "Meta"})
     board = board_fixture()

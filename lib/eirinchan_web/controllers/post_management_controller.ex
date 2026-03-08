@@ -28,7 +28,7 @@ defmodule EirinchanWeb.PostManagementController do
            Posts.update_post(
              board,
              post_id,
-             Map.take(params, ["name", "email", "subject", "body", "raw_html"]),
+             Map.take(params, ["name", "email", "subject", "body"]),
              config: board_config(board, conn.host)
            ) do
       render(conn, :show, post: post)

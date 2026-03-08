@@ -1246,29 +1246,6 @@ defmodule Eirinchan.PostsTest do
     assert reply.thread_id == thread.id
   end
 
-  test "create_post stores moderator capcode and raw html content" do
-    board = board_fixture()
-    moderator = moderator_fixture(%{role: "admin"}) |> grant_board_access_fixture(board)
-
-    assert {:ok, thread, _meta} =
-             Posts.create_post(
-               board,
-               %{
-                 "body" => "<strong>mod notice</strong>",
-                 "capcode" => "admin",
-                 "raw" => "1",
-                 "post" => "New Topic"
-               },
-               config: post_config(board.config_overrides),
-               request: post_request(board.uri) |> Map.put(:moderator, moderator)
-             )
-
-    assert thread.capcode == "Admin"
-    assert thread.raw_html
-    assert Posts.compat_body(thread) =~ "<tinyboard capcode>Admin</tinyboard>"
-    assert Posts.compat_body(thread) =~ "<tinyboard raw html>1</tinyboard>"
-  end
-
   test "create_post enforces hidden antispam hash validation" do
     board =
       board_fixture(%{
@@ -2194,7 +2171,7 @@ defmodule Eirinchan.PostsTest do
     refute File.exists?(Eirinchan.Uploads.filesystem_path(thread.thumb_path))
   end
 
-  test "update_post edits text and raw_html and refreshes citations" do
+  test "update_post edits text and refreshes citations" do
     board = board_fixture()
     config = post_config(board.config_overrides)
     thread = thread_fixture(board)
@@ -2204,12 +2181,11 @@ defmodule Eirinchan.PostsTest do
              Posts.update_post(
                board,
                reply.id,
-               %{"body" => "After >>#{thread.id}", "raw_html" => "1"},
+               %{"body" => "After >>#{thread.id}"},
                config: config
              )
 
     assert updated_reply.body == "After >>#{thread.id}"
-    assert updated_reply.raw_html
 
     assert Enum.map(Posts.list_cites_for_post(updated_reply, repo: Repo), & &1.target_post_id) ==
              [thread.id]

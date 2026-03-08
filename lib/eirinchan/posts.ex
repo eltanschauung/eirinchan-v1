@@ -1099,9 +1099,7 @@ defmodule Eirinchan.Posts do
       |> maybe_append_modifier("flag alt", join_modifier_values(post.flag_alts))
       |> maybe_append_modifier("tag", post.tag)
       |> maybe_append_modifier("proxy", post.proxy)
-      |> maybe_append_modifier("capcode", post.capcode)
       |> maybe_append_modifier("trip", post.tripcode)
-      |> maybe_append_modifier("raw html", if(post.raw_html, do: "1", else: nil))
 
     Enum.join([post.body || "" | modifiers], "")
   end
@@ -1539,33 +1537,8 @@ defmodule Eirinchan.Posts do
   defp normalize_proxy(attrs, _config, _request), do: {:ok, Map.put(attrs, "proxy", nil)}
 
   defp normalize_moderator_metadata(attrs, request) do
-    case request_moderator(request) do
-      %ModUser{} = moderator ->
-        {:ok,
-         attrs
-         |> Map.put("raw_html", truthy?(Map.get(attrs, "raw")))
-         |> Map.put("capcode", normalize_capcode(Map.get(attrs, "capcode"), moderator))}
-
-      _ ->
-        {:ok, attrs |> Map.put("raw_html", false) |> Map.put("capcode", nil)}
-    end
-  end
-
-  defp normalize_capcode(nil, _moderator), do: nil
-  defp normalize_capcode("", _moderator), do: nil
-
-  defp normalize_capcode(capcode, %ModUser{role: role}) do
-    requested = capcode |> to_string() |> String.trim() |> String.downcase()
-
-    allowed =
-      case role do
-        "admin" -> %{"admin" => "Admin", "mod" => "Mod", "janitor" => "Janitor"}
-        "mod" -> %{"mod" => "Mod", "janitor" => "Janitor"}
-        "janitor" -> %{"janitor" => "Janitor"}
-        _ -> %{}
-      end
-
-    Map.get(allowed, requested)
+    _ = request
+    {:ok, attrs}
   end
 
   defp request_moderator(request), do: request[:moderator] || request["moderator"]
@@ -2422,9 +2395,8 @@ defmodule Eirinchan.Posts do
   defp normalize_moderation_post_update(post, attrs, config) do
     attrs =
       attrs
-      |> Map.take(["name", "email", "subject", "body", "raw_html"])
+      |> Map.take(["name", "email", "subject", "body"])
       |> normalize_post_text(config)
-      |> maybe_normalize_raw_html()
 
     slug =
       if is_nil(post.thread_id) do
@@ -2440,10 +2412,6 @@ defmodule Eirinchan.Posts do
       end
 
     {:ok, Map.put(attrs, "slug", slug)}
-  end
-
-  defp maybe_normalize_raw_html(attrs) do
-    Map.update(attrs, "raw_html", false, &truthy?/1)
   end
 
   defp has_primary_file?(%Post{file_path: file_path}) when is_binary(file_path),

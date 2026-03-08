@@ -147,20 +147,17 @@
         <input type="text" name="h-captcha-response" placeholder="hCaptcha" data-captcha-lazy />
       </td>
     </tr>
-    <tr :if={@config.user_flag && Map.get(@config, :post_form_flags, false)}>
-      <th>Flags</th>
+    <tr :if={@config.user_flag}>
+      <th>Flag</th>
       <td>
-        <input
+        <textarea
           :if={@config.multiple_flags}
-          style="float:left;"
           name="user_flag"
-          type="text"
-          size="25"
-          maxlength="300"
-          autocomplete="off"
           id="user_flag"
-          value={@config.default_user_flag}
-        />
+          rows="2"
+          cols="24"
+          autocomplete="off"
+        ><%= @config.default_user_flag %></textarea>
         <select :if={!@config.multiple_flags} name="user_flag" id="user_flag">
           <option value="">None</option>
           <%= for {flag, text} <- @config.user_flags do %>
@@ -211,14 +208,6 @@
       <td>
         <input type="text" name="password" value="" size="12" maxlength="18" autocomplete="off" />
         <span class="unimportant">(For file deletion.)</span>
-      </td>
-    </tr>
-    <tr :if={@current_moderator}>
-      <th>Flags</th>
-      <td>
-        <input id="raw_new" type="checkbox" name="raw" value="1" />
-        <label for="raw_new">Raw HTML</label>
-        <input type="text" name="capcode" placeholder="Capcode" size="16" />
       </td>
     </tr>
     <tr :if={@config.antispam_question}>
